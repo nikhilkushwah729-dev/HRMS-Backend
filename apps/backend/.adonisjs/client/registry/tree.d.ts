@@ -1,0 +1,167 @@
+/* eslint-disable prettier/prettier */
+import type { routes } from './index.ts'
+
+export interface ApiDefinition {
+  countries: {
+    index: typeof routes['countries.index']
+  }
+  orgRegistration: {
+    register: typeof routes['org_registration.register']
+    verifyEmail: typeof routes['org_registration.verify_email']
+  }
+  auth: {
+    login: typeof routes['auth.login']
+    verifyOtp: typeof routes['auth.verify_otp']
+    checkIdentifier: typeof routes['auth.check_identifier']
+    requestEmailOtp: typeof routes['auth.request_email_otp']
+    verifyEmailOtp: typeof routes['auth.verify_email_otp']
+    loginWithVerifiedEmail: typeof routes['auth.login_with_verified_email']
+    forgotPassword: typeof routes['auth.forgot_password']
+    resetPassword: typeof routes['auth.reset_password']
+    logout: typeof routes['auth.logout']
+    me: typeof routes['auth.me']
+  }
+  socialAuth: {
+    redirectToGoogle: typeof routes['social_auth.redirect_to_google']
+    handleGoogleCallback: typeof routes['social_auth.handle_google_callback']
+    redirectToMicrosoft: typeof routes['social_auth.redirect_to_microsoft']
+    handleMicrosoftCallback: typeof routes['social_auth.handle_microsoft_callback']
+    requestPhoneOtp: typeof routes['social_auth.request_phone_otp']
+    verifyPhoneOtp: typeof routes['social_auth.verify_phone_otp']
+    resendPhoneOtp: typeof routes['social_auth.resend_phone_otp']
+    enablePhoneAuth: typeof routes['social_auth.enable_phone_auth']
+    disablePhoneAuth: typeof routes['social_auth.disable_phone_auth']
+    linkSocialAccount: typeof routes['social_auth.link_social_account']
+  }
+  organizations: {
+    show: typeof routes['organizations.show']
+    update: typeof routes['organizations.update']
+    getDepartments: typeof routes['organizations.get_departments']
+    storeDepartment: typeof routes['organizations.store_department']
+    getAddons: typeof routes['organizations.get_addons']
+    toggleAddon: typeof routes['organizations.toggle_addon']
+  }
+  employees: {
+    index: typeof routes['employees.index']
+    store: typeof routes['employees.store']
+    show: typeof routes['employees.show']
+    update: typeof routes['employees.update']
+    destroy: typeof routes['employees.destroy']
+    updateGeofence: typeof routes['employees.update_geofence']
+    getGeofence: typeof routes['employees.get_geofence']
+    removeGeofence: typeof routes['employees.remove_geofence']
+  }
+  attendances: {
+    checkIn: typeof routes['attendances.check_in']
+    checkOut: typeof routes['attendances.check_out']
+    history: typeof routes['attendances.history']
+    getToday: typeof routes['attendances.get_today']
+    startBreak: typeof routes['attendances.start_break']
+    endBreak: typeof routes['attendances.end_break']
+    getTodayBreaks: typeof routes['attendances.get_today_breaks']
+    getStats: typeof routes['attendances.get_stats']
+    getMonthly: typeof routes['attendances.get_monthly']
+    requestManual: typeof routes['attendances.request_manual']
+    getManualRequests: typeof routes['attendances.get_manual_requests']
+    processManual: typeof routes['attendances.process_manual']
+    requestOvertime: typeof routes['attendances.request_overtime']
+    getOvertime: typeof routes['attendances.get_overtime']
+    validateLocation: typeof routes['attendances.validate_location']
+    getZones: typeof routes['attendances.get_zones']
+    getAll: typeof routes['attendances.get_all']
+    getTodayAll: typeof routes['attendances.get_today_all']
+    getShifts: typeof routes['attendances.get_shifts']
+  }
+  regularizations: {
+    index: typeof routes['regularizations.index']
+    store: typeof routes['regularizations.store']
+    update: typeof routes['regularizations.update']
+  }
+  tracking: {
+    update: typeof routes['tracking.update']
+    history: typeof routes['tracking.history']
+  }
+  leaves: {
+    index: typeof routes['leaves.index']
+    getTypes: typeof routes['leaves.get_types']
+    store: typeof routes['leaves.store']
+    updateStatus: typeof routes['leaves.update_status']
+    getBalances: typeof routes['leaves.get_balances']
+    adjustBalance: typeof routes['leaves.adjust_balance']
+  }
+  leaveTypesAlias: typeof routes['leave_types_alias']
+  payrolls: {
+    index: typeof routes['payrolls.index']
+    store: typeof routes['payrolls.store']
+  }
+  projects: {
+    index: typeof routes['projects.index']
+    store: typeof routes['projects.store']
+    tasks: typeof routes['projects.tasks']
+    storeTask: typeof routes['projects.store_task']
+  }
+  announcements: {
+    index: typeof routes['announcements.index']
+    store: typeof routes['announcements.store']
+  }
+  expenses: {
+    index: typeof routes['expenses.index']
+    store: typeof routes['expenses.store']
+    updateStatus: typeof routes['expenses.update_status']
+  }
+  timesheets: {
+    index: typeof routes['timesheets.index']
+    store: typeof routes['timesheets.store']
+  }
+  notifications: {
+    index: typeof routes['notifications.index']
+    markAsRead: typeof routes['notifications.mark_as_read']
+    markAllAsRead: typeof routes['notifications.mark_all_as_read']
+    destroy: typeof routes['notifications.destroy']
+  }
+  auditLogs: {
+    index: typeof routes['audit_logs.index']
+    store: typeof routes['audit_logs.store']
+    getModules: typeof routes['audit_logs.get_modules']
+    getActions: typeof routes['audit_logs.get_actions']
+    export: typeof routes['audit_logs.export']
+    show: typeof routes['audit_logs.show']
+  }
+  documents: {
+    index: typeof routes['documents.index']
+    store: typeof routes['documents.store']
+    destroy: typeof routes['documents.destroy']
+  }
+  roles: {
+    index: typeof routes['roles.index']
+    store: typeof routes['roles.store']
+    update: typeof routes['roles.update']
+    getPermissions: typeof routes['roles.get_permissions']
+  }
+  faceRecognition: {
+    register: typeof routes['face_recognition.register']
+    verify: typeof routes['face_recognition.verify']
+    status: typeof routes['face_recognition.status']
+    delete: typeof routes['face_recognition.delete']
+  }
+  employeeInvitations: {
+    invite: typeof routes['employee_invitations.invite']
+    list: typeof routes['employee_invitations.list']
+    revoke: typeof routes['employee_invitations.revoke']
+    resend: typeof routes['employee_invitations.resend']
+    getByToken: typeof routes['employee_invitations.get_by_token']
+    respond: typeof routes['employee_invitations.respond']
+  }
+  reports: {
+    getDailyReport: typeof routes['reports.get_daily_report']
+    getMonthlyReport: typeof routes['reports.get_monthly_report']
+    getAttendanceReport: typeof routes['reports.get_attendance_report']
+    getLateArrivals: typeof routes['reports.get_late_arrivals']
+    getAbsentReport: typeof routes['reports.get_absent_report']
+    getSummary: typeof routes['reports.get_summary']
+    getWeeklyAttendance: typeof routes['reports.get_weekly_attendance']
+    getDepartmentWiseAttendance: typeof routes['reports.get_department_wise_attendance']
+    exportExcel: typeof routes['reports.export_excel']
+    exportPdf: typeof routes['reports.export_pdf']
+  }
+}

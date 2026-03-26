@@ -1,0 +1,153 @@
+{
+  "tables": [
+    {
+      "Tables_in_hrms_complete": "addon_prices"
+    },
+    {
+      "Tables_in_hrms_complete": "adonis_schema"
+    },
+    {
+      "Tables_in_hrms_complete": "adonis_schema_versions"
+    },
+    {
+      "Tables_in_hrms_complete": "announcements"
+    },
+    {
+      "Tables_in_hrms_complete": "api_rate_limits"
+    },
+    {
+      "Tables_in_hrms_complete": "attendance"
+    },
+    {
+      "Tables_in_hrms_complete": "audit_logs"
+    },
+    {
+      "Tables_in_hrms_complete": "data_erasure_requests"
+    },
+    {
+      "Tables_in_hrms_complete": "departments"
+    },
+    {
+      "Tables_in_hrms_complete": "designations"
+    },
+    {
+      "Tables_in_hrms_complete": "document_access_logs"
+    },
+    {
+      "Tables_in_hrms_complete": "documents"
+    },
+    {
+      "Tables_in_hrms_complete": "email_verification_tokens"
+    },
+    {
+      "Tables_in_hrms_complete": "employee_invitations"
+    },
+    {
+      "Tables_in_hrms_complete": "employee_shifts"
+    },
+    {
+      "Tables_in_hrms_complete": "employees"
+    },
+    {
+      "Tables_in_hrms_complete": "expenses"
+    },
+    {
+      "Tables_in_hrms_complete": "invoices"
+    },
+    {
+      "Tables_in_hrms_complete": "leave_types"
+    },
+    {
+      "Tables_in_hrms_complete": "leaves"
+    },
+    {
+      "Tables_in_hrms_complete": "login_attempts"
+    },
+    {
+      "Tables_in_hrms_complete": "magic_link_tokens"
+    },
+    {
+      "Tables_in_hrms_complete": "notifications"
+    },
+    {
+      "Tables_in_hrms_complete": "org_ip_whitelist"
+    },
+    {
+      "Tables_in_hrms_complete": "org_registrations"
+    },
+    {
+      "Tables_in_hrms_complete": "organization_addons"
+    },
+    {
+      "Tables_in_hrms_complete": "organizations"
+    },
+    {
+      "Tables_in_hrms_complete": "otp_tokens"
+    },
+    {
+      "Tables_in_hrms_complete": "password_history"
+    },
+    {
+      "Tables_in_hrms_complete": "password_reset_tokens"
+    },
+    {
+      "Tables_in_hrms_complete": "payments"
+    },
+    {
+      "Tables_in_hrms_complete": "payroll"
+    },
+    {
+      "Tables_in_hrms_complete": "payroll_settings"
+    },
+    {
+      "Tables_in_hrms_complete": "permissions"
+    },
+    {
+      "Tables_in_hrms_complete": "plans"
+    },
+    {
+      "Tables_in_hrms_complete": "project_members"
+    },
+    {
+      "Tables_in_hrms_complete": "projects"
+    },
+    {
+      "Tables_in_hrms_complete": "refresh_tokens"
+    },
+    {
+      "Tables_in_hrms_complete": "role_permissions"
+    },
+    {
+      "Tables_in_hrms_complete": "roles"
+    },
+    {
+      "Tables_in_hrms_complete": "shifts"
+    },
+    {
+      "Tables_in_hrms_complete": "social_logins"
+    },
+    {
+      "Tables_in_hrms_complete": "tasks"
+    },
+    {
+      "Tables_in_hrms_complete": "timesheets"
+    },
+    {
+      "Tables_in_hrms_complete": "trusted_devices"
+    },
+    {
+      "Tables_in_hrms_complete": "user_sessions"
+    },
+    {
+      "Tables_in_hrms_complete": "users"
+    }
+  ],
+  "migrations": [
+    {
+      "id": 1,
+      "name": "database/migrations/1761885935168_create_users_table",
+      "batch": 1,
+      "migration_time": "2026-03-01T09:55:50.000Z"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "tables": [
+    "addon_prices",
+    "adonis_schema",
+    "adonis_schema_versions",
+    "announcements",
+    "api_rate_limits",
+    "attendance",
+    "audit_logs",
+    "auth_access_tokens",
+    "data_erasure_requests",
+    "departments",
+    "designations",
+    "document_access_logs",
+    "documents",
+    "email_verification_tokens",
+    "employee_invitations",
+    "employee_shifts",
+    "employees",
+    "expenses",
+    "invoices",
+    "leave_types",
+    "leaves",
+    "login_attempts",
+    "magic_link_tokens",
+    "notifications",
+    "org_ip_whitelist",
+    "org_registrations",
+    "organization_addons",
+    "organizations",
+    "otp_tokens",
+    "password_history",
+    "password_reset_tokens",
+    "payments",
+    "payroll",
+    "payroll_settings",
+    "permissions",
+    "plans",
+    "project_members",
+    "projects",
+    "refresh_tokens",
+    "role_permissions",
+    "roles",
+    "shifts",
+    "social_logins",
+    "tasks",
+    "timesheets",
+    "trusted_devices",
+    "user_sessions",
+    "users"
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "bigint(20) unsigned"
+    },
+    {
+      "name": "org_id",
+      "type": "int(10) unsigned"
+    },
+    {
+      "name": "employee_id",
+      "type": "int(10) unsigned"
+    },
+    {
+      "name": "action",
+      "type": "varchar(100)"
+    },
+    {
+      "name": "module",
+      "type": "varchar(50)"
+    },
+    {
+      "name": "entity_name",
+      "type": "varchar(50)"
+    },
+    {
+      "name": "entity_id",
+      "type": "varchar(50)"
+    },
+    {
+      "name": "old_values",
+      "type": "longtext"
+    },
+    {
+      "name": "new_values",
+      "type": "longtext"
+    },
+    {
+      "name": "ip_address",
+      "type": "varchar(45)"
+    },
+    {
+      "name": "user_agent",
+      "type": "varchar(500)"
+    },
+    {
+      "name": "session_id",
+      "type": "varchar(255)"
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp"
+    },
+    {
+      "name": "is_immutable",
+      "type": "tinyint(1)"
+    }
+  ],
+  "migrations": [
+    {
+      "batch": 1,
+      "name": "database/migrations/1768620764696_create_access_tokens_table"
+    },
+    {
+      "batch": 1,
+      "name": "database/migrations/1761885935168_create_users_table"
+    }
+  ]
+}

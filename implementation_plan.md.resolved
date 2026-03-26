@@ -1,0 +1,77 @@
+# Implementation Plan - Complete HRMS API v3.0 Secured
+
+This plan outlines the steps to build a comprehensive, secure, and multi-tenant HRMS API using AdonisJS, based on the provided SQL schema.
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Encryption**: Sensitive PII fields (Salary, Bank Account, PAN) will be encrypted at the application layer using AdonisJS Encryption provider.
+> - **Soft Deletes**: All critical tables will implement soft deletion logic.
+> - **Multi-Tenancy**: `org_id` will be enforced in all queries via a Global Macro or Base Model.
+
+## Proposed Changes
+
+### [Core Infrastructure]
+
+#### [MODIFY] [BaseModel](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Models/BaseModel.ts) (New or Modify existing)
+- Implement `SoftDeletes` functionality.
+- Add hooks for `AuditLogging`.
+
+### [Authentication & Security]
+
+#### [MODIFY] [AuthController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/AuthController.ts)
+- Add endpoints for `ForgotPassword`, `ResetPassword`, `VerifyEmail`.
+- Implement `2FA` flow using `OtpTokens`.
+- Add `MagicLink` login support.
+
+#### [NEW] [InvitationsController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/InvitationsController.ts)
+- Manage employee invitations (Invite, Accept, Revoke).
+
+#### [NEW] [SecurityController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/SecurityController.ts)
+- Manage `IP Whitelist` and `API Rate Limits`.
+
+### [Billing & Subscriptions]
+
+#### [NEW] [PlansController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/PlansController.ts)
+- CRUD for subscription plans.
+
+#### [NEW] [PaymentsController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/PaymentsController.ts)
+- Handle payment processing logic (mocking gateway integration).
+- Ensure idempotency using `idempotency_key`.
+
+#### [NEW] [InvoicesController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/InvoicesController.ts)
+- Generate and list invoices.
+
+### [Module Enhancements]
+
+#### [MODIFY] [EmployeesController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/EmployeesController.ts)
+- Update to handle encrypted fields for PII data.
+- Ensure soft deletes are respected in all queries.
+
+#### [NEW] [TasksController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/TasksController.ts)
+- Comprehensive task management (Subtasks, Priority, Status).
+
+#### [NEW] [DocumentsController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/DocumentsController.ts)
+- Secure document handling using `file_uuid`.
+
+### [Compliance & Audit]
+
+#### [NEW] [AuditController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/AuditController.ts)
+- View append-only audit logs.
+
+#### [NEW] [GdprController.ts](file:///d:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/Controllers/Http/GdprController.ts)
+- Handle Data Erasure Requests.
+
+## Verification Plan
+
+### Automated Tests
+- Run `node ace test` to execute existing and new tests.
+- Specific tests for:
+    - Auth flow (Login, 2FA, Reset Password).
+    - Multi-tenant isolation (One org shouldn't see another's data).
+    - Encryption (Verify data is non-readable in DB but readable via API).
+
+### Manual Verification
+- Verify that `deleted_at` is set instead of record being removed.
+- Check `audit_logs` table after performing various operations.
+- Test IP Whitelisting by spoofing/changing request headers in a local dev tool.

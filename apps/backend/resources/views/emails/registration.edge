@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to {{ user.companyName }}</title>
+</head>
+<body>
+    <h1>Welcome, {{ user.adminFirstName }}!</h1>
+    <p>
+        Thank you for registering <strong>{{ user.companyName }}</strong> with our HRMS platform.
+    </p>
+
+    <p>
+        Please verify your email address to complete the setup process:
+    </p>
+
+    <p>
+        <a href="{{ url }}">Click here to verify your email</a>
+    </p>
+
+    <p>
+        If the button above doesn't work, copy and paste this link into your browser:<br>
+        {{ url }}
+    </p>
+
+    <p>
+        Best regards,<br>
+        The HRMS Team
+    </p>
+</body>
+</html>

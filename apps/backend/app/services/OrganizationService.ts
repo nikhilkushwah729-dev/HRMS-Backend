@@ -1,0 +1,105 @@
+import Organization from '#models/organization'
+import Department from '#models/department'
+import Designation from '#models/designation'
+import AddonPrice from '#models/addon_price'
+import OrganizationAddon from '#models/organization_addon'
+import { Exception } from '@adonisjs/core/exceptions'
+import { DateTime } from 'luxon'
+
+export default class OrganizationService {
+    /**
+     * Get organization details
+     */
+    async getById(id: number) {
+        const org = await Organization.query()
+            .where('id', id)
+            .preload('plan')
+            .preload('departments')
+            .first()
+
+        if (!org) {
+            throw new Exception('Organization not found', { status: 404 })
+        }
+
+        return org
+    }
+
+    /**
+     * Create a new organization (Onboarding)
+     */
+    async create(data: any) {
+        return await Organization.create(data)
+    }
+
+    /**
+     * Update organization
+     */
+    async update(id: number, data: any) {
+        const org = await this.getById(id)
+        org.merge(data)
+        await org.save()
+        return org
+    }
+
+    /**
+     * Manage Departments
+     */
+    async addDepartment(orgId: number, data: any) {
+        const { name, ...rest } = data
+        return await Department.create({ ...rest, departmentName: name, orgId })
+    }
+
+    async getDepartments(orgId: number) {
+        return await Department.query().where('org_id', orgId).preload('designations')
+    }
+
+    /**
+     * Manage Designations
+     */
+    async getDesignations(orgId: number) {
+        return await Designation.query().where('org_id', orgId)
+    }
+
+    async addDesignation(orgId: number, departmentId: number | null, data: any) {
+        return await Designation.create({ ...data, orgId, departmentId })
+    }
+
+    /**
+     * Manage Addons (Modules)
+     */
+    async getAddons(orgId: number) {
+        const allAddons = await AddonPrice.query().where('isActive', true)
+        const orgAddons = await OrganizationAddon.query().where('orgId', orgId)
+
+        return allAddons.map(addon => {
+            const orgAddon = orgAddons.find(oa => oa.addonId === addon.id)
+            return {
+                id: addon.id,
+                name: addon.name,
+                slug: addon.slug,
+                description: `Manage ${addon.name} module`,
+                isActive: orgAddon ? orgAddon.isActive : false
+            }
+        })
+    }
+
+    async toggleAddon(orgId: number, addonId: number, isActive: boolean) {
+        let orgAddon = await OrganizationAddon.query()
+            .where('orgId', orgId)
+            .where('addonId', addonId)
+            .first()
+
+        if (orgAddon) {
+            orgAddon.isActive = isActive
+            await orgAddon.save()
+        } else if (isActive) {
+            orgAddon = await OrganizationAddon.create({
+                orgId,
+                addonId,
+                isActive: true,
+                startDate: DateTime.now()
+            })
+        }
+        return orgAddon
+    }
+}

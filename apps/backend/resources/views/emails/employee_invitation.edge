@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Invitation to join {{ invitation.organizationName }}</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+    <h1>You have been invited to join {{ invitation.organizationName }}</h1>
+
+    <p>Hello,</p>
+
+    <p>
+        {{ invitation.inviterName }} has invited you to join <strong>{{ invitation.organizationName }}</strong>
+        as <strong>{{ invitation.roleName }}</strong>.
+    </p>
+
+    <p>
+        Use the link below to review and respond to the invitation:
+    </p>
+
+    <p>
+        <a href="{{ invitation.invitationUrl }}">Open invitation</a>
+    </p>
+
+    <p>
+        This invitation expires on <strong>{{ invitation.expiresAt }}</strong>.
+    </p>
+
+    <p>
+        If the button does not work, copy and paste this link into your browser:<br>
+        {{ invitation.invitationUrl }}
+    </p>
+
+    <p>
+        Best regards,<br>
+        The HRMS Team
+    </p>
+</body>
+</html>

@@ -1,0 +1,20 @@
+﻿app/controllers/access_token_controller.ts(11,54): error TS2345: Argument of type 'Employee | null' is not assignable to parameter of type 'Employee'.
+  Type 'null' is not assignable to type 'Employee'.
+app/controllers/Http/AuthController.ts(125,50): error TS18048: 'user.currentAccessToken' is possibly 'undefined'.
+app/controllers/Http/AuthController.ts(129,23): error TS6133: 'request' is declared but its value is never read.
+app/models/employee.ts(11,1): error TS6133: 'withSoftDelete' is declared but its value is never read.
+app/models/employee.ts(12,1): error TS6133: 'withAuditLog' is declared but its value is never read.
+app/services/AnnouncementService.ts(2,1): error TS6133: 'Exception' is declared but its value is never read.
+app/services/EmployeeService.ts(66,18): error TS2551: Property 'deletedAt' does not exist on type 'Employee'. Did you mean 'delete'?
+app/services/EmployeeService.ts(67,18): error TS2551: Property 'deletedBy' does not exist on type 'Employee'. Did you mean 'delete'?
+app/services/PayrollService.ts(5,1): error TS6133: 'DateTime' is declared but its value is never read.
+app/services/ProjectService.ts(3,1): error TS6133: 'Exception' is declared but its value is never read.
+app/services/TimesheetService.ts(2,1): error TS6133: 'Exception' is declared but its value is never read.
+app/services/TimesheetService.ts(3,1): error TS6133: 'DateTime' is declared but its value is never read.
+commands/verify_credentials.ts(23,54): error TS18047: 'user' is possibly 'null'.
+create_auth.ts(2,1): error TS6133: 'env' is declared but its value is never read.
+start/routes.ts(22,30): error TS2345: Argument of type '[() => Promise<typeof import("D:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/controllers/org_registration_controller", { with: { "resolution-mode": "import" } })>, "verifyEmail"]' is not assignable to parameter of type 'string | RouteFn | [typeof OrgRegistrationController | LazyImport<typeof OrgRegistrationController>, ("register" | undefined)?]'.
+  Type '[() => Promise<typeof import("D:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/controllers/org_registration_controller", { with: { "resolution-mode": "import" } })>, "verifyEmail"]' is not assignable to type 'RouteFn | [typeof OrgRegistrationController | LazyImport<typeof OrgRegistrationController>, ("register" | undefined)?]'.
+    Type '[() => Promise<typeof import("D:/HRMS_Backend/HRMS_BACKEND/apps/backend/app/controllers/org_registration_controller", { with: { "resolution-mode": "import" } })>, "verifyEmail"]' is not assignable to type '[typeof OrgRegistrationController | LazyImport<typeof OrgRegistrationController>, ("register" | undefined)?]'.
+      Type at position 1 in source is not compatible with type at position 1 in target.
+        Type '"verifyEmail"' is not assignable to type '"register"'.

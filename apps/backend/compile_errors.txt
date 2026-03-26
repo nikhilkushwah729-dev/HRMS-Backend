@@ -1,0 +1,24 @@
+﻿app/controllers/access_token_controller.ts(22,38): error TS2345: Argument of type 'Employee | (Employee & { currentAccessToken: AccessToken; })' is not assignable to parameter of type 'User'.
+  Type 'Employee' is missing the following properties from type 'User': initials, $columns, fullName, password
+app/controllers/profile_controller.ts(6,48): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'Employee | (Employee & { currentAccessToken: AccessToken; })' is not assignable to parameter of type 'User[]'.
+      Type 'Employee' is missing the following properties from type 'User[]': length, pop, push, concat, and 34 more.
+app/models/email_verification_token.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'EmailVerificationTokenSchema'.
+app/models/employee_invitation.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'EmployeeInvitationSchema'.
+app/models/magic_link_token.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'MagicLinkTokenSchema'.
+app/models/notification.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'NotificationSchema'.
+app/models/org_registration.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'OrgRegistrationSchema'.
+app/models/password_reset_token.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'PasswordResetTokenSchema'.
+app/models/refresh_token.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'RefreshTokenSchema'.
+app/models/social_login.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'SocialLoginSchema'.
+app/models/trusted_device.ts(1,10): error TS2305: Module '"#database/schema"' has no exported member 'TrustedDeviceSchema'.
+app/services/AnnouncementService.ts(2,1): error TS6133: 'Exception' is declared but its value is never read.
+app/services/PayrollService.ts(5,1): error TS6133: 'DateTime' is declared but its value is never read.
+app/services/PayrollService.ts(19,43): error TS2551: Property 'pfPercentage' does not exist on type 'PayrollSetting'. Did you mean 'pfPercent'?
+app/services/PayrollService.ts(20,44): error TS2551: Property 'esiPercentage' does not exist on type 'PayrollSetting'. Did you mean 'esiPercent'?
+app/services/PayrollService.ts(21,44): error TS2551: Property 'tdsPercentage' does not exist on type 'PayrollSetting'. Did you mean 'tdsPercent'?
+app/services/PayrollService.ts(37,13): error TS2322: Type '"generated"' is not assignable to type '"failed" | "draft" | "processed" | "paid" | "reversed" | undefined'.
+app/services/ProjectService.ts(3,1): error TS6133: 'Exception' is declared but its value is never read.
+app/services/TimesheetService.ts(2,1): error TS6133: 'Exception' is declared but its value is never read.
+app/services/TimesheetService.ts(3,1): error TS6133: 'DateTime' is declared but its value is never read.
