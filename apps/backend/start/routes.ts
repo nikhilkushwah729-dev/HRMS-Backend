@@ -1,5 +1,7 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 
 // Controllers
 const AuthController = () => import('#controllers/Http/AuthController')
@@ -9,10 +11,37 @@ const AttendancesController = () => import('#controllers/Http/AttendancesControl
 const LeavesController = () => import('#controllers/Http/LeavesController')
 const NotificationsController = () => import('#controllers/Http/NotificationsController')
 const DocumentsController = () => import('#controllers/Http/DocumentsController')
+const EmployeeExperiencesController = () => import('#controllers/Http/EmployeeExperiencesController')
+const EmployeeEducationsController = () => import('#controllers/Http/EmployeeEducationsController')
 const RolesController = () => import('#controllers/Http/RolesController')
 
 router.get('/', async () => {
   return { status: 'online', version: '1.0.0' }
+})
+
+router.get('uploads/:folder/:file', async ({ params, response }) => {
+  const safeFolder = String(params.folder || '').replace(/[^a-zA-Z0-9_-]/g, '')
+  const safeFile = path.basename(String(params.file || ''))
+  const filePath = path.join(process.cwd(), 'public', 'uploads', safeFolder, safeFile)
+
+  try {
+    const fileBuffer = await fs.readFile(filePath)
+    const extension = path.extname(safeFile).toLowerCase()
+    const mimeTypeMap: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.gif': 'image/gif',
+    }
+
+    response.header('Content-Type', mimeTypeMap[extension] || 'application/octet-stream')
+    response.header('Cache-Control', 'public, max-age=86400')
+    return response.send(fileBuffer)
+  } catch {
+    return response.notFound({ status: 'error', message: 'File not found' })
+  }
 })
 
 /**
@@ -237,6 +266,22 @@ router.group(() => {
   router.put('/:id', [RolesController, 'update'])
   router.get('/permissions', [RolesController, 'getPermissions'])
 }).prefix('api/roles').use(middleware.auth())
+
+// Employee Experience
+router.group(() => {
+  router.get('/', [EmployeeExperiencesController, 'index'])
+  router.post('/', [EmployeeExperiencesController, 'store'])
+  router.put('/:id', [EmployeeExperiencesController, 'update'])
+  router.delete('/:id', [EmployeeExperiencesController, 'destroy'])
+}).prefix('api/experiences').use(middleware.auth())
+
+// Employee Education
+router.group(() => {
+  router.get('/', [EmployeeEducationsController, 'index'])
+  router.post('/', [EmployeeEducationsController, 'store'])
+  router.put('/:id', [EmployeeEducationsController, 'update'])
+  router.delete('/:id', [EmployeeEducationsController, 'destroy'])
+}).prefix('api/education').use(middleware.auth())
 
 /**
  * Face Recognition Routes

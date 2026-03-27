@@ -10,26 +10,26 @@ export default class OrganizationAddon extends BaseModel {
     @column({ isPrimary: true })
     declare id: number
 
-    @column()
+    @column({ columnName: 'org_id' })
     declare orgId: number
 
-    @column()
+    @column({ columnName: 'addon_id' })
     declare addonId: number
 
-    @column.date()
+    @column.date({ columnName: 'start_date' })
     declare startDate: DateTime
 
-    @column.date()
+    @column.date({ columnName: 'end_date' })
     declare endDate: DateTime | null
 
-    @column()
+    @column({ columnName: 'is_active' })
     declare isActive: boolean
 
     @column.dateTime({ autoCreate: true })
     declare createdAt: DateTime
 
     // Relationships
-    @belongsTo(() => Organization)
+    @belongsTo(() => Organization, { foreignKey: 'orgId' })
     declare organization: BelongsTo<typeof Organization>
 
     @belongsTo(() => AddonPrice, { foreignKey: 'addonId' })

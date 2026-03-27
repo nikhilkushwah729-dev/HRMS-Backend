@@ -5,10 +5,12 @@ import Organization from '#models/organization'
 import Task from '#models/task'
 
 export default class Project extends BaseModel {
+    static table = 'projects'
+
     @column({ isPrimary: true })
     declare id: number
 
-    @column()
+    @column({ columnName: 'org_id' })
     declare orgId: number
 
     @column()
@@ -17,7 +19,7 @@ export default class Project extends BaseModel {
     @column()
     declare description: string | null
 
-    @column()
+    @column({ columnName: 'client_name' })
     declare clientName: string | null
 
     @column.date()
@@ -35,7 +37,7 @@ export default class Project extends BaseModel {
     @column()
     declare priority: 'low' | 'medium' | 'high' | 'critical'
 
-    @column.dateTime()
+    @column.dateTime({ columnName: 'deleted_at' })
     declare deletedAt: DateTime | null
 
     @column.dateTime({ autoCreate: true })
@@ -45,9 +47,9 @@ export default class Project extends BaseModel {
     declare updatedAt: DateTime
 
     // Relationships
-    @belongsTo(() => Organization)
+    @belongsTo(() => Organization, { foreignKey: 'orgId' })
     declare organization: BelongsTo<typeof Organization>
 
-    @hasMany(() => Task)
+    @hasMany(() => Task, { foreignKey: 'projectId' })
     declare tasks: HasMany<typeof Task>
 }

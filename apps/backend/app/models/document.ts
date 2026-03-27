@@ -15,16 +15,19 @@ export default class Document extends BaseModel {
     declare employeeId: number | null
 
     @column()
-    declare name: string
+    declare title: string
 
     @column()
-    declare fileUrl: string
+    declare fileUuid: string
 
     @column()
     declare fileType: string | null
 
     @column()
-    declare fileSize: number | null
+    declare fileSizeKb: number | null
+
+    @column()
+    declare mimeType: string | null
 
     @column()
     declare category: string | null
@@ -33,10 +36,13 @@ export default class Document extends BaseModel {
     declare isPrivate: boolean
 
     @column()
-    declare uploadedBy: number | null
+    declare isEncrypted: boolean
 
     @column()
-    declare isActive: boolean
+    declare checksum: string | null
+
+    @column()
+    declare uploadedBy: number | null
 
     @column.dateTime()
     declare deletedAt: DateTime | null

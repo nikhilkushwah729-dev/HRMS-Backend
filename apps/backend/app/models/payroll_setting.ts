@@ -4,19 +4,21 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Organization from '#models/organization'
 
 export default class PayrollSetting extends BaseModel {
+    static table = 'payroll_settings'
+
     @column({ isPrimary: true })
     declare id: number
 
-    @column()
+    @column({ columnName: 'org_id' })
     declare orgId: number
 
-    @column()
+    @column({ columnName: 'pf_percent' })
     declare pfPercent: number
 
-    @column()
+    @column({ columnName: 'esi_percent' })
     declare esiPercent: number
 
-    @column()
+    @column({ columnName: 'tds_percent' })
     declare tdsPercent: number
 
     @column.dateTime({ autoCreate: true })
@@ -26,6 +28,6 @@ export default class PayrollSetting extends BaseModel {
     declare updatedAt: DateTime
 
     // Relationships
-    @belongsTo(() => Organization)
+    @belongsTo(() => Organization, { foreignKey: 'orgId' })
     declare organization: BelongsTo<typeof Organization>
 }

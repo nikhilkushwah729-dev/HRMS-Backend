@@ -207,7 +207,8 @@ export default class AuthController {
             lastName: user.lastName,
             email: user.email,
             roleId: user.roleId,
-            orgId: user.orgId
+            orgId: user.orgId,
+            avatar: user.avatar
         })
     }
 

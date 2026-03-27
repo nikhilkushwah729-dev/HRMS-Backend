@@ -15,7 +15,7 @@ export default class Organization extends OrganizationBase {
     @column({ isPrimary: true })
     declare id: number
 
-    @column()
+    @column({ columnName: 'company_name' })
     declare companyName: string
 
     @column()
@@ -48,7 +48,7 @@ export default class Organization extends OrganizationBase {
     @column()
     declare dialCode: string | null
 
-    @column()
+    @column({ columnName: 'postal_code' })
     declare postalCode: string | null
 
     @column()
@@ -57,48 +57,48 @@ export default class Organization extends OrganizationBase {
     @column()
     declare logo: string | null
 
-    @column()
+    @column({ columnName: 'plan_id' })
     declare planId: number | null
 
-    @column()
+    @column({ columnName: 'plan_status' })
     declare planStatus: boolean
 
-    @column.date()
+    @column.date({ columnName: 'plan_end_date' })
     declare planEndDate: DateTime | null
 
-    @column()
+    @column({ columnName: 'user_limit' })
     declare userLimit: number
 
-    @column()
+    @column({ columnName: 'is_active' })
     declare isActive: boolean
 
-    @column()
+    @column({ columnName: 'is_verified' })
     declare isVerified: boolean
 
-    @column()
+    @column({ columnName: 'verification_token' })
     declare verificationToken: string | null
 
     @column()
     declare timezone: string
 
     // Geofence settings
-    @column()
+    @column({ columnName: 'geofence_enabled' })
     declare geofenceEnabled: boolean
 
-    @column()
+    @column({ columnName: 'require_geofence_for_all' })
     declare requireGeofenceForAll: boolean
 
-    @column()
+    @column({ columnName: 'default_geofence_id' })
     declare defaultGeofenceId: number | null
 
     // Organization type and localization
-    @column()
+    @column({ columnName: 'org_type' })
     declare orgType: 'national' | 'international'
 
-    @column()
+    @column({ columnName: 'default_language' })
     declare defaultLanguage: string
 
-    @column()
+    @column({ columnName: 'allowed_login_methods' })
     declare allowedLoginMethods: string // Comma-separated: email,google,microsoft,phone
 
     @column.dateTime({ autoCreate: true })
@@ -108,12 +108,12 @@ export default class Organization extends OrganizationBase {
     declare updatedAt: DateTime
 
     // Relationships
-    @belongsTo(() => Plan)
+    @belongsTo(() => Plan, { foreignKey: 'planId' })
     declare plan: BelongsTo<typeof Plan>
 
-    @hasMany(() => Employee)
+    @hasMany(() => Employee, { foreignKey: 'orgId' })
     declare employees: HasMany<typeof Employee>
 
-    @hasMany(() => Department)
+    @hasMany(() => Department, { foreignKey: 'orgId' })
     declare departments: HasMany<typeof Department>
 }

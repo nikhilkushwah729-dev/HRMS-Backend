@@ -13,6 +13,16 @@ export default class OrganizationsController {
             email: vine.string().email().optional(),
             phone: vine.string().optional(),
             address: vine.string().optional(),
+            city: vine.string().maxLength(100).optional(),
+            state: vine.string().maxLength(100).optional(),
+            country: vine.string().maxLength(100).optional(),
+            postalCode: vine.string().maxLength(20).optional(),
+            gstin: vine.string().maxLength(20).optional(),
+            logo: vine.string().maxLength(500).optional(),
+            timezone: vine.string().maxLength(50).optional(),
+            orgType: vine.string().optional(),
+            defaultLanguage: vine.string().maxLength(10).optional(),
+            allowedLoginMethods: vine.string().maxLength(100).optional(),
         })
     )
 

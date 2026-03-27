@@ -5,6 +5,9 @@ import { inject } from '@adonisjs/core'
 import vine from '@vinejs/vine'
 import Geofence from '#models/geofence'
 import Employee from '#models/employee'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 
 @inject()
 export default class EmployeesController {
@@ -27,6 +30,7 @@ export default class EmployeesController {
             salary: vine.number().optional(),
             password: vine.string().minLength(8).optional(),
             // Missing fields from schema
+            avatar: vine.string().nullable().optional(),
             gender: vine.enum(['male', 'female', 'other', 'prefer_not_to_say'] as const).optional(),
             dateOfBirth: vine.string().optional(), // Validated as string, parsed as DateTime
             address: vine.string().optional(),
@@ -76,9 +80,10 @@ export default class EmployeesController {
         try {
             const currentUser = auth.user!
             const data = await request.validateUsing(EmployeesController.employeeValidator)
+            const normalizedData = await this.normalizeAvatarPayload(data)
 
             // Extract password and prepare payload
-            const { password, ...employeeData } = data
+            const { password, ...employeeData } = normalizedData
 
             const payload: any = {
                 ...employeeData,
@@ -126,9 +131,10 @@ export default class EmployeesController {
         const currentUser = auth.user!
         const id = params.id
         const data = await request.validateUsing(EmployeesController.employeeValidator)
+        const normalizedData = await this.normalizeAvatarPayload(data)
 
         // prepare payload (handle password if provided)
-        const { password, ...employeeData } = data
+        const { password, ...employeeData } = normalizedData
         const payload: any = { ...employeeData }
         if (password) {
             payload.passwordHash = password
@@ -142,7 +148,7 @@ export default class EmployeesController {
             action: 'UPDATE',
             module: 'employees',
             entityName: 'employees',
-            entityId: employee.id,
+            entityId: employee!.id,
             newValues: payload,
             ctx: { request } as any
         })
@@ -152,6 +158,41 @@ export default class EmployeesController {
             message: 'Employee updated successfully',
             data: employee,
         })
+    }
+
+    private async normalizeAvatarPayload<T extends Record<string, any> & { avatar?: string | null }>(data: T): Promise<T> {
+        if (data?.avatar === null) {
+            return data
+        }
+
+        if (!data?.avatar || typeof data.avatar !== 'string') {
+            return data
+        }
+
+        const avatarValue = data.avatar.trim()
+        if (!avatarValue.startsWith('data:image')) {
+            data.avatar = avatarValue
+            return data
+        }
+
+        try {
+            const extensionMatch = avatarValue.match(/^data:image\/([a-zA-Z0-9+]+);base64,/)
+            const extension = extensionMatch?.[1]?.replace('svg+xml', 'svg') || 'png'
+            const base64Data = avatarValue.replace(/^data:image\/[a-zA-Z0-9+]+;base64,/, '')
+            const buffer = Buffer.from(base64Data, 'base64')
+            const fileName = `${randomUUID()}.${extension}`
+            const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'avatars')
+
+            await fs.mkdir(uploadsDir, { recursive: true })
+            await fs.writeFile(path.join(uploadsDir, fileName), buffer)
+
+            data.avatar = `/uploads/avatars/${fileName}`
+        } catch (error) {
+            console.error('Error saving avatar image', error)
+            delete data.avatar
+        }
+
+        return data
     }
 
     /**

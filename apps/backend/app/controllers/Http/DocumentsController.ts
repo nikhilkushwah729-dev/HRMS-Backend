@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import { HttpContext } from '@adonisjs/core/http'
 import Document from '#models/document'
 import { inject } from '@adonisjs/core'
@@ -7,10 +8,11 @@ import vine from '@vinejs/vine'
 export default class DocumentsController {
     static documentValidator = vine.compile(
         vine.object({
-            name: vine.string().maxLength(255),
-            fileUrl: vine.string(),
+            title: vine.string().maxLength(255),
+            fileUuid: vine.string(),
             fileType: vine.string().optional(),
-            fileSize: vine.number().optional(),
+            fileSizeKb: vine.number().optional(),
+            mimeType: vine.string().optional(),
             category: vine.string().optional(),
             isPrivate: vine.boolean().optional(),
             employeeId: vine.number().optional(),
@@ -29,7 +31,7 @@ export default class DocumentsController {
                     .orWhere('uploaded_by', employee.id)
                     .orWhere('employee_id', employee.id)
             })
-            .where('is_active', true)
+            .whereNull('deleted_at')
             .orderBy('created_at', 'desc')
 
         return response.ok({
@@ -49,7 +51,6 @@ export default class DocumentsController {
             ...data,
             orgId: employee.orgId,
             uploadedBy: employee.id,
-            isActive: true
         })
 
         return response.created({
@@ -78,7 +79,7 @@ export default class DocumentsController {
             // Check for admin role could be added here
         }
 
-        document.isActive = false
+        document.deletedAt = DateTime.now()
         await document.save()
 
         return response.ok({

@@ -5,25 +5,27 @@ import Department from '#models/department'
 import Employee from '#models/employee'
 
 export default class Designation extends BaseModel {
+    static table = 'designations'
+
     @column({ isPrimary: true })
     declare id: number
 
-    @column()
+    @column({ columnName: 'org_id' })
     declare orgId: number
 
-    @column()
+    @column({ columnName: 'department_id' })
     declare departmentId: number | null
 
-    @column()
+    @column({ columnName: 'designation_name' })
     declare designationName: string
 
     // Relationships
-    @belongsTo(() => Organization)
+    @belongsTo(() => Organization, { foreignKey: 'orgId' })
     declare organization: BelongsTo<typeof Organization>
 
-    @belongsTo(() => Department)
+    @belongsTo(() => Department, { foreignKey: 'departmentId' })
     declare department: BelongsTo<typeof Department>
 
-    @hasMany(() => Employee)
+    @hasMany(() => Employee, { foreignKey: 'designationId' })
     declare employees: HasMany<typeof Employee>
 }
