@@ -155,6 +155,33 @@ export default class ReportsController {
   }
 
   /**
+   * Get attendance dashboard data
+   * GET /api/reports/attendance-dashboard?startDate=2026-01-01&endDate=2026-01-31&status=present&departmentId=1
+   */
+  async getAttendanceDashboard({ auth, request, response }: HttpContext) {
+    const user = auth.user!
+    const startDate = request.input('startDate')
+    const endDate = request.input('endDate')
+    const departmentId = request.input('departmentId')
+    const employeeId = request.input('employeeId')
+    const status = request.input('status')
+
+    try {
+      const dashboard = await this.reportService.getAttendanceDashboard(user.orgId, {
+        startDate,
+        endDate,
+        departmentId: departmentId ? parseInt(departmentId) : undefined,
+        employeeId: employeeId ? parseInt(employeeId) : undefined,
+        status: status || undefined,
+      })
+
+      return response.ok({ data: dashboard })
+    } catch (error) {
+      return response.internalServerError({ message: error.message })
+    }
+  }
+
+  /**
    * Get weekly attendance for charts
    * GET /api/reports/weekly
    */
@@ -245,6 +272,6 @@ export default class ReportsController {
   async exportPdf({ auth, request, response }: HttpContext) {
     // For now, just redirect to Excel export
     // In production, you'd use a PDF library
-    return this.exportExcel({ auth, request, response })
+    return this.exportExcel({ auth, request, response } as any)
   }
 }

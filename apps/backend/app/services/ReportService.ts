@@ -5,6 +5,255 @@ import Holiday from '#models/holiday'
 import { DateTime } from 'luxon'
 
 export default class ReportService {
+  private toSqlDate(value: DateTime): string {
+    return value.toISODate() || value.toFormat('yyyy-MM-dd')
+  }
+
+  private formatTime(value: DateTime | null | undefined): string | null {
+    return value ? value.toFormat('HH:mm:ss') : null
+  }
+
+  private normalizeEmployeeName(employee: Employee | null | undefined): string {
+    if (!employee) return 'Unknown'
+    return `${employee.firstName} ${employee.lastName || ''}`.trim() || 'Unknown'
+  }
+
+  private normalizeDepartmentName(employee: Employee | null | undefined): string {
+    return employee?.department?.departmentName || 'General'
+  }
+
+  private mapAttendanceRecord(att: Attendance) {
+    return {
+      id: att.id,
+      employeeId: att.employeeId,
+      employeeName: this.normalizeEmployeeName(att.employee),
+      employeeCode: att.employee?.employeeCode || 'N/A',
+      department: this.normalizeDepartmentName(att.employee),
+      avatar: att.employee?.avatar || null,
+      date: this.toSqlDate(att.attendanceDate),
+      checkInTime: this.formatTime(att.checkIn),
+      checkOutTime: this.formatTime(att.checkOut),
+      status: att.status,
+      lateMinutes: att.isLate ? 15 : 0,
+      overtimeMinutes: att.isOvertime ? 60 : 0,
+      workHours: Number(att.netWorkHours || att.workHours || 0),
+      breakMinutes: att.totalBreakMin || 0,
+    }
+  }
+
+  /**
+   * Get attendance dashboard data for analytics hubs
+   */
+  async getAttendanceDashboard(
+    orgId: number,
+    filters: {
+      startDate?: string
+      endDate?: string
+      status?: string
+      departmentId?: number
+      employeeId?: number
+    } = {}
+  ) {
+    const now = DateTime.now()
+    const start = filters.startDate ? DateTime.fromISO(filters.startDate) : now.startOf('month')
+    const end = filters.endDate ? DateTime.fromISO(filters.endDate) : now.endOf('month')
+    const startDate = start.toJSDate()
+    const endDate = end.toJSDate()
+
+    const query = Attendance.query()
+      .where('org_id', orgId)
+      .whereBetween('attendance_date', [startDate, endDate])
+      .preload('employee', (q) => {
+        q.select('id', 'first_name', 'last_name', 'employee_code', 'department_id', 'avatar')
+        q.preload('department', (dq) => dq.select('id', 'department_name'))
+      })
+      .orderBy('attendance_date', 'desc')
+      .orderBy('employee_id', 'asc')
+
+    if (filters.employeeId) {
+      query.where('employee_id', filters.employeeId)
+    }
+    if (filters.status) {
+      query.where('status', filters.status as any)
+    }
+
+    const records = await query
+    let filteredRecords = records
+
+    if (filters.departmentId) {
+      filteredRecords = records.filter((record) => record.employee?.departmentId === filters.departmentId)
+    }
+
+    const mappedRecords = filteredRecords.map((att) => this.mapAttendanceRecord(att))
+
+    const summary = mappedRecords.reduce(
+      (acc, record) => {
+        acc.totalRecords += 1
+        acc.totalWorkHours += record.workHours || 0
+
+        switch (record.status) {
+          case 'present':
+            acc.present += 1
+            break
+          case 'late':
+            acc.late += 1
+            break
+          case 'absent':
+            acc.absent += 1
+            break
+          case 'half_day':
+            acc.halfDay += 1
+            break
+          case 'on_leave':
+            acc.onLeave += 1
+            break
+          case 'holiday':
+            acc.holiday += 1
+            break
+          case 'weekend':
+            acc.weekend += 1
+            break
+        }
+
+        return acc
+      },
+      {
+        totalRecords: 0,
+        present: 0,
+        absent: 0,
+        late: 0,
+        halfDay: 0,
+        onLeave: 0,
+        holiday: 0,
+        weekend: 0,
+        totalWorkHours: 0,
+      },
+    )
+
+    const totalRecords = summary.totalRecords || 1
+    const averageWorkHours = summary.totalRecords > 0 ? summary.totalWorkHours / summary.totalRecords : 0
+    const attendancePercentage = summary.totalRecords > 0
+      ? Math.round(((summary.present + summary.late + summary.halfDay + summary.onLeave) / summary.totalRecords) * 100)
+      : 0
+
+    const leaderboardMap = new Map<number, any>()
+    mappedRecords.forEach((record) => {
+      const existing = leaderboardMap.get(record.employeeId) || {
+        employeeId: record.employeeId,
+        employeeName: record.employeeName,
+        employeeCode: record.employeeCode,
+        department: record.department,
+        avatar: record.avatar,
+        records: 0,
+        present: 0,
+        late: 0,
+        halfDay: 0,
+        onLeave: 0,
+        totalWorkHours: 0,
+        latestDate: record.date,
+      }
+
+      existing.records += 1
+      existing.totalWorkHours += record.workHours || 0
+      if (record.status === 'present') existing.present += 1
+      if (record.status === 'late') existing.late += 1
+      if (record.status === 'half_day') existing.halfDay += 1
+      if (record.status === 'on_leave') existing.onLeave += 1
+      if (record.date > existing.latestDate) existing.latestDate = record.date
+
+      leaderboardMap.set(record.employeeId, existing)
+    })
+
+    const leaderboard = Array.from(leaderboardMap.values())
+      .sort((a, b) => b.totalWorkHours - a.totalWorkHours || b.records - a.records)
+      .slice(0, 5)
+      .map((item) => ({
+        ...item,
+        averageWorkHours: item.records > 0 ? Math.round((item.totalWorkHours / item.records) * 100) / 100 : 0,
+        totalWorkHours: Math.round(item.totalWorkHours * 100) / 100,
+      }))
+
+    const statusBreakdown = [
+      { status: 'present', label: 'Present' },
+      { status: 'late', label: 'Late' },
+      { status: 'absent', label: 'Absent' },
+      { status: 'half_day', label: 'Half Day' },
+      { status: 'on_leave', label: 'On Leave' },
+      { status: 'holiday', label: 'Holiday' },
+      { status: 'weekend', label: 'Weekend' },
+    ].map((item) => {
+      const statusCountMap: Record<string, number> = {
+        present: summary.present,
+        late: summary.late,
+        absent: summary.absent,
+        half_day: summary.halfDay,
+        on_leave: summary.onLeave,
+        holiday: summary.holiday,
+        weekend: summary.weekend,
+      }
+      const count = statusCountMap[item.status] || 0
+      return {
+        ...item,
+        count,
+        percent: Math.max(0, Math.min(100, Math.round((count / totalRecords) * 100))),
+      }
+    })
+
+    const departmentMap = new Map<string, { departmentId: number | null; departmentName: string; count: number; totalWorkHours: number; present: number; late: number; halfDay: number; onLeave: number }>()
+    mappedRecords.forEach((record, index) => {
+      const source = filteredRecords[index]
+      const departmentName = record.department || 'General'
+      const departmentId = source.employee?.departmentId || null
+      const existing = departmentMap.get(departmentName) || {
+        departmentId,
+        departmentName,
+        count: 0,
+        totalWorkHours: 0,
+        present: 0,
+        late: 0,
+        halfDay: 0,
+        onLeave: 0,
+      }
+
+      existing.count += 1
+      existing.totalWorkHours += record.workHours || 0
+      if (record.status === 'present') existing.present += 1
+      if (record.status === 'late') existing.late += 1
+      if (record.status === 'half_day') existing.halfDay += 1
+      if (record.status === 'on_leave') existing.onLeave += 1
+
+      departmentMap.set(departmentName, existing)
+    })
+
+    const departmentBreakdown = Array.from(departmentMap.values())
+      .map((item) => ({
+        ...item,
+        averageWorkHours: item.count > 0 ? Math.round((item.totalWorkHours / item.count) * 100) / 100 : 0,
+        totalWorkHours: Math.round(item.totalWorkHours * 100) / 100,
+        percent: Math.max(0, Math.min(100, Math.round((item.count / totalRecords) * 100))),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+
+    return {
+      range: {
+        startDate: start.toISODate(),
+        endDate: end.toISODate(),
+      },
+      summary: {
+        ...summary,
+        totalWorkHours: Math.round(summary.totalWorkHours * 100) / 100,
+        averageWorkHours: Math.round(averageWorkHours * 100) / 100,
+        attendancePercentage,
+      },
+      records: mappedRecords,
+      leaderboard,
+      statusBreakdown,
+      departmentBreakdown,
+      recentRecords: mappedRecords.slice(0, 10),
+    }
+  }
+
   /**
    * Get daily attendance report
    */
@@ -26,7 +275,7 @@ export default class ReportService {
     // Get attendance for the date
     const attendanceRecords = await Attendance.query()
       .where('org_id', orgId)
-      .where('attendance_date', targetDate.toISODate())
+      .where('attendance_date', this.toSqlDate(targetDate))
       .preload('employee', (query) => {
         query.select('id', 'first_name', 'last_name', 'employee_code', 'department_id')
         query.preload('department', (q) => q.select('id', 'department_name'))
@@ -35,7 +284,7 @@ export default class ReportService {
     // Get holidays for the organization
     const holidays = await Holiday.query()
       .where('org_id', orgId)
-      .where('holiday_date', targetDate.toISODate())
+      .where('holiday_date', this.toSqlDate(targetDate))
 
     const isHoliday = holidays.length > 0
     const isWeekend = dayOfWeek >= 6 // Saturday or Sunday
@@ -95,7 +344,7 @@ export default class ReportService {
       : 0
 
     return {
-      date: targetDate.toISODate(),
+      date: this.toSqlDate(targetDate),
       totalEmployees,
       present,
       absent,
@@ -127,7 +376,7 @@ export default class ReportService {
     // Get holidays in the month
     const holidays = await Holiday.query()
       .where('org_id', orgId)
-      .whereBetween('holiday_date', [startDate.toISODate(), endDate.toISODate()])
+      .whereBetween('holiday_date', [this.toSqlDate(startDate), this.toSqlDate(endDate)])
 
     workingDays -= holidays.length // Subtract holidays from working days
 
@@ -148,7 +397,7 @@ export default class ReportService {
     // Get attendance records for the month
     const attendanceRecords = await Attendance.query()
       .where('org_id', orgId)
-      .whereBetween('attendance_date', [startDate.toISODate(), endDate.toISODate()])
+      .whereBetween('attendance_date', [this.toSqlDate(startDate), this.toSqlDate(endDate)])
       .preload('employee')
 
     // Group attendance by employee
@@ -258,7 +507,7 @@ export default class ReportService {
 
     const query = Attendance.query()
       .where('org_id', orgId)
-      .whereBetween('attendance_date', [start.toISODate(), end.toISODate()])
+      .whereBetween('attendance_date', [this.toSqlDate(start), this.toSqlDate(end)])
       .preload('employee', (q) => {
         q.preload('department', (dq) => dq.select('id', 'department_name'))
       })
@@ -287,9 +536,9 @@ export default class ReportService {
       employeeName: att.employee ? `${att.employee.firstName} ${att.employee.lastName || ''}`.trim() : 'Unknown',
       employeeCode: att.employee?.employeeCode || 'N/A',
       department: att.employee?.department?.departmentName || 'General',
-      date: att.attendanceDate,
-      checkInTime: att.checkIn ? DateTime.fromJSDate(att.checkIn).toFormat('HH:mm:ss') : null,
-      checkOutTime: att.checkOut ? DateTime.fromJSDate(att.checkOut).toFormat('HH:mm:ss') : null,
+      date: this.toSqlDate(att.attendanceDate),
+      checkInTime: this.formatTime(att.checkIn),
+      checkOutTime: this.formatTime(att.checkOut),
       status: att.status,
       lateMinutes: att.isLate ? 15 : 0, // Approximate
       overtimeMinutes: att.isOvertime ? 60 : 0, // Approximate
@@ -314,7 +563,7 @@ export default class ReportService {
     const query = Attendance.query()
       .where('org_id', orgId)
       .where('is_late', true)
-      .whereBetween('attendance_date', [start.toISODate(), end.toISODate()])
+      .whereBetween('attendance_date', [this.toSqlDate(start), this.toSqlDate(end)])
       .preload('employee', (q) => {
         q.preload('department', (dq) => dq.select('id', 'department_name'))
       })
@@ -336,8 +585,8 @@ export default class ReportService {
       employeeName: att.employee ? `${att.employee.firstName} ${att.employee.lastName || ''}`.trim() : 'Unknown',
       employeeCode: att.employee?.employeeCode || 'N/A',
       department: att.employee?.department?.departmentName || 'General',
-      date: att.attendanceDate,
-      checkInTime: att.checkIn ? DateTime.fromJSDate(att.checkIn).toFormat('HH:mm:ss') : '--:--:--',
+      date: this.toSqlDate(att.attendanceDate),
+      checkInTime: this.formatTime(att.checkIn) || '--:--:--',
       scheduledTime: '09:00:00', // Default, could be dynamic based on shift
       lateMinutes: 15 // Approximate, could be calculated from shift
     }))
@@ -373,15 +622,15 @@ export default class ReportService {
     // Get attendance records for the date range
     const attendanceRecords = await Attendance.query()
       .where('org_id', orgId)
-      .whereBetween('attendance_date', [start.toISODate(), end.toISODate()])
+      .whereBetween('attendance_date', [this.toSqlDate(start), this.toSqlDate(end)])
       .where('status', 'absent')
 
     // Get holidays
     const holidays = await Holiday.query()
       .where('org_id', orgId)
-      .whereBetween('holiday_date', [start.toISODate(), end.toISODate()])
+      .whereBetween('holiday_date', [this.toSqlDate(start), this.toSqlDate(end)])
 
-    const holidayDates = new Set(holidays.map(h => h.holidayDate))
+    const holidayDates = new Set(holidays.map((h) => this.toSqlDate(h.holidayDate)))
     const absentMap = new Map()
 
     attendanceRecords.forEach((att) => {
@@ -395,7 +644,7 @@ export default class ReportService {
 
     // For each employee, check each day in the range
     for (let d = start; d <= end; d = d.plus({ days: 1 })) {
-      const dateStr = d.toISODate()
+      const dateStr = this.toSqlDate(d)
       const dayOfWeek = d.weekday
 
       // Skip weekends
@@ -441,7 +690,7 @@ export default class ReportService {
     for (let d = weekStart; d <= today; d = d.plus({ days: 1 })) {
       const dayReport = await this.getDailyReport(orgId, d.toISODate())
       data.push({
-        date: d.toISODate(),
+        date: this.toSqlDate(d),
         dayName: d.toFormat('EEE'),
         present: dayReport.present,
         absent: dayReport.absent,

@@ -1,12 +1,53 @@
 import Attendance from '#models/attendance'
 import Shift from '#models/shift'
 import Holiday from '#models/holiday'
-import Employee from '#models/employee'
 import { DateTime } from 'luxon'
 import { Exception } from '@adonisjs/core/exceptions'
 import db from '@adonisjs/lucid/services/db'
 
 export default class AttendanceService {
+    private mapShiftRecord(shift: any) {
+        return {
+            id: Number(shift.id),
+            name: shift.shift_name ?? shift.name,
+            start_time: shift.start_time,
+            end_time: shift.end_time,
+            grace_time: Number(shift.grace_minutes ?? shift.grace_time ?? 0),
+            working_hours: this.calculateWorkingHours(shift.start_time, shift.end_time),
+            shift_type: shift.shift_type ?? 'Fixed',
+            is_active: Boolean(shift.is_active ?? true),
+        }
+    }
+
+    private mapZoneRecord(zone: any) {
+        return {
+            id: Number(zone.id),
+            name: zone.name,
+            center_lat: Number(zone.latitude ?? zone.center_lat ?? 0),
+            center_lng: Number(zone.longitude ?? zone.center_lng ?? 0),
+            radius_meters: Number(zone.radius_meters ?? 100),
+            is_active: Boolean(zone.is_active ?? true),
+            address: zone.address ?? null,
+        }
+    }
+
+    private calculateWorkingHours(start: string, end: string): number {
+        const [startHour, startMinute] = String(start).split(':').map(Number)
+        const [endHour, endMinute] = String(end).split(':').map(Number)
+        const startTotal = (startHour * 60) + startMinute
+        const endTotal = (endHour * 60) + endMinute
+        const minutes = endTotal >= startTotal ? endTotal - startTotal : (24 * 60 - startTotal) + endTotal
+        return Math.max(0, Math.round((minutes / 60) * 10) / 10)
+    }
+
+    private async hasOrgLocationsTable(): Promise<boolean> {
+        try {
+            await db.rawQuery('SELECT 1 FROM org_locations LIMIT 1')
+            return true
+        } catch {
+            return false
+        }
+    }
     /**
      * Check-in employee
      */
@@ -134,7 +175,7 @@ export default class AttendanceService {
     /**
      * Get today's attendance for an employee
      */
-    async getTodayAttendance(employeeId: number, orgId: number) {
+    async getTodayAttendance(employeeId: number) {
         const today = DateTime.now().toISODate()!
         
         const attendance = await Attendance.query()
@@ -201,7 +242,7 @@ export default class AttendanceService {
     /**
      * Start a break
      */
-    async startBreak(employeeId: number, data: { type?: string }) {
+    async startBreak(employeeId: number, _data: { type?: string }) {
         const today = DateTime.now().toISODate()!
         
         // Find active attendance without check-out
@@ -496,6 +537,10 @@ export default class AttendanceService {
      */
     async validateLocation(lat: number, lng: number, orgId: number) {
         // Get organization's geo-fence centers
+        if (!(await this.hasOrgLocationsTable())) {
+            return { valid: true }
+        }
+
         const zones = await db.from('org_locations')
             .where('org_id', orgId)
             .where('is_active', 1)
@@ -550,16 +595,139 @@ export default class AttendanceService {
     async getGeoFenceZones(orgId: number) {
         const zones = await db.from('org_locations')
             .where('org_id', orgId)
-            .where('is_active', 1)
+            .orderBy('name', 'asc')
 
-        return zones.map(z => ({
-            id: z.id,
-            name: z.name,
-            center_lat: z.latitude,
-            center_lng: z.longitude,
-            radius_meters: z.radius_meters,
-            is_active: z.is_active
-        }))
+        return zones.map((zone) => this.mapZoneRecord(zone))
+    }
+
+    async createGeoFenceZone(orgId: number, data: {
+        name: string
+        latitude: number
+        longitude: number
+        radius_meters: number
+        is_active?: boolean
+        address?: string | null
+    }) {
+        const [id] = await db.table('org_locations').insert({
+            org_id: orgId,
+            name: data.name,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            radius_meters: data.radius_meters,
+            is_active: data.is_active ?? true,
+            address: data.address ?? null,
+            created_at: DateTime.now().toSQL(),
+            updated_at: DateTime.now().toSQL(),
+        })
+
+        const created = await db.from('org_locations').where('id', id).first()
+        return this.mapZoneRecord(created)
+    }
+
+    async updateGeoFenceZone(orgId: number, id: number, data: {
+        name?: string
+        latitude?: number
+        longitude?: number
+        radius_meters?: number
+        is_active?: boolean
+        address?: string | null
+    }) {
+        const zone = await db.from('org_locations')
+            .where('org_id', orgId)
+            .where('id', id)
+            .first()
+
+        if (!zone) {
+            throw new Exception('Geo-fence zone not found', { status: 404 })
+        }
+
+        await db.from('org_locations')
+            .where('org_id', orgId)
+            .where('id', id)
+            .update({
+                name: data.name ?? zone.name,
+                latitude: data.latitude ?? zone.latitude,
+                longitude: data.longitude ?? zone.longitude,
+                radius_meters: data.radius_meters ?? zone.radius_meters,
+                is_active: data.is_active ?? zone.is_active,
+                address: data.address ?? zone.address,
+                updated_at: DateTime.now().toSQL(),
+            })
+
+        const updated = await db.from('org_locations').where('id', id).first()
+        return this.mapZoneRecord(updated)
+    }
+
+    async deleteGeoFenceZone(orgId: number, id: number) {
+        const affectedRows = await db.from('org_locations')
+            .where('org_id', orgId)
+            .where('id', id)
+            .delete()
+
+        if (!affectedRows) {
+            throw new Exception('Geo-fence zone not found', { status: 404 })
+        }
+
+        return { success: true }
+    }
+
+    async getGeoFenceSettings(orgId: number) {
+        const organization = await db.from('organizations').where('id', orgId).first()
+
+        if (!organization) {
+            throw new Exception('Organization not found', { status: 404 })
+        }
+
+        return {
+            geofence_enabled: Boolean(organization.geofence_enabled ?? false),
+            require_geofence_for_all: Boolean(organization.require_geofence_for_all ?? false),
+            default_geofence_id: organization.default_geofence_id ?? null,
+            zones: await this.getGeoFenceZones(orgId),
+        }
+    }
+
+    async updateGeoFenceSettings(orgId: number, data: {
+        geofence_enabled?: boolean
+        require_geofence_for_all?: boolean
+        default_geofence_id?: number | null
+    }) {
+        const organization = await db.from('organizations').where('id', orgId).first()
+
+        if (!organization) {
+            throw new Exception('Organization not found', { status: 404 })
+        }
+
+        if (data.default_geofence_id !== undefined && data.default_geofence_id !== null) {
+            const zone = await db.from('org_locations')
+                .where('org_id', orgId)
+                .where('id', data.default_geofence_id)
+                .first()
+
+            if (!zone) {
+                throw new Exception('Default geo-fence zone not found', { status: 404 })
+            }
+        }
+
+        const payload: Record<string, any> = {}
+        if (data.geofence_enabled !== undefined) {
+            payload.geofence_enabled = data.geofence_enabled
+        }
+        if (data.require_geofence_for_all !== undefined) {
+            payload.require_geofence_for_all = data.require_geofence_for_all
+        }
+        if (data.default_geofence_id !== undefined) {
+            payload.default_geofence_id = data.default_geofence_id
+        }
+
+        if (Object.keys(payload).length > 0) {
+            try {
+                await db.from('organizations').where('id', orgId).update(payload)
+            } catch {
+                // Keep the API stable for older databases that do not yet have geofence columns.
+            }
+        }
+
+        return this.getGeoFenceSettings(orgId)
     }
 
     /**
@@ -611,9 +779,75 @@ export default class AttendanceService {
      * Get shifts
      */
     async getShifts(orgId: number) {
-        return await Shift.query()
+        const shifts = await db.from('shifts')
             .where('org_id', orgId)
             .orderBy('start_time', 'asc')
+
+        return shifts.map((shift) => this.mapShiftRecord(shift))
+    }
+
+    async createShift(orgId: number, data: {
+        name: string
+        start_time: string
+        end_time: string
+        grace_time?: number
+        is_active?: boolean
+    }) {
+        const [id] = await db.table('shifts').insert({
+            org_id: orgId,
+            shift_name: data.name,
+            start_time: data.start_time,
+            end_time: data.end_time,
+            grace_minutes: data.grace_time ?? 0,
+            is_active: data.is_active ?? true,
+        })
+
+        const created = await db.from('shifts').where('id', id).first()
+        return this.mapShiftRecord(created)
+    }
+
+    async updateShift(orgId: number, id: number, data: {
+        name?: string
+        start_time?: string
+        end_time?: string
+        grace_time?: number
+        is_active?: boolean
+    }) {
+        const shift = await db.from('shifts')
+            .where('org_id', orgId)
+            .where('id', id)
+            .first()
+
+        if (!shift) {
+            throw new Exception('Shift not found', { status: 404 })
+        }
+
+        await db.from('shifts')
+            .where('org_id', orgId)
+            .where('id', id)
+            .update({
+                shift_name: data.name ?? shift.shift_name,
+                start_time: data.start_time ?? shift.start_time,
+                end_time: data.end_time ?? shift.end_time,
+                grace_minutes: data.grace_time ?? shift.grace_minutes ?? 0,
+                is_active: data.is_active ?? shift.is_active,
+            })
+
+        const updated = await db.from('shifts').where('id', id).first()
+        return this.mapShiftRecord(updated)
+    }
+
+    async deleteShift(orgId: number, id: number) {
+        const affectedRows = await db.from('shifts')
+            .where('org_id', orgId)
+            .where('id', id)
+            .delete()
+
+        if (!affectedRows) {
+            throw new Exception('Shift not found', { status: 404 })
+        }
+
+        return { success: true }
     }
 
     /**

@@ -1,16 +1,17 @@
 import { HttpContext } from '@adonisjs/core/http'
 import LeaveService from '#services/LeaveService'
 import AuditLogService from '#services/AuditLogService'
+import AuthorizationService from '#services/AuthorizationService'
 import { inject } from '@adonisjs/core'
 import vine from '@vinejs/vine'
 import LeaveBalance from '#models/leave_balance'
-import db from '@adonisjs/lucid/services/db'
 
 @inject()
 export default class LeavesController {
     constructor(
         protected leaveService: LeaveService,
-        protected auditLogService: AuditLogService
+        protected auditLogService: AuditLogService,
+        protected authorizationService: AuthorizationService
     ) { }
 
     static leaveValidator = vine.compile(
@@ -39,16 +40,35 @@ export default class LeavesController {
         })
     )
 
+    static leaveTypeValidator = vine.compile(
+        vine.object({
+            typeName: vine.string().trim().minLength(2).maxLength(100),
+            daysAllowed: vine.number(),
+            carryForward: vine.boolean().optional(),
+            maxCarryDays: vine.number().optional(),
+            isPaid: vine.boolean().optional(),
+            requiresDoc: vine.boolean().optional(),
+        })
+    )
+
     /**
      * List leaves
      */
     async index({ auth, response }: HttpContext) {
         const employee = auth.user!
-        const leaves = await this.leaveService.list(employee.orgId)
-        return response.ok({
-            status: 'success',
-            data: leaves,
-        })
+        try {
+            const leaves = await this.leaveService.list(employee.orgId, employee.id)
+            return response.ok({
+                status: 'success',
+                data: leaves,
+            })
+        } catch (error) {
+            console.error('Failed to list leaves:', error)
+            return response.ok({
+                status: 'success',
+                data: [],
+            })
+        }
     }
 
     /**
@@ -94,6 +114,37 @@ export default class LeavesController {
         return response.ok({
             status: 'success',
             data: types,
+        })
+    }
+
+    async createType({ auth, request, response }: HttpContext) {
+        const employee = auth.user!
+        const data = await request.validateUsing(LeavesController.leaveTypeValidator)
+        const type = await this.leaveService.createLeaveType(employee.orgId, data)
+        return response.created({
+            status: 'success',
+            message: 'Leave type created',
+            data: type,
+        })
+    }
+
+    async updateType({ auth, params, request, response }: HttpContext) {
+        const employee = auth.user!
+        const data = await request.validateUsing(LeavesController.leaveTypeValidator)
+        const type = await this.leaveService.updateLeaveType(employee.orgId, Number(params.id), data)
+        return response.ok({
+            status: 'success',
+            message: 'Leave type updated',
+            data: type,
+        })
+    }
+
+    async destroyType({ auth, params, response }: HttpContext) {
+        const employee = auth.user!
+        await this.leaveService.deleteLeaveType(employee.orgId, Number(params.id))
+        return response.ok({
+            status: 'success',
+            message: 'Leave type deleted',
         })
     }
 
@@ -146,20 +197,24 @@ export default class LeavesController {
         const employee = auth.user!
         const yearParam = Number(request.input('year'))
         const employeeIdParam = Number(request.input('employeeId'))
-        
+
         const year = Number.isInteger(yearParam) && yearParam > 0 ? yearParam : new Date().getFullYear()
-        const targetEmployeeId = employeeIdParam || employee.id
+        try {
+            const canViewOthers = await this.authorizationService.hasPermission(employee, 'leave_approve')
+            const targetEmployeeId = canViewOthers && employeeIdParam ? employeeIdParam : employee.id
+            const balances = await this.leaveService.getLeaveTypes(employee.orgId, targetEmployeeId, year)
 
-        const balances = await LeaveBalance.query()
-            .where('employee_id', targetEmployeeId)
-            .where('year', year)
-            .preload('leaveType')
-            .orderBy('leave_type_id', 'asc')
-
-        return response.ok({
-            status: 'success',
-            data: balances,
-        })
+            return response.ok({
+                status: 'success',
+                data: balances,
+            })
+        } catch (error) {
+            console.error('Failed to load leave balances:', error)
+            return response.ok({
+                status: 'success',
+                data: [],
+            })
+        }
     }
 
     /**
@@ -167,6 +222,10 @@ export default class LeavesController {
      */
     async adjustBalance({ auth, request, response }: HttpContext) {
         const employee = auth.user!
+        const canAdjust = await this.authorizationService.hasPermission(employee, 'leave_process')
+        if (!canAdjust) {
+            return response.forbidden({ status: 'error', message: 'You do not have permission to adjust leave balances.' })
+        }
         const data = await request.validateUsing(LeavesController.balanceValidator)
         
         const year = data.year || new Date().getFullYear()

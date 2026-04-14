@@ -1,14 +1,20 @@
 import Employee from '#models/employee'
 import { Exception } from '@adonisjs/core/exceptions'
+import { DateTime } from 'luxon'
+import AuthorizationService from '#services/AuthorizationService'
 
 export default class EmployeeService {
     /**
      * List all employees in organization
      */
-    async list(orgId: number, filters: any = {}) {
+    async list(orgId: number, filters: any = {}, actor?: Employee, authorizationService?: AuthorizationService) {
         const query = Employee.query()
             .where('org_id', orgId)
             .whereNull('deleted_at')
+
+        if (actor && authorizationService) {
+            authorizationService.scopeEmployeesQuery(query, actor)
+        }
 
         // Search filter
         if (filters.search) {
@@ -85,6 +91,9 @@ export default class EmployeeService {
      */
     async update(id: number, orgId: number, data: any) {
         const employee = await this.getById(id, orgId)
+        if (!employee) {
+            throw new Exception('Employee not found in your organization', { status: 404 })
+        }
         const payload = this.parseEmployeeData(data)
         employee.merge(payload)
         await employee.save()
@@ -113,10 +122,11 @@ export default class EmployeeService {
      */
     async delete(id: number, orgId: number, deletedBy: number) {
         const employee = await this.getById(id, orgId)
+        if (!employee) {
+            throw new Exception('Employee not found in your organization', { status: 404 })
+        }
         employee.deletedAt = DateTime.now()
         employee.deletedBy = deletedBy
         await employee.save()
     }
 }
-
-import { DateTime } from 'luxon'

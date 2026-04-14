@@ -2,7 +2,6 @@ import Payroll from '#models/payroll'
 import PayrollSetting from '#models/payroll_setting'
 import Employee from '#models/employee'
 import { Exception } from '@adonisjs/core/exceptions'
-import { DateTime } from 'luxon'
 
 export default class PayrollService {
     /**

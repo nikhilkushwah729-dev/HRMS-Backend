@@ -11,7 +11,19 @@ export default class ExpenseService {
     }
 
     async create(employeeId: number, orgId: number, data: any) {
-        return await Expense.create({ ...data, employeeId, orgId, status: 'pending' })
+        const payload = {
+            employeeId,
+            orgId,
+            status: 'pending' as const,
+            amount: data.amount,
+            expenseDate: data.expenseDate,
+            category: data.category || data.title || null,
+            description: data.description || null,
+            receiptUrl: data.receiptUrl || null,
+            projectId: data.projectId || null,
+        }
+
+        return await Expense.create(payload)
     }
 
     async updateStatus(id: number, orgId: number, status: 'approved' | 'rejected', approverId: number, rejectionNote?: string) {

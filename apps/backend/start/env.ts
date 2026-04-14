@@ -40,4 +40,23 @@ export default await Env.create(new URL('../', import.meta.url), {
   SMTP_PORT: Env.schema.number.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
   SMTP_PASSWORD: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for Cloudinary media uploads
+  |----------------------------------------------------------
+  */
+  CLOUDINARY_URL: Env.schema.string.optional(),
+  CLOUDINARY_CLOUD_NAME: Env.schema.string.optional(),
+  CLOUDINARY_API_KEY: Env.schema.string.optional(),
+  CLOUDINARY_API_SECRET: Env.schema.string.optional(),
+  FRONTEND_URL: Env.schema.string.optional(),
+  RAZORPAY_KEY_ID: Env.schema.string.optional(),
+  RAZORPAY_KEY_SECRET: Env.schema.string.optional(),
+  STRIPE_PUBLISHABLE_KEY: Env.schema.string.optional(),
+  STRIPE_SECRET_KEY: Env.schema.string.optional(),
+  STRIPE_WEBHOOK_SECRET: Env.schema.string.optional(),
+  LEGACY_BILLING_BASE_URL: Env.schema.string.optional(),
+  LEGACY_BILLING_APP_NAME: Env.schema.string.optional(),
+  LEGACY_BILLING_PLAN_BASE_AMOUNT: Env.schema.number.optional(),
 })

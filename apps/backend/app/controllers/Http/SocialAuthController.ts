@@ -17,6 +17,28 @@ export default class SocialAuthController {
     this.oauthService = new OAuthService()
   }
 
+  private buildFrontendErrorRedirect(message: string): string {
+    return `${this.frontendUrl}/auth/callback?success=false&message=${encodeURIComponent(message)}`
+  }
+
+  private buildFrontendSuccessPayload(employee: Employee) {
+    return encodeURIComponent(
+      JSON.stringify({
+        id: employee.id,
+        orgId: employee.orgId,
+        roleId: employee.roleId,
+        employeeCode: employee.employeeCode,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        phone: employee.phone,
+        avatar: employee.avatar,
+        loginType: employee.loginType,
+        status: employee.status,
+      })
+    )
+  }
+
   /**
    * Generate access token for employee
    */
@@ -41,13 +63,11 @@ export default class SocialAuthController {
     const error = request.qs().error
 
     if (error) {
-      const errorMessage = encodeURIComponent('Google authentication failed')
-      return response.redirect(`${this.frontendUrl}/auth/callback?success=false&message=${errorMessage}`)
+      return response.redirect(this.buildFrontendErrorRedirect('Google authentication was cancelled or denied'))
     }
 
     if (!code) {
-      const errorMessage = encodeURIComponent('No authorization code received')
-      return response.redirect(`${this.frontendUrl}/auth/callback?success=false&message=${errorMessage}`)
+      return response.redirect(this.buildFrontendErrorRedirect('No authorization code received from Google'))
     }
 
     try {
@@ -63,13 +83,7 @@ export default class SocialAuthController {
 
       const isNew = !(employee.loginType === 'google' || employee.loginType === 'microsoft')
       const accessToken = await this.generateAccessToken(employee)
-      const employeeData = encodeURIComponent(JSON.stringify({
-        id: employee.id,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        avatar: employee.avatar,
-      }))
+      const employeeData = this.buildFrontendSuccessPayload(employee)
       const message = encodeURIComponent(isNew ? 'Account created via Google' : 'Logged in with Google')
       
       return response.redirect(
@@ -77,8 +91,8 @@ export default class SocialAuthController {
       )
     } catch (error) {
       console.error('Google OAuth error:', error)
-      const errorMessage = encodeURIComponent('Failed to complete Google authentication')
-      return response.redirect(`${this.frontendUrl}/auth/callback?success=false&message=${errorMessage}`)
+      const reason = error instanceof Error ? error.message : 'Failed to complete Google authentication'
+      return response.redirect(this.buildFrontendErrorRedirect(reason))
     }
   }
 
@@ -98,13 +112,11 @@ export default class SocialAuthController {
     const error = request.qs().error
 
     if (error) {
-      const errorMessage = encodeURIComponent('Microsoft authentication failed')
-      return response.redirect(`${this.frontendUrl}/auth/callback?success=false&message=${errorMessage}`)
+      return response.redirect(this.buildFrontendErrorRedirect('Microsoft authentication was cancelled or denied'))
     }
 
     if (!code) {
-      const errorMessage = encodeURIComponent('No authorization code received')
-      return response.redirect(`${this.frontendUrl}/auth/callback?success=false&message=${errorMessage}`)
+      return response.redirect(this.buildFrontendErrorRedirect('No authorization code received from Microsoft'))
     }
 
     try {
@@ -121,13 +133,7 @@ export default class SocialAuthController {
 
       const isNew = !(employee.loginType === 'google' || employee.loginType === 'microsoft')
       const accessToken = await this.generateAccessToken(employee)
-      const employeeData = encodeURIComponent(JSON.stringify({
-        id: employee.id,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        avatar: employee.avatar,
-      }))
+      const employeeData = this.buildFrontendSuccessPayload(employee)
       const message = encodeURIComponent(isNew ? 'Account created via Microsoft' : 'Logged in with Microsoft')
       
       return response.redirect(
@@ -135,8 +141,8 @@ export default class SocialAuthController {
       )
     } catch (error) {
       console.error('Microsoft OAuth error:', error)
-      const errorMessage = encodeURIComponent('Failed to complete Microsoft authentication')
-      return response.redirect(`${this.frontendUrl}/auth/callback?success=false&message=${errorMessage}`)
+      const reason = error instanceof Error ? error.message : 'Failed to complete Microsoft authentication'
+      return response.redirect(this.buildFrontendErrorRedirect(reason))
     }
   }
 
@@ -373,8 +379,7 @@ export default class SocialAuthController {
         user,
         provider,
         providerUser.id,
-        provider === 'google' ? providerUser.email : providerUser.mail || providerUser.userPrincipalName,
-        providerUser.picture || null
+        provider === 'google' ? providerUser.email : providerUser.mail || providerUser.userPrincipalName
       )
 
       return response.ok({

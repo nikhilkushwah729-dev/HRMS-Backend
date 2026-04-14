@@ -1,19 +1,22 @@
 import { HttpContext } from '@adonisjs/core/http'
 import EmployeeService from '#services/EmployeeService'
 import AuditLogService from '#services/AuditLogService'
+import MediaUploadService from '#services/MediaUploadService'
+import AuthorizationService from '#services/AuthorizationService'
 import { inject } from '@adonisjs/core'
 import vine from '@vinejs/vine'
 import Geofence from '#models/geofence'
 import Employee from '#models/employee'
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 
 @inject()
 export default class EmployeesController {
     constructor(
         protected employeeService: EmployeeService,
-        protected auditLogService: AuditLogService
+        protected auditLogService: AuditLogService,
+        protected mediaUploadService: MediaUploadService,
+        protected authorizationService: AuthorizationService
     ) { }
 
     static employeeValidator = vine.compile(
@@ -53,11 +56,50 @@ export default class EmployeesController {
     async index({ auth, request, response }: HttpContext) {
         const employee = auth.user!
         const filters = request.qs()
-        const employees = await this.employeeService.list(employee.orgId, filters)
-        return response.ok({
-            status: 'success',
-            data: employees,
-        })
+        try {
+            const employees = await this.employeeService.list(employee.orgId, filters, employee, this.authorizationService)
+            return response.ok({
+                status: 'success',
+                data: employees.map((item) => this.authorizationService.sanitizeEmployeeData(item.serialize(), employee)),
+            })
+        } catch (error) {
+            console.error('Failed to list employees:', error)
+
+            const query = db
+                .from('employees')
+                .where('org_id', employee.orgId)
+                .whereNull('deleted_at')
+                .orderBy('first_name', 'asc')
+                .select(
+                    'id',
+                    'first_name as firstName',
+                    'last_name as lastName',
+                    'email',
+                    'phone',
+                    'role_id as roleId',
+                    'department_id as departmentId',
+                    'designation_id as designationId',
+                    'status',
+                    'avatar',
+                    'manager_id as managerId'
+                )
+
+            if (filters.search) {
+                const search = `%${filters.search}%`
+                query.where((builder) => {
+                    builder
+                        .where('first_name', 'like', search)
+                        .orWhere('last_name', 'like', search)
+                        .orWhere('email', 'like', search)
+                })
+            }
+
+            const employees = await query
+            return response.ok({
+                status: 'success',
+                data: employees.map((item) => this.authorizationService.sanitizeEmployeeData(item, employee)),
+            })
+        }
     }
 
     /**
@@ -67,9 +109,12 @@ export default class EmployeesController {
         const currentUser = auth.user!
         const id = params.id
         const employee = await this.employeeService.getById(id, currentUser.orgId)
+        if (!employee || !(await this.authorizationService.canAccessEmployee(currentUser, employee))) {
+            return response.forbidden({ status: 'error', message: 'You cannot access this employee record.' })
+        }
         return response.ok({
             status: 'success',
-            data: employee,
+            data: this.authorizationService.sanitizeEmployeeData(employee.serialize(), currentUser),
         })
     }
 
@@ -130,6 +175,10 @@ export default class EmployeesController {
     async update({ auth, params, request, response }: HttpContext) {
         const currentUser = auth.user!
         const id = params.id
+        const existingEmployee = await this.employeeService.getById(id, currentUser.orgId)
+        if (!existingEmployee || !(await this.authorizationService.canAccessEmployee(currentUser, existingEmployee))) {
+            return response.forbidden({ status: 'error', message: 'You cannot update this employee record.' })
+        }
         const data = await request.validateUsing(EmployeesController.employeeValidator)
         const normalizedData = await this.normalizeAvatarPayload(data)
 
@@ -170,29 +219,55 @@ export default class EmployeesController {
         }
 
         const avatarValue = data.avatar.trim()
-        if (!avatarValue.startsWith('data:image')) {
-            data.avatar = avatarValue
-            return data
-        }
+        const storedAvatar = await this.mediaUploadService.storeImage(avatarValue, 'avatars')
 
-        try {
-            const extensionMatch = avatarValue.match(/^data:image\/([a-zA-Z0-9+]+);base64,/)
-            const extension = extensionMatch?.[1]?.replace('svg+xml', 'svg') || 'png'
-            const base64Data = avatarValue.replace(/^data:image\/[a-zA-Z0-9+]+;base64,/, '')
-            const buffer = Buffer.from(base64Data, 'base64')
-            const fileName = `${randomUUID()}.${extension}`
-            const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'avatars')
-
-            await fs.mkdir(uploadsDir, { recursive: true })
-            await fs.writeFile(path.join(uploadsDir, fileName), buffer)
-
-            data.avatar = `/uploads/avatars/${fileName}`
-        } catch (error) {
-            console.error('Error saving avatar image', error)
+        if (storedAvatar) {
+            data.avatar = storedAvatar
+        } else if (avatarValue.startsWith('data:image')) {
             delete data.avatar
         }
 
         return data
+    }
+    async occasions({ auth, response }: HttpContext) {
+        const currentUser = auth.user!
+        const today = DateTime.now()
+        const monthDay = today.toFormat('MM-dd')
+        try {
+            const employees = await Employee.query()
+                .where('org_id', currentUser.orgId)
+                .where((query) => {
+                    query
+                        .whereRaw("DATE_FORMAT(date_of_birth, '%m-%d') = ?", [monthDay])
+                        .orWhereRaw("DATE_FORMAT(join_date, '%m-%d') = ?", [monthDay])
+                })
+                .orderBy('first_name', 'asc')
+
+            const data = employees.map((employee) => {
+                const dob = employee.dateOfBirth ? DateTime.fromJSDate(employee.dateOfBirth.toJSDate()) : null
+                const joinDate = employee.joinDate ? DateTime.fromJSDate(employee.joinDate.toJSDate()) : null
+
+                return {
+                    id: employee.id,
+                    firstName: employee.firstName,
+                    lastName: employee.lastName,
+                    avatar: employee.avatar,
+                    isBirthday: Boolean(dob && dob.toFormat('MM-dd') === monthDay),
+                    isAnniversary: Boolean(joinDate && joinDate.toFormat('MM-dd') === monthDay),
+                }
+            })
+
+            return response.ok({
+                status: 'success',
+                data,
+            })
+        } catch (error) {
+            console.error('Failed to load employee occasions:', error)
+            return response.ok({
+                status: 'success',
+                data: [],
+            })
+        }
     }
 
     /**
@@ -201,6 +276,10 @@ export default class EmployeesController {
     async destroy({ auth, params, request, response }: HttpContext) {
         const currentUser = auth.user!
         const id = params.id
+        const targetEmployee = await this.employeeService.getById(id, currentUser.orgId)
+        if (!targetEmployee || !(await this.authorizationService.canAccessEmployee(currentUser, targetEmployee))) {
+            return response.forbidden({ status: 'error', message: 'You cannot delete this employee record.' })
+        }
         await this.employeeService.delete(id, currentUser.orgId, currentUser.id)
 
         await this.auditLogService.log({

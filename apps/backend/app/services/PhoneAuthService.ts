@@ -11,7 +11,6 @@ import hash from '@adonisjs/core/services/hash'
  */
 @inject()
 export default class PhoneAuthService {
-    private readonly OTP_LENGTH = 6
     private readonly OTP_EXPIRY_MINUTES = 10
     private readonly MAX_ATTEMPTS = 3
 

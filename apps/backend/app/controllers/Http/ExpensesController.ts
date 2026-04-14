@@ -77,7 +77,7 @@ export default class ExpensesController {
             oldValues: oldExpense ? {
                 status: oldExpense.status,
                 amount: oldExpense.amount,
-                title: oldExpense.title
+                category: oldExpense.category
             } : null,
             newValues: {
                 status: status,

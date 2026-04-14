@@ -270,8 +270,7 @@ export default class OAuthService {
         employee: Employee,
         provider: 'google' | 'microsoft',
         providerUserId: string,
-        email?: string | null,
-        avatar?: string | null
+        email?: string | null
     ): Promise<void> {
         // Check if already linked
         const existingLink = await SocialLogin.query()

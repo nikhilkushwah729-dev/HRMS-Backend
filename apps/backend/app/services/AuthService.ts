@@ -3,6 +3,7 @@ import LoginAttempt from '#models/login_attempt'
 import UserSession from '#models/user_session'
 import OtpToken from '#models/otp_token'
 import AuditLogService from '#services/AuditLogService'
+import AuthorizationService from '#services/AuthorizationService'
 import hash from '@adonisjs/core/services/hash'
 import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
@@ -13,7 +14,10 @@ import { inject } from '@adonisjs/core'
 
 @inject()
 export default class AuthService {
-    constructor(protected auditLogService: AuditLogService) { }
+    constructor(
+        protected auditLogService: AuditLogService,
+        protected authorizationService: AuthorizationService
+    ) { }
     /**
      * Maximum failed login attempts before locking
      */
@@ -232,6 +236,8 @@ export default class AuthService {
             newValues: { email: employee.email, method: 'email_verified' }
         })
 
+        const access = await this.authorizationService.getAccessProfile(employee)
+
         return {
             token: accessToken,
             tokenType: 'Bearer',
@@ -242,8 +248,12 @@ export default class AuthService {
                 firstName: employee.firstName,
                 lastName: employee.lastName,
                 email: employee.email,
-                orgId: employee.orgId
-            }
+                orgId: employee.orgId,
+                roleId: employee.roleId,
+                role: { id: access.roleId, name: access.roleName },
+                permissions: access.permissionKeys,
+                accessScope: access.scope
+            },
         }
     }
 
@@ -406,6 +416,8 @@ export default class AuthService {
             newValues: { email: employee.email }
         })
 
+        const access = await this.authorizationService.getAccessProfile(employee)
+
         return {
             token: accessToken,
             tokenType: 'Bearer',
@@ -417,8 +429,12 @@ export default class AuthService {
                 firstName: employee.firstName,
                 lastName: employee.lastName,
                 email: employee.email,
-                orgId: employee.orgId
-            }
+                orgId: employee.orgId,
+                roleId: employee.roleId,
+                role: { id: access.roleId, name: access.roleName },
+                permissions: access.permissionKeys,
+                accessScope: access.scope
+            },
         }
     }
 

@@ -39,6 +39,12 @@ export default class extends BaseSeeder {
                 slug: 'announcements',
                 price: 0,
                 isActive: true
+            },
+            {
+                name: 'Visit Management',
+                slug: 'visitorManagement',
+                price: 0,
+                isActive: true
             }
         ])
     }

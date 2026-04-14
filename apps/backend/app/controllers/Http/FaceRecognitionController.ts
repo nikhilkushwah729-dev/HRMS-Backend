@@ -9,7 +9,8 @@ export default class FaceRecognitionController {
     static registerFaceValidator = vine.compile(
         vine.object({
             employeeId: vine.number(),
-            embedding: vine.string(), // JSON string of embedding array
+            embedding: vine.string().optional(), // JSON string of embedding array
+            embeddings: vine.array(vine.string()).optional(), // JSON strings of embedding arrays
             imageUrl: vine.string().optional(),
         })
     )
@@ -27,6 +28,15 @@ export default class FaceRecognitionController {
     async register({ auth, request, response }: HttpContext) {
         const employee = auth.user!
         const data = await request.validateUsing(FaceRecognitionController.registerFaceValidator)
+        const incomingEmbeddings = data.embeddings?.length
+            ? data.embeddings
+            : data.embedding
+                ? [data.embedding]
+                : []
+
+        if (!incomingEmbeddings.length) {
+            return response.badRequest({ message: 'At least one face embedding is required' })
+        }
 
         // Check if employee belongs to same org
         const targetEmployee = await Employee.query()
@@ -38,24 +48,42 @@ export default class FaceRecognitionController {
             return response.notFound({ message: 'Employee not found in your organization' })
         }
 
-        // Deactivate any existing embeddings for this employee
-        await FaceEmbedding.query()
+        // Keep up to 5 active samples per employee for stronger matching
+        const activeEmbeddings = await FaceEmbedding.query()
             .where('employee_id', data.employeeId)
-            .update({ isActive: false })
+            .where('org_id', employee.orgId)
+            .where('is_active', true)
+            .orderBy('created_at', 'desc')
 
-        // Create new embedding
-        const faceEmbedding = await FaceEmbedding.create({
-            employeeId: data.employeeId,
-            orgId: employee.orgId,
-            embedding: data.embedding,
-            imageUrl: data.imageUrl || null,
-            isActive: true,
-        })
+        const maxTemplates = 5
+        const slotsLeft = Math.max(0, maxTemplates - incomingEmbeddings.length)
+        const embeddingsToDeactivate = activeEmbeddings.slice(slotsLeft)
+        if (embeddingsToDeactivate.length) {
+            await FaceEmbedding.query()
+                .whereIn(
+                    'id',
+                    embeddingsToDeactivate.map((embedding) => embedding.id),
+                )
+                .update({ isActive: false })
+        }
+
+        const createdEmbeddings = []
+        for (const embedding of incomingEmbeddings) {
+            createdEmbeddings.push(
+                await FaceEmbedding.create({
+                    employeeId: data.employeeId,
+                    orgId: employee.orgId,
+                    embedding,
+                    imageUrl: data.imageUrl || null,
+                    isActive: true,
+                }),
+            )
+        }
 
         return response.created({
             status: 'success',
-            message: 'Face registered successfully',
-            data: faceEmbedding,
+            message: `Face registered successfully (${createdEmbeddings.length} sample${createdEmbeddings.length === 1 ? '' : 's'})`,
+            data: createdEmbeddings,
         })
     }
 
@@ -68,27 +96,24 @@ export default class FaceRecognitionController {
 
         // If verifying for specific employee
         if (data.employeeId) {
-            const embedding = await FaceEmbedding.query()
+            const embeddings = await FaceEmbedding.query()
                 .where('employee_id', data.employeeId)
                 .where('org_id', employee.orgId)
                 .where('is_active', true)
-                .first()
+                .orderBy('created_at', 'desc')
 
-            if (!embedding) {
+            if (!embeddings.length) {
                 return response.notFound({ message: 'No active face registration found for this employee' })
             }
 
-            // Simple comparison (in production, use proper face recognition library)
-            const similarity = this.compareEmbeddings(
-                JSON.parse(data.embedding),
-                embedding.getEmbeddingArray()
-            )
+            const match = this.findBestMatch(JSON.parse(data.embedding), embeddings)
 
             return response.ok({
                 status: 'success',
-                matched: similarity > 0.7, // Threshold
-                similarity: similarity,
+                matched: match.similarity > 0.7, // Threshold
+                similarity: match.similarity,
                 employeeId: data.employeeId,
+                sampleCount: embeddings.length,
             })
         }
 
@@ -96,19 +121,9 @@ export default class FaceRecognitionController {
         const embeddings = await FaceEmbedding.query()
             .where('org_id', employee.orgId)
             .where('is_active', true)
+            .orderBy('created_at', 'desc')
 
-        let bestMatch: { employeeId: number; similarity: number } | null = null
-
-        for (const embedding of embeddings) {
-            const similarity = this.compareEmbeddings(
-                JSON.parse(data.embedding),
-                embedding.getEmbeddingArray()
-            )
-
-            if (!bestMatch || similarity > bestMatch.similarity) {
-                bestMatch = { employeeId: embedding.employeeId, similarity }
-            }
-        }
+        const bestMatch = this.findBestMatchAcrossEmployees(JSON.parse(data.embedding), embeddings)
 
         if (bestMatch && bestMatch.similarity > 0.7) {
             return response.ok({
@@ -116,6 +131,7 @@ export default class FaceRecognitionController {
                 matched: true,
                 similarity: bestMatch.similarity,
                 employeeId: bestMatch.employeeId,
+                sampleCount: bestMatch.sampleCount,
             })
         }
 
@@ -123,6 +139,7 @@ export default class FaceRecognitionController {
             status: 'success',
             matched: false,
             similarity: bestMatch?.similarity || 0,
+            sampleCount: bestMatch?.sampleCount || 0,
         })
     }
 
@@ -142,6 +159,12 @@ export default class FaceRecognitionController {
         return response.ok({
             status: 'success',
             registered: !!embedding,
+            sampleCount: embedding
+                ? (await FaceEmbedding.query()
+                    .where('employee_id', targetEmployeeId)
+                    .where('org_id', employee.orgId)
+                    .where('is_active', true)).length
+                : 0,
             data: embedding ? { id: embedding.id, imageUrl: embedding.imageUrl, createdAt: embedding.createdAt } : null,
         })
     }
@@ -187,6 +210,57 @@ export default class FaceRecognitionController {
         }
 
         return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2))
+    }
+
+    private findBestMatch(
+        inputEmbedding: number[],
+        embeddings: FaceEmbedding[],
+    ): { similarity: number; embedding: FaceEmbedding | null } {
+        let best: FaceEmbedding | null = null
+        let bestSimilarity = 0
+
+        for (const embedding of embeddings) {
+            const similarity = this.compareEmbeddings(inputEmbedding, embedding.getEmbeddingArray())
+            if (similarity > bestSimilarity) {
+                bestSimilarity = similarity
+                best = embedding
+            }
+        }
+
+        return { similarity: bestSimilarity, embedding: best }
+    }
+
+    private findBestMatchAcrossEmployees(
+        inputEmbedding: number[],
+        embeddings: FaceEmbedding[],
+    ): { employeeId: number; similarity: number; sampleCount: number } | null {
+        let bestEmployeeId = 0
+        let bestSimilarity = 0
+        let bestSampleCount = 0
+
+        const grouped = new Map<number, FaceEmbedding[]>()
+        for (const embedding of embeddings) {
+            const list = grouped.get(embedding.employeeId) || []
+            list.push(embedding)
+            grouped.set(embedding.employeeId, list)
+        }
+
+        for (const [employeeId, list] of grouped.entries()) {
+            const match = this.findBestMatch(inputEmbedding, list)
+            if (match.similarity > bestSimilarity) {
+                bestSimilarity = match.similarity
+                bestEmployeeId = employeeId
+                bestSampleCount = list.length
+            }
+        }
+
+        if (!bestEmployeeId) return null
+
+        return {
+            employeeId: bestEmployeeId,
+            similarity: bestSimilarity,
+            sampleCount: bestSampleCount,
+        }
     }
 }
 

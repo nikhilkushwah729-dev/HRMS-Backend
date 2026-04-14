@@ -12,6 +12,7 @@ export default class extends BaseSchema {
       table.date('end_date').nullable()
       table.boolean('is_active').notNullable().defaultTo(true)
       table.timestamp('created_at').defaultTo(this.now())
+      table.timestamp('updated_at').defaultTo(this.now())
 
       table.unique(['org_id', 'addon_id'], { indexName: 'uk_org_addon' })
     })

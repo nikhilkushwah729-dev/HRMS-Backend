@@ -1,5 +1,6 @@
 import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
 import type { ManyToMany } from '@adonisjs/lucid/types/relations'
+import { DateTime } from 'luxon'
 import Role from '#models/role'
 
 export default class Permission extends BaseModel {
@@ -14,6 +15,21 @@ export default class Permission extends BaseModel {
 
     @column()
     declare module: string | null
+
+    @column()
+    declare resource: string | null
+
+    @column()
+    declare action: string | null
+
+    @column({ columnName: 'is_system' })
+    declare isSystem: boolean
+
+    @column.dateTime({ autoCreate: true })
+    declare createdAt: DateTime
+
+    @column.dateTime({ autoCreate: true, autoUpdate: true })
+    declare updatedAt: DateTime
 
     // Relationships
     @manyToMany(() => Role, {

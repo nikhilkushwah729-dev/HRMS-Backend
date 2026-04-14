@@ -156,4 +156,66 @@ export default class LeaveService {
             }
         })
     }
+
+    async createLeaveType(orgId: number, data: {
+        typeName: string
+        daysAllowed: number
+        carryForward?: boolean
+        maxCarryDays?: number
+        isPaid?: boolean
+        requiresDoc?: boolean
+    }) {
+        return await LeaveType.create({
+            orgId,
+            typeName: data.typeName,
+            daysAllowed: data.daysAllowed,
+            carryForward: data.carryForward ?? false,
+            maxCarryDays: data.maxCarryDays ?? 0,
+            isPaid: data.isPaid ?? true,
+            requiresDoc: data.requiresDoc ?? false,
+        })
+    }
+
+    async updateLeaveType(orgId: number, leaveTypeId: number, data: {
+        typeName: string
+        daysAllowed: number
+        carryForward?: boolean
+        maxCarryDays?: number
+        isPaid?: boolean
+        requiresDoc?: boolean
+    }) {
+        const leaveType = await LeaveType.query()
+            .where('org_id', orgId)
+            .where('id', leaveTypeId)
+            .first()
+
+        if (!leaveType) {
+            throw new Exception('Leave type not found', { status: 404 })
+        }
+
+        leaveType.merge({
+            typeName: data.typeName,
+            daysAllowed: data.daysAllowed,
+            carryForward: data.carryForward ?? false,
+            maxCarryDays: data.maxCarryDays ?? 0,
+            isPaid: data.isPaid ?? true,
+            requiresDoc: data.requiresDoc ?? false,
+        })
+        await leaveType.save()
+        return leaveType
+    }
+
+    async deleteLeaveType(orgId: number, leaveTypeId: number) {
+        const leaveType = await LeaveType.query()
+            .where('org_id', orgId)
+            .where('id', leaveTypeId)
+            .first()
+
+        if (!leaveType) {
+            throw new Exception('Leave type not found', { status: 404 })
+        }
+
+        await leaveType.delete()
+        return true
+    }
 }

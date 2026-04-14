@@ -3,6 +3,7 @@ import Department from '#models/department'
 import Designation from '#models/designation'
 import AddonPrice from '#models/addon_price'
 import OrganizationAddon from '#models/organization_addon'
+import OrganizationSetting from '#models/organization_setting'
 import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
 
@@ -49,6 +50,40 @@ export default class OrganizationService {
         return await Department.create({ ...rest, departmentName: name, orgId })
     }
 
+    async updateDepartment(orgId: number, departmentId: number, data: any) {
+        const department = await Department.query()
+            .where('org_id', orgId)
+            .where('id', departmentId)
+            .first()
+
+        if (!department) {
+            throw new Exception('Department not found', { status: 404 })
+        }
+
+        department.merge({
+            departmentName: data.name ?? department.departmentName,
+            parentId: data.parentId ?? department.parentId,
+            description: data.description ?? department.description,
+            isActive: data.isActive ?? department.isActive,
+        })
+        await department.save()
+        return department
+    }
+
+    async deleteDepartment(orgId: number, departmentId: number) {
+        const department = await Department.query()
+            .where('org_id', orgId)
+            .where('id', departmentId)
+            .first()
+
+        if (!department) {
+            throw new Exception('Department not found', { status: 404 })
+        }
+
+        await department.delete()
+        return true
+    }
+
     async getDepartments(orgId: number) {
         return await Department.query().where('org_id', orgId).preload('designations')
     }
@@ -62,6 +97,81 @@ export default class OrganizationService {
 
     async addDesignation(orgId: number, departmentId: number | null, data: any) {
         return await Designation.create({ ...data, orgId, departmentId })
+    }
+
+    async updateDesignation(orgId: number, designationId: number, data: any) {
+        const designation = await Designation.query()
+            .where('org_id', orgId)
+            .where('id', designationId)
+            .first()
+
+        if (!designation) {
+            throw new Exception('Designation not found', { status: 404 })
+        }
+
+        designation.merge({
+            designationName: data.name ?? designation.designationName,
+            departmentId: data.departmentId ?? designation.departmentId,
+        })
+        await designation.save()
+        return designation
+    }
+
+    async deleteDesignation(orgId: number, designationId: number) {
+        const designation = await Designation.query()
+            .where('org_id', orgId)
+            .where('id', designationId)
+            .first()
+
+        if (!designation) {
+            throw new Exception('Designation not found', { status: 404 })
+        }
+
+        await designation.delete()
+        return true
+    }
+
+    /**
+     * Generic Settings Storage
+     */
+    async getSettingCollection(orgId: number, settingKey: string) {
+        const record = await OrganizationSetting.query()
+            .where('org_id', orgId)
+            .where('setting_key', settingKey)
+            .first()
+
+        if (!record) {
+            return []
+        }
+
+        try {
+            const parsed = JSON.parse(record.settingValue)
+            return Array.isArray(parsed) ? parsed : []
+        } catch {
+            return []
+        }
+    }
+
+    async saveSettingCollection(orgId: number, settingKey: string, items: unknown[]) {
+        const serialized = JSON.stringify(Array.isArray(items) ? items : [])
+        let record = await OrganizationSetting.query()
+            .where('org_id', orgId)
+            .where('setting_key', settingKey)
+            .first()
+
+        if (record) {
+            record.settingValue = serialized
+            await record.save()
+            return Array.isArray(items) ? items : []
+        }
+
+        await OrganizationSetting.create({
+            orgId,
+            settingKey,
+            settingValue: serialized,
+        })
+
+        return Array.isArray(items) ? items : []
     }
 
     /**

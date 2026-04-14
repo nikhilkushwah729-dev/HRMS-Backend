@@ -1,6 +1,5 @@
 import Project from '#models/project'
 import Task from '#models/task'
-import { Exception } from '@adonisjs/core/exceptions'
 
 export default class ProjectService {
     /**

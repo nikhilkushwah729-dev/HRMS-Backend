@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 import PasswordResetMailer from '#mailers/password_reset_mailer'
 import mail from '@adonisjs/mail/services/main'
 import AuthService from '#services/AuthService'
+import AuthorizationService from '#services/AuthorizationService'
 import { inject } from '@adonisjs/core'
 
 /**
@@ -15,7 +16,7 @@ import { inject } from '@adonisjs/core'
  * Checks X-Forwarded-For header first (for proxied requests),
  * then X-Real-IP header, and falls back to request.ip()
  */
-function getClientIp(request: any): string | null {
+function getClientIp(request: any): string {
     // Check X-Forwarded-For header (may contain multiple IPs: client, proxy1, proxy2)
     const forwardedFor = request.header('x-forwarded-for')
     if (forwardedFor) {
@@ -32,12 +33,15 @@ function getClientIp(request: any): string | null {
     }
 
     // Fall back to AdonisJS's built-in ip() method
-    return request.ip()
+    return request.ip() || ''
 }
 
 @inject()
 export default class AuthController {
-    constructor(protected authService: AuthService) { }
+    constructor(
+        protected authService: AuthService,
+        protected authorizationService: AuthorizationService
+    ) { }
 
     static loginValidator = vine.compile(
         vine.object({
@@ -201,6 +205,24 @@ export default class AuthController {
 
     async me({ auth, response }: HttpContext) {
         const user = auth.getUserOrFail()
+        let access: {
+            roleId: number | null
+            roleName: string
+            scope: 'all' | 'team' | 'self' | 'finance'
+            permissionKeys: string[]
+        } = {
+            roleId: user.roleId ?? null,
+            roleName: 'Employee',
+            scope: 'self' as const,
+            permissionKeys: [] as string[],
+        }
+
+        try {
+            access = await this.authorizationService.getAccessProfile(user)
+        } catch (error) {
+            console.error('Failed to build access profile for /auth/me:', error)
+        }
+
         return response.ok({
             id: user.id,
             firstName: user.firstName,
@@ -208,7 +230,10 @@ export default class AuthController {
             email: user.email,
             roleId: user.roleId,
             orgId: user.orgId,
-            avatar: user.avatar
+            avatar: user.avatar,
+            role: { id: access.roleId, name: access.roleName },
+            permissions: access.permissionKeys,
+            accessScope: access.scope
         })
     }
 

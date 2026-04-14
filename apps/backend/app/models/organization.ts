@@ -66,6 +66,27 @@ export default class Organization extends OrganizationBase {
     @column.date({ columnName: 'plan_end_date' })
     declare planEndDate: DateTime | null
 
+    @column.date({ columnName: 'trial_start_date' })
+    declare trialStartDate: DateTime | null
+
+    @column.date({ columnName: 'trial_end_date' })
+    declare trialEndDate: DateTime | null
+
+    @column({ columnName: 'is_trial_active' })
+    declare isTrialActive: boolean
+
+    @column({ columnName: 'subscription_status' })
+    declare subscriptionStatus: 'trialing' | 'active' | 'grace' | 'expired' | 'inactive' | 'cancelled'
+
+    @column.date({ columnName: 'grace_period_end_date' })
+    declare gracePeriodEndDate: DateTime | null
+
+    @column({ columnName: 'read_only_mode' })
+    declare readOnlyMode: boolean
+
+    @column.dateTime({ columnName: 'subscription_last_notified_at' })
+    declare subscriptionLastNotifiedAt: DateTime | null
+
     @column({ columnName: 'user_limit' })
     declare userLimit: number
 

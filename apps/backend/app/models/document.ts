@@ -17,6 +17,12 @@ export default class Document extends BaseModel {
     @column()
     declare title: string
 
+    @column({ columnName: 'file_name' })
+    declare fileName: string | null
+
+    @column({ columnName: 'file_path' })
+    declare filePath: string | null
+
     @column()
     declare fileUuid: string
 
@@ -31,6 +37,9 @@ export default class Document extends BaseModel {
 
     @column()
     declare category: string | null
+
+    @column()
+    declare description: string | null
 
     @column()
     declare isPrivate: boolean

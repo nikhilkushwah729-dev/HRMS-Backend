@@ -11,6 +11,7 @@ import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import mail from '@adonisjs/mail/services/main'
 import RegistrationMailer from '#mailers/registration_mailer'
+import SubscriptionService from '#services/SubscriptionService'
 import { COUNTRIES, CountryCodeData } from '../constants/countries.js'
 
 /**
@@ -211,6 +212,8 @@ export default class OrgRegistrationController {
                     requires_doc: false,
                 },
             ])
+
+            await new SubscriptionService().assignTrialToOrganization(organization.id)
 
             return response.created({
                 message: 'Registration completed successfully.',

@@ -1,5 +1,4 @@
 import db from '@adonisjs/lucid/services/db'
-import env from '#start/env'
 
 async function check() {
     try {
