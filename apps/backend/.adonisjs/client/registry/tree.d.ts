@@ -38,18 +38,45 @@ export interface ApiDefinition {
     update: typeof routes['organizations.update']
     getDepartments: typeof routes['organizations.get_departments']
     storeDepartment: typeof routes['organizations.store_department']
+    updateDepartment: typeof routes['organizations.update_department']
+    destroyDepartment: typeof routes['organizations.destroy_department']
+    getDesignations: typeof routes['organizations.get_designations']
+    storeDesignation: typeof routes['organizations.store_designation']
+    updateDesignation: typeof routes['organizations.update_designation']
+    destroyDesignation: typeof routes['organizations.destroy_designation']
+    getSettingCollection: typeof routes['organizations.get_setting_collection']
+    saveSettingCollection: typeof routes['organizations.save_setting_collection']
     getAddons: typeof routes['organizations.get_addons']
     toggleAddon: typeof routes['organizations.toggle_addon']
+  }
+  holidays: {
+    index: typeof routes['holidays.index']
+    store: typeof routes['holidays.store']
+    update: typeof routes['holidays.update']
+    destroy: typeof routes['holidays.destroy']
   }
   employees: {
     index: typeof routes['employees.index']
     store: typeof routes['employees.store']
+    occasions: typeof routes['employees.occasions']
     show: typeof routes['employees.show']
     update: typeof routes['employees.update']
     destroy: typeof routes['employees.destroy']
     updateGeofence: typeof routes['employees.update_geofence']
     getGeofence: typeof routes['employees.get_geofence']
     removeGeofence: typeof routes['employees.remove_geofence']
+  }
+  subscriptions: {
+    listPlans: typeof routes['subscriptions.list_plans']
+    razorpayWebhook: typeof routes['subscriptions.razorpay_webhook']
+    stripeWebhook: typeof routes['subscriptions.stripe_webhook']
+    legacyInvoice: typeof routes['subscriptions.legacy_invoice']
+    getStatus: typeof routes['subscriptions.get_status']
+    createUpgradeIntent: typeof routes['subscriptions.create_upgrade_intent']
+    verifyPayment: typeof routes['subscriptions.verify_payment']
+    getLegacyContext: typeof routes['subscriptions.get_legacy_context']
+    legacyPurchase: typeof routes['subscriptions.legacy_purchase']
+    legacyConfirm: typeof routes['subscriptions.legacy_confirm']
   }
   attendances: {
     checkIn: typeof routes['attendances.check_in']
@@ -68,9 +95,17 @@ export interface ApiDefinition {
     getOvertime: typeof routes['attendances.get_overtime']
     validateLocation: typeof routes['attendances.validate_location']
     getZones: typeof routes['attendances.get_zones']
+    createZone: typeof routes['attendances.create_zone']
+    updateZone: typeof routes['attendances.update_zone']
+    deleteZone: typeof routes['attendances.delete_zone']
+    getGeoFenceSettings: typeof routes['attendances.get_geo_fence_settings']
+    updateGeoFenceSettings: typeof routes['attendances.update_geo_fence_settings']
     getAll: typeof routes['attendances.get_all']
     getTodayAll: typeof routes['attendances.get_today_all']
     getShifts: typeof routes['attendances.get_shifts']
+    createShift: typeof routes['attendances.create_shift']
+    updateShift: typeof routes['attendances.update_shift']
+    deleteShift: typeof routes['attendances.delete_shift']
   }
   regularizations: {
     index: typeof routes['regularizations.index']
@@ -84,6 +119,9 @@ export interface ApiDefinition {
   leaves: {
     index: typeof routes['leaves.index']
     getTypes: typeof routes['leaves.get_types']
+    createType: typeof routes['leaves.create_type']
+    updateType: typeof routes['leaves.update_type']
+    destroyType: typeof routes['leaves.destroy_type']
     store: typeof routes['leaves.store']
     updateStatus: typeof routes['leaves.update_status']
     getBalances: typeof routes['leaves.get_balances']
@@ -113,11 +151,42 @@ export interface ApiDefinition {
     index: typeof routes['timesheets.index']
     store: typeof routes['timesheets.store']
   }
+  visitManagement: {
+    dashboard: typeof routes['visit_management.dashboard']
+    references: typeof routes['visit_management.references']
+    reports: typeof routes['visit_management.reports']
+    exportReports: typeof routes['visit_management.export_reports']
+    listClients: typeof routes['visit_management.list_clients']
+    createClient: typeof routes['visit_management.create_client']
+    updateClient: typeof routes['visit_management.update_client']
+    listVisitors: typeof routes['visit_management.list_visitors']
+    createVisitor: typeof routes['visit_management.create_visitor']
+    updateVisitor: typeof routes['visit_management.update_visitor']
+    index: typeof routes['visit_management.index']
+    store: typeof routes['visit_management.store']
+    show: typeof routes['visit_management.show']
+    update: typeof routes['visit_management.update']
+    review: typeof routes['visit_management.review']
+    checkIn: typeof routes['visit_management.check_in']
+    checkOut: typeof routes['visit_management.check_out']
+    addNote: typeof routes['visit_management.add_note']
+    addFollowUp: typeof routes['visit_management.add_follow_up']
+    updateFollowUp: typeof routes['visit_management.update_follow_up']
+  }
   notifications: {
     index: typeof routes['notifications.index']
     markAsRead: typeof routes['notifications.mark_as_read']
     markAllAsRead: typeof routes['notifications.mark_all_as_read']
     destroy: typeof routes['notifications.destroy']
+  }
+  employeeSelfService: {
+    dashboard: typeof routes['employee_self_service.dashboard']
+    listRequests: typeof routes['employee_self_service.list_requests']
+    createRequest: typeof routes['employee_self_service.create_request']
+    cancelRequest: typeof routes['employee_self_service.cancel_request']
+    profileAudit: typeof routes['employee_self_service.profile_audit']
+    loginActivity: typeof routes['employee_self_service.login_activity']
+    changePassword: typeof routes['employee_self_service.change_password']
   }
   auditLogs: {
     index: typeof routes['audit_logs.index']
@@ -130,13 +199,28 @@ export interface ApiDefinition {
   documents: {
     index: typeof routes['documents.index']
     store: typeof routes['documents.store']
+    download: typeof routes['documents.download']
     destroy: typeof routes['documents.destroy']
   }
   roles: {
     index: typeof routes['roles.index']
     store: typeof routes['roles.store']
+    show: typeof routes['roles.show']
     update: typeof routes['roles.update']
     getPermissions: typeof routes['roles.get_permissions']
+    destroy: typeof routes['roles.destroy']
+  }
+  employeeExperiences: {
+    index: typeof routes['employee_experiences.index']
+    store: typeof routes['employee_experiences.store']
+    update: typeof routes['employee_experiences.update']
+    destroy: typeof routes['employee_experiences.destroy']
+  }
+  employeeEducations: {
+    index: typeof routes['employee_educations.index']
+    store: typeof routes['employee_educations.store']
+    update: typeof routes['employee_educations.update']
+    destroy: typeof routes['employee_educations.destroy']
   }
   faceRecognition: {
     register: typeof routes['face_recognition.register']
@@ -156,6 +240,7 @@ export interface ApiDefinition {
     getDailyReport: typeof routes['reports.get_daily_report']
     getMonthlyReport: typeof routes['reports.get_monthly_report']
     getAttendanceReport: typeof routes['reports.get_attendance_report']
+    getAttendanceDashboard: typeof routes['reports.get_attendance_dashboard']
     getLateArrivals: typeof routes['reports.get_late_arrivals']
     getAbsentReport: typeof routes['reports.get_absent_report']
     getSummary: typeof routes['reports.get_summary']
