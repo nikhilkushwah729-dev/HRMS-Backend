@@ -40,6 +40,17 @@ export default await Env.create(new URL('../', import.meta.url), {
   SMTP_PORT: Env.schema.number.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
   SMTP_PASSWORD: Env.schema.string.optional(),
+  SMTP_SECURE: Env.schema.boolean.optional(),
+  MAIL_FROM_ADDRESS: Env.schema.string.optional(),
+  MAIL_FROM_NAME: Env.schema.string.optional(),
+  GOOGLE_CLIENT_ID: Env.schema.string.optional(),
+  GOOGLE_CLIENT_SECRET: Env.schema.string.optional(),
+  GOOGLE_REDIRECT_URI: Env.schema.string.optional(),
+  MICROSOFT_CLIENT_ID: Env.schema.string.optional(),
+  MICROSOFT_CLIENT_SECRET: Env.schema.string.optional(),
+  MICROSOFT_TENANT_ID: Env.schema.string.optional(),
+  MICROSOFT_REDIRECT_URI: Env.schema.string.optional(),
+  FIREBASE_API_KEY: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------

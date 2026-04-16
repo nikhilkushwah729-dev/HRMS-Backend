@@ -8,7 +8,10 @@ export default class OtpMailer extends BaseMail {
 
     prepare() {
         this.message
-            .from(env.get('SMTP_USERNAME', 'no-reply@hrms.local'))
+            .from(
+                env.get('MAIL_FROM_ADDRESS', env.get('SMTP_USERNAME', 'no-reply@hrms.local')),
+                env.get('MAIL_FROM_NAME', 'HRMS')
+            )
             .to(this.user.email)
             .subject('Your Verification Code')
             .htmlView('emails/otp', {

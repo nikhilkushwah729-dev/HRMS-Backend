@@ -47,6 +47,14 @@ interface MicrosoftUserInfo {
  */
 @inject()
 export default class OAuthService {
+    private requireEnv(name: string, value: string | undefined | null): string {
+        const normalized = String(value || '').trim()
+        if (!normalized) {
+            throw new Error(`${name} is not configured on the server`)
+        }
+        return normalized
+    }
+
     /**
      * Generate state token for OAuth security
      */
@@ -59,8 +67,8 @@ export default class OAuthService {
      */
     getGoogleAuthUrl(): string {
         const state = this.generateState()
-        const clientId = env.get('GOOGLE_CLIENT_ID') || ''
-        const redirectUri = env.get('GOOGLE_REDIRECT_URI') || 'http://localhost:3333/api/auth/google/callback'
+        const clientId = this.requireEnv('GOOGLE_CLIENT_ID', env.get('GOOGLE_CLIENT_ID'))
+        const redirectUri = this.requireEnv('GOOGLE_REDIRECT_URI', env.get('GOOGLE_REDIRECT_URI'))
         
         const scopes = [
             'https://www.googleapis.com/auth/userinfo.email',
@@ -83,9 +91,9 @@ export default class OAuthService {
      */
     getMicrosoftAuthUrl(): string {
         const state = this.generateState()
-        const clientId = env.get('MICROSOFT_CLIENT_ID') || ''
+        const clientId = this.requireEnv('MICROSOFT_CLIENT_ID', env.get('MICROSOFT_CLIENT_ID'))
         const tenantId = env.get('MICROSOFT_TENANT_ID') || 'common'
-        const redirectUri = env.get('MICROSOFT_REDIRECT_URI') || 'http://localhost:3333/api/auth/microsoft/callback'
+        const redirectUri = this.requireEnv('MICROSOFT_REDIRECT_URI', env.get('MICROSOFT_REDIRECT_URI'))
         
         const scopes = [
             'User.Read',
@@ -106,9 +114,9 @@ export default class OAuthService {
      * Exchange Google authorization code for tokens
      */
     async exchangeGoogleCode(code: string): Promise<GoogleTokenResponse> {
-        const clientId = env.get('GOOGLE_CLIENT_ID') || ''
-        const clientSecret = env.get('GOOGLE_CLIENT_SECRET') || ''
-        const redirectUri = env.get('GOOGLE_REDIRECT_URI') || 'http://localhost:3333/api/auth/google/callback'
+        const clientId = this.requireEnv('GOOGLE_CLIENT_ID', env.get('GOOGLE_CLIENT_ID'))
+        const clientSecret = this.requireEnv('GOOGLE_CLIENT_SECRET', env.get('GOOGLE_CLIENT_SECRET'))
+        const redirectUri = this.requireEnv('GOOGLE_REDIRECT_URI', env.get('GOOGLE_REDIRECT_URI'))
 
         const response = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
@@ -134,10 +142,10 @@ export default class OAuthService {
      * Exchange Microsoft authorization code for tokens
      */
     async exchangeMicrosoftCode(code: string): Promise<MicrosoftTokenResponse> {
-        const clientId = env.get('MICROSOFT_CLIENT_ID') || ''
-        const clientSecret = env.get('MICROSOFT_CLIENT_SECRET') || ''
+        const clientId = this.requireEnv('MICROSOFT_CLIENT_ID', env.get('MICROSOFT_CLIENT_ID'))
+        const clientSecret = this.requireEnv('MICROSOFT_CLIENT_SECRET', env.get('MICROSOFT_CLIENT_SECRET'))
         const tenantId = env.get('MICROSOFT_TENANT_ID') || 'common'
-        const redirectUri = env.get('MICROSOFT_REDIRECT_URI') || 'http://localhost:3333/api/auth/microsoft/callback'
+        const redirectUri = this.requireEnv('MICROSOFT_REDIRECT_URI', env.get('MICROSOFT_REDIRECT_URI'))
 
         const response = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
             method: 'POST',

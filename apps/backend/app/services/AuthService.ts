@@ -73,6 +73,9 @@ export default class AuthService {
             emailDelivered = true
         } catch (err: any) {
             console.error('Failed to send OTP email:', err)
+            if (app.inProduction) {
+                throw new Exception('Unable to send OTP email right now. Please contact support or try social login.', { status: 503 })
+            }
         }
 
         console.log(`[DEV ONLY] Email Verification OTP for ${employee.email}: ${code}`)
@@ -339,22 +342,28 @@ export default class AuthService {
         // For now, let's assume all logins need OTP for demonstration
         const otpResult = await this.generateOtp(employee, ipAddress)
 
+        if (!otpResult.emailDelivered) {
+            throw new Exception(
+                app.inProduction
+                    ? 'Unable to send OTP email right now. Please contact support or use Google/Microsoft login.'
+                    : otpResult.deliveryError || 'Unable to send OTP email right now.',
+                { status: 503 }
+            )
+        }
+
         const response: Record<string, any> = {
             requires2fa: true,
             otpReference: otpResult.otp.id, // User needs this to verify
-            message: otpResult.emailDelivered
-                ? 'OTP sent to your email'
-                : 'OTP generated, email delivery failed',
+            message: 'OTP sent to your email',
             emailDelivered: otpResult.emailDelivered,
-        }
-
-        if (!otpResult.emailDelivered && otpResult.deliveryError) {
-            response.deliveryError = otpResult.deliveryError
         }
 
         // Dev fallback so login can continue even if SMTP is not configured.
         if (!app.inProduction) {
             response._debug_otp = otpResult.code
+            if (!otpResult.emailDelivered && otpResult.deliveryError) {
+                response.deliveryError = otpResult.deliveryError
+            }
         }
 
         return response
