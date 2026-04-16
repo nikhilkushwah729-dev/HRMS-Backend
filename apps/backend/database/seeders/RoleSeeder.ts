@@ -95,11 +95,7 @@ export default class extends BaseSeeder {
     ]
 
     for (const role of roles) {
-      const existing = await db
-        .from('roles')
-        .where('id', role.id)
-        .select('id')
-        .first()
+      const existing = await db.from('roles').where('id', role.id).select('id').first()
 
       if (existing) {
         const updatePayload: Record<string, any> = {
@@ -113,10 +109,7 @@ export default class extends BaseSeeder {
         if (hasParentRoleId) updatePayload.parent_role_id = role.parent_role_id
         if (hasUpdatedAt) updatePayload.updated_at = role.updated_at
 
-        await db
-          .from('roles')
-          .where('id', role.id)
-          .update(updatePayload)
+        await db.from('roles').where('id', role.id).update(updatePayload)
       } else {
         const insertPayload: Record<string, any> = {
           id: role.id,
