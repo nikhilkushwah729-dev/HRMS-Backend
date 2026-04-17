@@ -105,7 +105,7 @@ export default defineConfig({
   | the production build.
   |
   */
-  metaFiles: [],
+  metaFiles: ['resources/views/**'],
 
   hooks: {
     init: [
