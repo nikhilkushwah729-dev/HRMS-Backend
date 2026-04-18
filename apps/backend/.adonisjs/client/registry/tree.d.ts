@@ -66,6 +66,14 @@ export interface ApiDefinition {
     getGeofence: typeof routes['employees.get_geofence']
     removeGeofence: typeof routes['employees.remove_geofence']
   }
+  employeeInvitations: {
+    invite: typeof routes['employee_invitations.invite']
+    list: typeof routes['employee_invitations.list']
+    revoke: typeof routes['employee_invitations.revoke']
+    resend: typeof routes['employee_invitations.resend']
+    getByToken: typeof routes['employee_invitations.get_by_token']
+    respond: typeof routes['employee_invitations.respond']
+  }
   subscriptions: {
     listPlans: typeof routes['subscriptions.list_plans']
     razorpayWebhook: typeof routes['subscriptions.razorpay_webhook']
@@ -227,14 +235,6 @@ export interface ApiDefinition {
     verify: typeof routes['face_recognition.verify']
     status: typeof routes['face_recognition.status']
     delete: typeof routes['face_recognition.delete']
-  }
-  employeeInvitations: {
-    invite: typeof routes['employee_invitations.invite']
-    list: typeof routes['employee_invitations.list']
-    revoke: typeof routes['employee_invitations.revoke']
-    resend: typeof routes['employee_invitations.resend']
-    getByToken: typeof routes['employee_invitations.get_by_token']
-    respond: typeof routes['employee_invitations.respond']
   }
   reports: {
     getDailyReport: typeof routes['reports.get_daily_report']

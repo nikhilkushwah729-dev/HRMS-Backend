@@ -270,6 +270,30 @@ const routes = {
     tokens: [{"old":"/api/employees/occasions","type":0,"val":"api","end":""},{"old":"/api/employees/occasions","type":0,"val":"employees","end":""},{"old":"/api/employees/occasions","type":0,"val":"occasions","end":""}],
     types: placeholder as Registry['employees.occasions']['types'],
   },
+  'employee_invitations.invite': {
+    methods: ["POST"],
+    pattern: '/api/employees/invite',
+    tokens: [{"old":"/api/employees/invite","type":0,"val":"api","end":""},{"old":"/api/employees/invite","type":0,"val":"employees","end":""},{"old":"/api/employees/invite","type":0,"val":"invite","end":""}],
+    types: placeholder as Registry['employee_invitations.invite']['types'],
+  },
+  'employee_invitations.list': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/employees/invitations',
+    tokens: [{"old":"/api/employees/invitations","type":0,"val":"api","end":""},{"old":"/api/employees/invitations","type":0,"val":"employees","end":""},{"old":"/api/employees/invitations","type":0,"val":"invitations","end":""}],
+    types: placeholder as Registry['employee_invitations.list']['types'],
+  },
+  'employee_invitations.revoke': {
+    methods: ["POST"],
+    pattern: '/api/employees/invitations/:id/revoke',
+    tokens: [{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"api","end":""},{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"employees","end":""},{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"invitations","end":""},{"old":"/api/employees/invitations/:id/revoke","type":1,"val":"id","end":""},{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"revoke","end":""}],
+    types: placeholder as Registry['employee_invitations.revoke']['types'],
+  },
+  'employee_invitations.resend': {
+    methods: ["POST"],
+    pattern: '/api/employees/invitations/:id/resend',
+    tokens: [{"old":"/api/employees/invitations/:id/resend","type":0,"val":"api","end":""},{"old":"/api/employees/invitations/:id/resend","type":0,"val":"employees","end":""},{"old":"/api/employees/invitations/:id/resend","type":0,"val":"invitations","end":""},{"old":"/api/employees/invitations/:id/resend","type":1,"val":"id","end":""},{"old":"/api/employees/invitations/:id/resend","type":0,"val":"resend","end":""}],
+    types: placeholder as Registry['employee_invitations.resend']['types'],
+  },
   'employees.show': {
     methods: ["GET","HEAD"],
     pattern: '/api/employees/:id',
@@ -1037,30 +1061,6 @@ const routes = {
     pattern: '/api/face/:id',
     tokens: [{"old":"/api/face/:id","type":0,"val":"api","end":""},{"old":"/api/face/:id","type":0,"val":"face","end":""},{"old":"/api/face/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['face_recognition.delete']['types'],
-  },
-  'employee_invitations.invite': {
-    methods: ["POST"],
-    pattern: '/api/employees/invite',
-    tokens: [{"old":"/api/employees/invite","type":0,"val":"api","end":""},{"old":"/api/employees/invite","type":0,"val":"employees","end":""},{"old":"/api/employees/invite","type":0,"val":"invite","end":""}],
-    types: placeholder as Registry['employee_invitations.invite']['types'],
-  },
-  'employee_invitations.list': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/employees/invitations',
-    tokens: [{"old":"/api/employees/invitations","type":0,"val":"api","end":""},{"old":"/api/employees/invitations","type":0,"val":"employees","end":""},{"old":"/api/employees/invitations","type":0,"val":"invitations","end":""}],
-    types: placeholder as Registry['employee_invitations.list']['types'],
-  },
-  'employee_invitations.revoke': {
-    methods: ["POST"],
-    pattern: '/api/employees/invitations/:id/revoke',
-    tokens: [{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"api","end":""},{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"employees","end":""},{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"invitations","end":""},{"old":"/api/employees/invitations/:id/revoke","type":1,"val":"id","end":""},{"old":"/api/employees/invitations/:id/revoke","type":0,"val":"revoke","end":""}],
-    types: placeholder as Registry['employee_invitations.revoke']['types'],
-  },
-  'employee_invitations.resend': {
-    methods: ["POST"],
-    pattern: '/api/employees/invitations/:id/resend',
-    tokens: [{"old":"/api/employees/invitations/:id/resend","type":0,"val":"api","end":""},{"old":"/api/employees/invitations/:id/resend","type":0,"val":"employees","end":""},{"old":"/api/employees/invitations/:id/resend","type":0,"val":"invitations","end":""},{"old":"/api/employees/invitations/:id/resend","type":1,"val":"id","end":""},{"old":"/api/employees/invitations/:id/resend","type":0,"val":"resend","end":""}],
-    types: placeholder as Registry['employee_invitations.resend']['types'],
   },
   'employee_invitations.get_by_token': {
     methods: ["GET","HEAD"],

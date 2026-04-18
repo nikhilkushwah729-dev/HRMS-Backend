@@ -1,12 +1,124 @@
 import Employee from '#models/employee'
+import Organization from '#models/organization'
+import OrganizationSetting from '#models/organization_setting'
 import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
 import AuthorizationService from '#services/AuthorizationService'
 
 export default class EmployeeService {
-    /**
-     * List all employees in organization
-     */
+    private readonly employeeCodePrefixKey = 'employee-code-prefix'
+
+    private isDuplicateEntryError(error: any) {
+        return error?.code === 'ER_DUP_ENTRY' || String(error?.message || '').toLowerCase().includes('duplicate entry')
+    }
+
+    private normalizeEmployeeCodePrefix(value: unknown): string {
+        const normalized = String(value ?? '')
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .slice(0, 3)
+
+        return normalized.length === 3 ? normalized : ''
+    }
+
+    private normalizeEmployeeCode(value: unknown): string | null {
+        const normalized = String(value ?? '')
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9-]/g, '')
+            .slice(0, 30)
+
+        return normalized || null
+    }
+
+    private async getEmployeeCodePrefix(orgId: number): Promise<string> {
+        const record = await OrganizationSetting.query()
+            .where('org_id', orgId)
+            .where('setting_key', this.employeeCodePrefixKey)
+            .first()
+
+        if (record?.settingValue) {
+            try {
+                const parsed = JSON.parse(record.settingValue)
+                const rawValue = Array.isArray(parsed) ? parsed[0]?.value ?? parsed[0]?.prefix ?? parsed[0] : parsed
+                const savedPrefix = this.normalizeEmployeeCodePrefix(rawValue)
+                if (savedPrefix) {
+                    return savedPrefix
+                }
+            } catch {
+                const fallbackSavedPrefix = this.normalizeEmployeeCodePrefix(record.settingValue)
+                if (fallbackSavedPrefix) {
+                    return fallbackSavedPrefix
+                }
+            }
+        }
+
+        const organization = await Organization.query().where('id', orgId).first()
+        const fallbackPrefix = this.normalizeEmployeeCodePrefix(organization?.companyName)
+        return fallbackPrefix || 'EMP'
+    }
+
+    private async generateEmployeeCode(orgId: number): Promise<string> {
+        const prefix = await this.getEmployeeCodePrefix(orgId)
+
+        for (let attempt = 0; attempt < 25; attempt += 1) {
+            const random = Math.floor(1000 + Math.random() * 9000)
+            const code = `${prefix}-${random}`
+            const existing = await Employee.query()
+                .where('org_id', orgId)
+                .where('employee_code', code)
+                .whereNull('deleted_at')
+                .first()
+
+            if (!existing) {
+                return code
+            }
+        }
+
+        throw new Exception('Unable to generate a unique employee code right now. Please try again.', { status: 503 })
+    }
+
+    private async assertUniqueEmployeeFields(orgId: number, data: any, employeeId?: number) {
+        const normalizedEmail = typeof data?.email === 'string' ? data.email.trim().toLowerCase() : null
+        const normalizedEmployeeCode = typeof data?.employeeCode === 'string' ? data.employeeCode.trim() : null
+
+        if (normalizedEmail) {
+            const emailQuery = Employee.query()
+                .whereRaw('LOWER(email) = ?', [normalizedEmail])
+                .whereNull('deleted_at')
+
+            if (employeeId) {
+                emailQuery.whereNot('id', employeeId)
+            }
+
+            const emailOwner = await emailQuery.first()
+            if (emailOwner) {
+                if (emailOwner.orgId === orgId) {
+                    throw new Exception('An employee with this email already exists in your organization', { status: 409 })
+                }
+
+                throw new Exception('This email is already linked to another employee account and cannot be reused', { status: 409 })
+            }
+        }
+
+        if (normalizedEmployeeCode) {
+            const codeQuery = Employee.query()
+                .where('org_id', orgId)
+                .where('employee_code', normalizedEmployeeCode)
+                .whereNull('deleted_at')
+
+            if (employeeId) {
+                codeQuery.whereNot('id', employeeId)
+            }
+
+            const codeOwner = await codeQuery.first()
+            if (codeOwner) {
+                throw new Exception('An employee with this employee code already exists in your organization', { status: 409 })
+            }
+        }
+    }
+
     async list(orgId: number, filters: any = {}, actor?: Employee, authorizationService?: AuthorizationService) {
         const query = Employee.query()
             .where('org_id', orgId)
@@ -16,7 +128,6 @@ export default class EmployeeService {
             authorizationService.scopeEmployeesQuery(query, actor)
         }
 
-        // Search filter
         if (filters.search) {
             const search = `%${filters.search}%`
             query.where((q) => {
@@ -27,7 +138,6 @@ export default class EmployeeService {
             })
         }
 
-        // Exact filters
         if (filters.status) {
             query.where('status', filters.status)
         }
@@ -43,29 +153,7 @@ export default class EmployeeService {
         return await query.preload('department').preload('designation').preload('role')
     }
 
-    /**
-     * Get employee by ID
-     */
     async getById(id: number, orgId: number) {
-        // First check if employee exists at all
-        const employeeExists = await Employee.query()
-            .where('id', id)
-            .first()
-
-        if (!employeeExists) {
-            throw new Exception('Employee not found. The employee may have been deleted or never existed.', { status: 404 })
-        }
-
-        // Check if employee belongs to user's organization
-        if (employeeExists.orgId !== orgId) {
-            throw new Exception('Employee not found in your organization', { status: 404 })
-        }
-
-        // Check if employee is soft-deleted
-        if (employeeExists.deletedAt) {
-            throw new Exception('Employee has been removed from the organization', { status: 404 })
-        }
-
         const employee = await Employee.query()
             .where('id', id)
             .where('org_id', orgId)
@@ -75,35 +163,56 @@ export default class EmployeeService {
             .preload('role')
             .first()
 
-        return employee
+        return employee ?? null
     }
 
-    /**
-     * Create new employee
-     */
     async create(orgId: number, data: any) {
         const payload = this.parseEmployeeData(data)
-        return await Employee.create({ ...payload, orgId })
+        if (!payload.employeeCode) {
+            payload.employeeCode = await this.generateEmployeeCode(orgId)
+        }
+
+        await this.assertUniqueEmployeeFields(orgId, payload)
+
+        try {
+            return await Employee.create({ ...payload, orgId })
+        } catch (error: any) {
+            if (this.isDuplicateEntryError(error)) {
+                throw new Exception('An employee with the same email or employee code already exists', { status: 409 })
+            }
+            throw error
+        }
     }
 
-    /**
-     * Update employee
-     */
     async update(id: number, orgId: number, data: any) {
         const employee = await this.getById(id, orgId)
         if (!employee) {
             throw new Exception('Employee not found in your organization', { status: 404 })
         }
+
         const payload = this.parseEmployeeData(data)
+        if (!payload.employeeCode) {
+            payload.employeeCode = employee.employeeCode || (await this.generateEmployeeCode(orgId))
+        }
+
+        await this.assertUniqueEmployeeFields(orgId, payload, employee.id)
         employee.merge(payload)
-        await employee.save()
+
+        try {
+            await employee.save()
+        } catch (error: any) {
+            if (this.isDuplicateEntryError(error)) {
+                throw new Exception('An employee with the same email or employee code already exists', { status: 409 })
+            }
+            throw error
+        }
+
         return employee
     }
 
     private parseEmployeeData(data: any) {
         const payload = { ...data }
 
-        // Convert date strings to DateTime objects
         if (payload.joinDate && typeof payload.joinDate === 'string') {
             payload.joinDate = DateTime.fromISO(payload.joinDate)
         }
@@ -113,13 +222,13 @@ export default class EmployeeService {
         if (payload.exitDate && typeof payload.exitDate === 'string') {
             payload.exitDate = DateTime.fromISO(payload.exitDate)
         }
+        if ('employeeCode' in payload) {
+            payload.employeeCode = this.normalizeEmployeeCode(payload.employeeCode)
+        }
 
         return payload
     }
 
-    /**
-     * Soft delete employee
-     */
     async delete(id: number, orgId: number, deletedBy: number) {
         const employee = await this.getById(id, orgId)
         if (!employee) {

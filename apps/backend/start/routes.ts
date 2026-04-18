@@ -18,6 +18,7 @@ const HolidaysController = () => import('#controllers/Http/HolidaysController')
 const VisitManagementController = () => import('#controllers/Http/VisitManagementController')
 const EmployeeSelfServiceController = () => import('#controllers/Http/EmployeeSelfServiceController')
 const SubscriptionsController = () => import('#controllers/Http/SubscriptionsController')
+const EmployeeInvitationsController = () => import('#controllers/Http/EmployeeInvitationsController')
 
 router.get('/', async () => {
   return { status: 'online', version: '1.0.0' }
@@ -121,6 +122,10 @@ router.group(() => {
   router.get('/', [EmployeesController, 'index'])
   router.post('/', [EmployeesController, 'store'])
   router.get('occasions', [EmployeesController, 'occasions'])
+  router.post('invite', [EmployeeInvitationsController, 'invite'])
+  router.get('invitations', [EmployeeInvitationsController, 'list'])
+  router.post('invitations/:id/revoke', [EmployeeInvitationsController, 'revoke'])
+  router.post('invitations/:id/resend', [EmployeeInvitationsController, 'resend'])
   router.get(':id', [EmployeesController, 'show'])
   router.put(':id', [EmployeesController, 'update'])
   router.delete(':id', [EmployeesController, 'destroy'])
@@ -376,15 +381,6 @@ router.group(() => {
 /**
  * Employee Invitations Routes
  */
-const EmployeeInvitationsController = () => import('#controllers/Http/EmployeeInvitationsController')
-
-router.group(() => {
-  router.post('/invite', [EmployeeInvitationsController, 'invite'])
-  router.get('/invitations', [EmployeeInvitationsController, 'list'])
-  router.post('/invitations/:id/revoke', [EmployeeInvitationsController, 'revoke'])
-  router.post('/invitations/:id/resend', [EmployeeInvitationsController, 'resend'])
-}).prefix('api/employees').use(middleware.auth())
-
 // Public invitation routes
 router.get('api/invitations/:token', [EmployeeInvitationsController, 'getByToken'])
 router.post('api/invitations/:token/respond', [EmployeeInvitationsController, 'respond'])

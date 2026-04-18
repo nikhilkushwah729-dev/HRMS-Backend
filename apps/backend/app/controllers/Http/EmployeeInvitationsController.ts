@@ -5,6 +5,7 @@ import Employee from '#models/employee'
 import { DateTime } from 'luxon'
 import { randomUUID } from 'node:crypto'
 import { inject } from '@adonisjs/core'
+import { Exception } from '@adonisjs/core/exceptions'
 import mail from '@adonisjs/mail/services/main'
 import EmployeeInvitationMailer from '#mailers/employee_invitation_mailer'
 
@@ -59,12 +60,15 @@ export default class EmployeeInvitationsController {
 
     private async ensureEmployeeForInvitation(invitation: EmployeeInvitation) {
         const existingEmployee = await Employee.query()
-            .where('org_id', invitation.orgId)
-            .where('email', invitation.email)
+            .whereRaw('LOWER(email) = ?', [invitation.email.toLowerCase()])
             .whereNull('deleted_at')
             .first()
 
         if (existingEmployee) {
+            if (existingEmployee.orgId !== invitation.orgId) {
+                throw new Exception('This email is already linked to another employee account and cannot be invited again', { status: 409 })
+            }
+
             if (invitation.roleId && !existingEmployee.roleId) {
                 existingEmployee.roleId = invitation.roleId
                 await existingEmployee.save()
@@ -74,25 +78,32 @@ export default class EmployeeInvitationsController {
 
         const derivedName = this.buildNameFromEmail(invitation.email)
 
-        const employee = await Employee.create({
-            orgId: invitation.orgId,
-            roleId: invitation.roleId || null,
-            employeeCode: `EMP-${invitation.orgId}-${invitation.id}`,
-            firstName: derivedName.firstName,
-            lastName: derivedName.lastName,
-            email: invitation.email,
-            status: 'active',
-            emailVerified: true,
-            loginType: 'email',
-            phoneVerified: false,
-            phoneAuthEnabled: false,
-            mustChangePassword: true,
-            isLocked: false,
-            isInternational: false,
-            joinDate: DateTime.now(),
-        })
+        try {
+            const employee = await Employee.create({
+                orgId: invitation.orgId,
+                roleId: invitation.roleId || null,
+                employeeCode: `EMP-${invitation.orgId}-${invitation.id}`,
+                firstName: derivedName.firstName,
+                lastName: derivedName.lastName,
+                email: invitation.email,
+                status: 'active',
+                emailVerified: true,
+                loginType: 'email',
+                phoneVerified: false,
+                phoneAuthEnabled: false,
+                mustChangePassword: true,
+                isLocked: false,
+                isInternational: false,
+                joinDate: DateTime.now(),
+            })
 
-        return employee
+            return employee
+        } catch (error: any) {
+            if (error?.code === 'ER_DUP_ENTRY') {
+                throw new Exception('This email is already linked to another employee account and cannot be invited again', { status: 409 })
+            }
+            throw error
+        }
     }
 
     async invite({ auth, request, response }: HttpContext) {
@@ -102,12 +113,16 @@ export default class EmployeeInvitationsController {
         const normalizedEmail = data.email.trim().toLowerCase()
 
         const existingEmployee = await Employee.query()
-            .where('email', normalizedEmail)
-            .where('org_id', employee.orgId)
+            .whereRaw('LOWER(email) = ?', [normalizedEmail])
+            .whereNull('deleted_at')
             .first()
 
         if (existingEmployee) {
-            return response.badRequest({ message: 'An employee with this email already exists in your organization' })
+            if (existingEmployee.orgId === employee.orgId) {
+                return response.conflict({ message: 'An employee with this email already exists in your organization' })
+            }
+
+            return response.conflict({ message: 'This email is already linked to another employee account and cannot be invited again' })
         }
 
         const existingInvitation = await EmployeeInvitation.query()
@@ -258,20 +273,30 @@ export default class EmployeeInvitationsController {
         }
 
         if (action === 'accept') {
-            const createdEmployee = await this.ensureEmployeeForInvitation(invitation)
-            invitation.status = 'accepted'
-            await invitation.save()
+            try {
+                const createdEmployee = await this.ensureEmployeeForInvitation(invitation)
+                invitation.status = 'accepted'
+                await invitation.save()
 
-            return response.ok({
-                status: 'success',
-                message: 'Invitation accepted successfully.',
-                data: {
-                    invitationId: invitation.id,
-                    email: invitation.email,
-                    orgId: invitation.orgId,
-                    employeeId: createdEmployee.id,
-                },
-            })
+                return response.ok({
+                    status: 'success',
+                    message: 'Invitation accepted successfully.',
+                    data: {
+                        invitationId: invitation.id,
+                        email: invitation.email,
+                        orgId: invitation.orgId,
+                        employeeId: createdEmployee.id,
+                    },
+                })
+            } catch (error: any) {
+                if (error?.status === 409) {
+                    return response.conflict({
+                        status: 'error',
+                        message: error.message,
+                    })
+                }
+                throw error
+            }
         }
 
         invitation.status = 'revoked'
