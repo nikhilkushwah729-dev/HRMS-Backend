@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+﻿import { HttpContext } from '@adonisjs/core/http'
 import EmployeeService from '#services/EmployeeService'
 import AuditLogService from '#services/AuditLogService'
 import MediaUploadService from '#services/MediaUploadService'
@@ -107,9 +107,25 @@ export default class EmployeesController {
      */
     async show({ auth, params, response }: HttpContext) {
         const currentUser = auth.user!
-        const id = params.id
+        const id = Number(params.id)
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return response.badRequest({
+                status: 'error',
+                message: 'Invalid employee id.',
+            })
+        }
+
         const employee = await this.employeeService.getById(id, currentUser.orgId)
-        if (!employee || !(await this.authorizationService.canAccessEmployee(currentUser, employee))) {
+
+        if (!employee) {
+            return response.notFound({
+                status: 'error',
+                message: 'Employee not found. The employee may have been deleted or never existed.',
+            })
+        }
+
+        if (!(await this.authorizationService.canAccessEmployee(currentUser, employee))) {
             return response.forbidden({ status: 'error', message: 'You cannot access this employee record.' })
         }
         return response.ok({
@@ -174,9 +190,25 @@ export default class EmployeesController {
      */
     async update({ auth, params, request, response }: HttpContext) {
         const currentUser = auth.user!
-        const id = params.id
+        const id = Number(params.id)
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return response.badRequest({
+                status: 'error',
+                message: 'Invalid employee id.',
+            })
+        }
+
         const existingEmployee = await this.employeeService.getById(id, currentUser.orgId)
-        if (!existingEmployee || !(await this.authorizationService.canAccessEmployee(currentUser, existingEmployee))) {
+
+        if (!existingEmployee) {
+            return response.notFound({
+                status: 'error',
+                message: 'Employee not found. The employee may have been deleted or never existed.',
+            })
+        }
+
+        if (!(await this.authorizationService.canAccessEmployee(currentUser, existingEmployee))) {
             return response.forbidden({ status: 'error', message: 'You cannot update this employee record.' })
         }
         const data = await request.validateUsing(EmployeesController.employeeValidator)
@@ -275,9 +307,25 @@ export default class EmployeesController {
      */
     async destroy({ auth, params, request, response }: HttpContext) {
         const currentUser = auth.user!
-        const id = params.id
+        const id = Number(params.id)
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return response.badRequest({
+                status: 'error',
+                message: 'Invalid employee id.',
+            })
+        }
+
         const targetEmployee = await this.employeeService.getById(id, currentUser.orgId)
-        if (!targetEmployee || !(await this.authorizationService.canAccessEmployee(currentUser, targetEmployee))) {
+
+        if (!targetEmployee) {
+            return response.notFound({
+                status: 'error',
+                message: 'Employee not found. The employee may have been deleted or never existed.',
+            })
+        }
+
+        if (!(await this.authorizationService.canAccessEmployee(currentUser, targetEmployee))) {
             return response.forbidden({ status: 'error', message: 'You cannot delete this employee record.' })
         }
         await this.employeeService.delete(id, currentUser.orgId, currentUser.id)
@@ -437,3 +485,6 @@ export default class EmployeesController {
         })
     }
 }
+
+
+

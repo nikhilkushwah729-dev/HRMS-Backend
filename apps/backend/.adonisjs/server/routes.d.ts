@@ -48,6 +48,10 @@ export type ScannedRoutes = {
     'employees.index': { paramsTuple?: []; params?: {} }
     'employees.store': { paramsTuple?: []; params?: {} }
     'employees.occasions': { paramsTuple?: []; params?: {} }
+    'employee_invitations.invite': { paramsTuple?: []; params?: {} }
+    'employee_invitations.list': { paramsTuple?: []; params?: {} }
+    'employee_invitations.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'employee_invitations.resend': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -176,10 +180,6 @@ export type ScannedRoutes = {
     'face_recognition.verify': { paramsTuple?: []; params?: {} }
     'face_recognition.status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'face_recognition.delete': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'employee_invitations.invite': { paramsTuple?: []; params?: {} }
-    'employee_invitations.list': { paramsTuple?: []; params?: {} }
-    'employee_invitations.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'employee_invitations.resend': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_invitations.get_by_token': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'employee_invitations.respond': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'leaves.get_balances': { paramsTuple?: []; params?: {} }
@@ -212,6 +212,7 @@ export type ScannedRoutes = {
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
     'employees.index': { paramsTuple?: []; params?: {} }
     'employees.occasions': { paramsTuple?: []; params?: {} }
+    'employee_invitations.list': { paramsTuple?: []; params?: {} }
     'employees.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.get_geofence': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.list_plans': { paramsTuple?: []; params?: {} }
@@ -268,7 +269,6 @@ export type ScannedRoutes = {
     'employee_experiences.index': { paramsTuple?: []; params?: {} }
     'employee_educations.index': { paramsTuple?: []; params?: {} }
     'face_recognition.status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'employee_invitations.list': { paramsTuple?: []; params?: {} }
     'employee_invitations.get_by_token': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'leaves.get_balances': { paramsTuple?: []; params?: {} }
     'reports.get_daily_report': { paramsTuple?: []; params?: {} }
@@ -299,6 +299,7 @@ export type ScannedRoutes = {
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
     'employees.index': { paramsTuple?: []; params?: {} }
     'employees.occasions': { paramsTuple?: []; params?: {} }
+    'employee_invitations.list': { paramsTuple?: []; params?: {} }
     'employees.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.get_geofence': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.list_plans': { paramsTuple?: []; params?: {} }
@@ -355,7 +356,6 @@ export type ScannedRoutes = {
     'employee_experiences.index': { paramsTuple?: []; params?: {} }
     'employee_educations.index': { paramsTuple?: []; params?: {} }
     'face_recognition.status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'employee_invitations.list': { paramsTuple?: []; params?: {} }
     'employee_invitations.get_by_token': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'leaves.get_balances': { paramsTuple?: []; params?: {} }
     'reports.get_daily_report': { paramsTuple?: []; params?: {} }
@@ -392,6 +392,9 @@ export type ScannedRoutes = {
     'holidays.store': { paramsTuple?: []; params?: {} }
     'organizations.toggle_addon': { paramsTuple?: []; params?: {} }
     'employees.store': { paramsTuple?: []; params?: {} }
+    'employee_invitations.invite': { paramsTuple?: []; params?: {} }
+    'employee_invitations.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'employee_invitations.resend': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.razorpay_webhook': { paramsTuple?: []; params?: {} }
     'subscriptions.stripe_webhook': { paramsTuple?: []; params?: {} }
     'subscriptions.create_upgrade_intent': { paramsTuple?: []; params?: {} }
@@ -436,9 +439,6 @@ export type ScannedRoutes = {
     'employee_educations.store': { paramsTuple?: []; params?: {} }
     'face_recognition.register': { paramsTuple?: []; params?: {} }
     'face_recognition.verify': { paramsTuple?: []; params?: {} }
-    'employee_invitations.invite': { paramsTuple?: []; params?: {} }
-    'employee_invitations.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'employee_invitations.resend': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_invitations.respond': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'leaves.adjust_balance': { paramsTuple?: []; params?: {} }
   }

@@ -491,6 +491,50 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeesController').default['occasions']>>>
     }
   }
+  'employee_invitations.invite': {
+    methods: ["POST"]
+    pattern: '/api/employees/invite'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/EmployeeInvitationsController').default)['inviteValidator']>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/EmployeeInvitationsController').default)['inviteValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['invite']>>>
+    }
+  }
+  'employee_invitations.list': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/employees/invitations'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['list']>>>
+    }
+  }
+  'employee_invitations.revoke': {
+    methods: ["POST"]
+    pattern: '/api/employees/invitations/:id/revoke'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['revoke']>>>
+    }
+  }
+  'employee_invitations.resend': {
+    methods: ["POST"]
+    pattern: '/api/employees/invitations/:id/resend'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['resend']>>>
+    }
+  }
   'employees.show': {
     methods: ["GET","HEAD"]
     pattern: '/api/employees/:id'
@@ -1897,50 +1941,6 @@ export interface Registry {
       params: { id: ParamValue }
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/FaceRecognitionController').default['delete']>>>
-    }
-  }
-  'employee_invitations.invite': {
-    methods: ["POST"]
-    pattern: '/api/employees/invite'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/EmployeeInvitationsController').default)['inviteValidator']>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/EmployeeInvitationsController').default)['inviteValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['invite']>>>
-    }
-  }
-  'employee_invitations.list': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/employees/invitations'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['list']>>>
-    }
-  }
-  'employee_invitations.revoke': {
-    methods: ["POST"]
-    pattern: '/api/employees/invitations/:id/revoke'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['revoke']>>>
-    }
-  }
-  'employee_invitations.resend': {
-    methods: ["POST"]
-    pattern: '/api/employees/invitations/:id/resend'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeInvitationsController').default['resend']>>>
     }
   }
   'employee_invitations.get_by_token': {
