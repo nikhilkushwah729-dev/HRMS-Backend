@@ -12,6 +12,10 @@ type EmployeeRow = {
 }
 
 export default class extends BaseSeeder {
+  private sqlDateTime(value: DateTime) {
+    return value.toFormat('yyyy-LL-dd HH:mm:ss')
+  }
+
   private employeeName(employee?: EmployeeRow | null) {
     if (!employee) return 'Team Member'
     return `${employee.first_name ?? ''} ${employee.last_name ?? ''}`.trim() || 'Team Member'
@@ -23,7 +27,7 @@ export default class extends BaseSeeder {
       await db.from('visit_clients').where('id', existing.id).update({
         ...payload,
         org_id: orgId,
-        updated_at: DateTime.now().toSQL(),
+        updated_at: this.sqlDateTime(DateTime.now()),
       })
       return Number(existing.id)
     }
@@ -31,7 +35,7 @@ export default class extends BaseSeeder {
     const [id] = await db.table('visit_clients').insert({
       org_id: orgId,
       ...payload,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: this.sqlDateTime(DateTime.now()),
     })
     return Number(id)
   }
@@ -42,7 +46,7 @@ export default class extends BaseSeeder {
       await db.from('visit_visitors').where('id', existing.id).update({
         ...payload,
         org_id: orgId,
-        updated_at: DateTime.now().toSQL(),
+        updated_at: this.sqlDateTime(DateTime.now()),
       })
       return Number(existing.id)
     }
@@ -50,7 +54,7 @@ export default class extends BaseSeeder {
     const [id] = await db.table('visit_visitors').insert({
       org_id: orgId,
       ...payload,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: this.sqlDateTime(DateTime.now()),
     })
     return Number(id)
   }
@@ -61,7 +65,7 @@ export default class extends BaseSeeder {
       await db.from('visits').where('id', existing.id).update({
         ...payload,
         org_id: orgId,
-        updated_at: DateTime.now().toSQL(),
+        updated_at: this.sqlDateTime(DateTime.now()),
       })
       return Number(existing.id)
     }
@@ -70,7 +74,7 @@ export default class extends BaseSeeder {
       org_id: orgId,
       title,
       ...payload,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: this.sqlDateTime(DateTime.now()),
     })
     return Number(id)
   }
@@ -94,7 +98,7 @@ export default class extends BaseSeeder {
       await db.from('visit_follow_ups').where('id', existing.id).update({
         ...payload,
         org_id: orgId,
-        updated_at: DateTime.now().toSQL(),
+        updated_at: this.sqlDateTime(DateTime.now()),
       })
       return
     }
@@ -103,7 +107,7 @@ export default class extends BaseSeeder {
       visit_id: visitId,
       org_id: orgId,
       ...payload,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: this.sqlDateTime(DateTime.now()),
     })
   }
 
@@ -182,10 +186,10 @@ export default class extends BaseSeeder {
         priority: 'high',
         status: 'planned',
         requires_approval: true,
-        scheduled_start: now.plus({ days: 1, hours: 2 }).toISO(),
-        scheduled_end: now.plus({ days: 1, hours: 4 }).toISO(),
-        reminder_at: now.plus({ days: 1, hours: 1 }).toISO(),
-        approved_at: now.minus({ hours: 2 }).toISO(),
+        scheduled_start: this.sqlDateTime(now.plus({ days: 1, hours: 2 })),
+        scheduled_end: this.sqlDateTime(now.plus({ days: 1, hours: 4 })),
+        reminder_at: this.sqlDateTime(now.plus({ days: 1, hours: 1 })),
+        approved_at: this.sqlDateTime(now.minus({ hours: 2 })),
         approval_notes: 'Approved for strategic planning discussion.',
         attachment_urls: JSON.stringify(['https://example.com/visit-kit/planning-agenda.pdf']),
       })
@@ -203,10 +207,10 @@ export default class extends BaseSeeder {
         priority: 'critical',
         status: 'in_progress',
         requires_approval: false,
-        scheduled_start: now.minus({ hours: 1 }).toISO(),
-        scheduled_end: now.plus({ hours: 2 }).toISO(),
-        reminder_at: now.minus({ hours: 2 }).toISO(),
-        actual_check_in_at: now.minus({ minutes: 35 }).toISO(),
+        scheduled_start: this.sqlDateTime(now.minus({ hours: 1 })),
+        scheduled_end: this.sqlDateTime(now.plus({ hours: 2 })),
+        reminder_at: this.sqlDateTime(now.minus({ hours: 2 })),
+        actual_check_in_at: this.sqlDateTime(now.minus({ minutes: 35 })),
         check_in_latitude: 28.4595,
         check_in_longitude: 77.0266,
         check_in_address: 'Plant Unit 2 Gate 1',
@@ -226,10 +230,10 @@ export default class extends BaseSeeder {
         priority: 'medium',
         status: 'completed',
         requires_approval: false,
-        scheduled_start: now.minus({ days: 2, hours: 3 }).toISO(),
-        scheduled_end: now.minus({ days: 2, hours: 1 }).toISO(),
-        actual_check_in_at: now.minus({ days: 2, hours: 3 }).toISO(),
-        actual_check_out_at: now.minus({ days: 2, hours: 1, minutes: 10 }).toISO(),
+        scheduled_start: this.sqlDateTime(now.minus({ days: 2, hours: 3 })),
+        scheduled_end: this.sqlDateTime(now.minus({ days: 2, hours: 1 })),
+        actual_check_in_at: this.sqlDateTime(now.minus({ days: 2, hours: 3 })),
+        actual_check_out_at: this.sqlDateTime(now.minus({ days: 2, hours: 1, minutes: 10 })),
         check_in_latitude: 28.5355,
         check_in_longitude: 77.3910,
         check_out_latitude: 28.5357,
@@ -251,7 +255,7 @@ export default class extends BaseSeeder {
         priority: 'high',
         title: 'Prepare planning deck',
         description: `Finalize presentation before meeting with ${this.employeeName(member)} and the client delegation.`,
-        due_at: now.plus({ hours: 18 }).toISO(),
+        due_at: this.sqlDateTime(now.plus({ hours: 18 })),
       })
 
       await this.ensureFollowUp(inProgressVisitId, organization.id, {
@@ -261,7 +265,7 @@ export default class extends BaseSeeder {
         priority: 'critical',
         title: 'Record observed floor issues',
         description: 'Log observations and corrective actions from the ongoing site visit.',
-        due_at: now.plus({ hours: 5 }).toISO(),
+        due_at: this.sqlDateTime(now.plus({ hours: 5 })),
       })
 
       await this.ensureFollowUp(completedVisitId, organization.id, {
@@ -271,8 +275,8 @@ export default class extends BaseSeeder {
         priority: 'medium',
         title: 'Send signed MOM to client',
         description: 'Share approved closure minutes and archived proof documents.',
-        due_at: now.minus({ days: 1 }).toISO(),
-        completed_at: now.minus({ hours: 12 }).toISO(),
+        due_at: this.sqlDateTime(now.minus({ days: 1 })),
+        completed_at: this.sqlDateTime(now.minus({ hours: 12 })),
       })
     }
   }
