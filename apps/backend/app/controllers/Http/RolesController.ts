@@ -10,6 +10,15 @@ import db from '@adonisjs/lucid/services/db'
 export default class RolesController {
     constructor(protected authorizationService: AuthorizationService) { }
 
+    private isPlatformSuperAdminRole(roleName: string | null | undefined, orgId: number | null | undefined): boolean {
+        return String(roleName || '').trim().toLowerCase() === 'super admin' && orgId == null
+    }
+
+    private async isPlatformSuperAdmin(employee: any): Promise<boolean> {
+        await employee.load('role')
+        return this.isPlatformSuperAdminRole(employee.role?.roleName, employee.role?.orgId)
+    }
+
     private async hasTable(tableName: string): Promise<boolean> {
         const result = await db.rawQuery(
             'select 1 as present from information_schema.tables where table_schema = database() and table_name = ? limit 1',
@@ -32,12 +41,19 @@ export default class RolesController {
      */
     async index({ auth, response }: HttpContext) {
         const employee = auth.user!
+        const isPlatformSuperAdmin = await this.isPlatformSuperAdmin(employee)
         await this.authorizationService.ensureCatalogSeeded()
         const hasRolePermissionsTable = await this.hasTable('role_permissions')
         let rolesQuery = Role.query()
             .where((q) => {
                 q.where('org_id', employee.orgId)
-                    .orWhereNull('org_id')
+                if (isPlatformSuperAdmin) {
+                    q.orWhereNull('org_id')
+                } else {
+                    q.orWhere((globalQuery) => {
+                        globalQuery.whereNull('org_id').whereNot('role_name', 'Super Admin')
+                    })
+                }
             })
 
         if (hasRolePermissionsTable) {
@@ -53,12 +69,20 @@ export default class RolesController {
     }
     async show({ auth, params, response }: HttpContext) {
         const employee = auth.user!
+        const isPlatformSuperAdmin = await this.isPlatformSuperAdmin(employee)
         try {
             const hasRolePermissionsTable = await this.hasTable('role_permissions')
             let roleQuery = Role.query()
                 .where('id', params.id)
                 .where((q) => {
-                    q.where('org_id', employee.orgId).orWhereNull('org_id')
+                    q.where('org_id', employee.orgId)
+                    if (isPlatformSuperAdmin) {
+                        q.orWhereNull('org_id')
+                    } else {
+                        q.orWhere((globalQuery) => {
+                            globalQuery.whereNull('org_id').whereNot('role_name', 'Super Admin')
+                        })
+                    }
                 })
 
             if (hasRolePermissionsTable) {

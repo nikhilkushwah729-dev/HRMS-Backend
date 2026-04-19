@@ -246,14 +246,27 @@ export default class OAuthService {
             throw new Error('No account found with this email. Please contact administrator.')
         }
 
-        // Create social login link
-        await SocialLogin.create({
-            employeeId: employee.id,
-            provider,
-            providerUserId,
-            isPrimary: true,
-            lastLoginAt: DateTime.now(),
-        })
+        // Create or repair the social login link. This avoids duplicate-key
+        // failures when an older link row already exists for the same provider user.
+        const existingProviderLink = await SocialLogin.query()
+            .where('provider', provider)
+            .where('provider_user_id', providerUserId)
+            .first()
+
+        if (existingProviderLink) {
+            existingProviderLink.employeeId = employee.id
+            existingProviderLink.isPrimary = true
+            existingProviderLink.lastLoginAt = DateTime.now()
+            await existingProviderLink.save()
+        } else {
+            await SocialLogin.create({
+                employeeId: employee.id,
+                provider,
+                providerUserId,
+                isPrimary: true,
+                lastLoginAt: DateTime.now(),
+            })
+        }
 
         // Update login type
         employee.loginType = provider
@@ -280,6 +293,26 @@ export default class OAuthService {
         providerUserId: string,
         email?: string | null
     ): Promise<void> {
+        const existingProviderLink = await SocialLogin.query()
+            .where('provider', provider)
+            .where('provider_user_id', providerUserId)
+            .first()
+
+        if (existingProviderLink) {
+            existingProviderLink.employeeId = employee.id
+            existingProviderLink.isPrimary = existingProviderLink.isPrimary ?? false
+            existingProviderLink.lastLoginAt = DateTime.now()
+            if (email) existingProviderLink.phone = email
+            await existingProviderLink.save()
+
+            if (!employee.loginType || employee.loginType === 'email') {
+                employee.loginType = provider
+                await employee.save()
+            }
+
+            return
+        }
+
         // Check if already linked
         const existingLink = await SocialLogin.query()
             .where('employee_id', employee.id)

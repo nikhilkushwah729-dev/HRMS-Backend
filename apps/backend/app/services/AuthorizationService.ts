@@ -19,6 +19,71 @@ export default class AuthorizationService {
   private permissionCatalogReady: boolean | null = null
   private userPermissionOverridesReady: boolean | null = null
 
+  private normalizedRoleName(employee: Employee, role?: Role | null): string {
+    return String(role?.roleName || employee.role?.roleName || '').trim().toLowerCase()
+  }
+
+  private isPlatformSuperAdmin(employee: Employee, role?: Role | null): boolean {
+    const roleName = this.normalizedRoleName(employee, role)
+    // ID 1 is "Tum" (Global Super Admin)
+    return (roleName === 'super admin' || roleName.includes('tum') || Number(employee.roleId ?? 0) === 1) && (role?.orgId === null || employee.role?.orgId === null || employee.orgId === null)
+  }
+
+  private isOrgFullAccessRole(employee: Employee, role?: Role | null): boolean {
+    const roleName = this.normalizedRoleName(employee, role)
+    // ID 2 is "HR Manager"
+    return roleName.includes('admin') || roleName.includes('hr manager') || this.isPlatformSuperAdmin(employee, role)
+  }
+
+  private isFullAccessRoleName(roleName: string): boolean {
+    const normalized = String(roleName || '').trim().toLowerCase()
+    return normalized === 'super admin' || normalized.includes('tum') || normalized === 'admin' || normalized.includes('hr manager')
+  }
+
+  async normalizeLegacyOrganizationRole(employee: Employee): Promise<Employee> {
+    await employee.load('role')
+
+    if (!employee.role) {
+      return employee
+    }
+
+    const roleName = String(employee.role.roleName || '').trim().toLowerCase()
+    const roleOrgId = employee.role.orgId
+
+    // Only platform/global Super Admin should remain Super Admin.
+    if (roleName !== 'super admin' || roleOrgId == null) {
+      return employee
+    }
+
+    let adminRole = await Role.query()
+      .where('role_name', 'Admin')
+      .where((query) => {
+        query.where('org_id', employee.orgId).orWhereNull('org_id')
+      })
+      .orderByRaw('CASE WHEN org_id IS NULL THEN 1 ELSE 0 END')
+      .first()
+
+    if (!adminRole) {
+      const [createdRoleId] = await db.table('roles').insert({
+        org_id: employee.orgId,
+        role_name: 'Admin',
+        is_system: true,
+      })
+
+      adminRole = await Role.find(createdRoleId)
+    }
+
+    if (!adminRole) {
+      throw new Error(`Unable to provision Admin role for organization ${employee.orgId}`)
+    }
+
+    employee.roleId = adminRole.id
+    await employee.save()
+    await employee.load('role')
+
+    return employee
+  }
+
   private async hasTable(tableName: string): Promise<boolean> {
     const result = await db.rawQuery(
       'select 1 as present from information_schema.tables where table_schema = database() and table_name = ? limit 1',
@@ -115,24 +180,27 @@ export default class AuthorizationService {
     }
   }
 
-  private roleNameFor(employee: Employee): string {
+  private roleNameFor(employee: Employee, role?: Role | null): string {
+    const explicitRoleName = String(role?.roleName || employee.role?.roleName || '').trim()
+    if (explicitRoleName) return explicitRoleName
+
     const roleId = Number(employee.roleId ?? 0)
     const builtIn: Record<number, string> = {
-      1: 'Super Admin',
-      2: 'HR Admin',
-      3: 'HR Admin',
-      4: 'Manager',
-      5: 'Employee',
-      6: 'Finance',
+      1: 'Tum (Super Admin)',
+      2: 'HR Manager (Admin)',
+      5: 'Staff (Employee)',
     }
-    return builtIn[roleId] ?? 'Employee'
+    return builtIn[roleId] ?? 'Staff (Employee)'
   }
 
-  private scopeFor(employee: Employee): AccessScope {
-    const roleId = Number(employee.roleId ?? 0)
-    if (roleId === 1 || roleId === 2 || roleId === 3) return 'all'
-    if (roleId === 6) return 'finance'
-    if (roleId === 4) return 'team'
+  private scopeFor(employee: Employee, role?: Role | null): AccessScope {
+    // ID 1 is "Tum" (Global Super Admin) - Has global access
+    if (this.isPlatformSuperAdmin(employee, role)) return 'all'
+    
+    // ID 2 is "HR Manager" (Admin) - Has full access within their Organization
+    if (this.isOrgFullAccessRole(employee, role)) return 'all'
+
+    // ID 5 is "Staff" (Employee) - Limited to self-service
     return 'self'
   }
 
@@ -202,15 +270,15 @@ export default class AuthorizationService {
     const role = employee.roleId ? await Role.find(employee.roleId) : null
     return {
       roleId: employee.roleId ?? null,
-      roleName: role?.roleName || this.roleNameFor(employee),
-      scope: this.scopeFor(employee),
+      roleName: this.roleNameFor(employee, role),
+      scope: this.scopeFor(employee, role),
       permissionKeys,
     }
   }
 
   async hasPermission(employee: Employee, permissionKey: string): Promise<boolean> {
     const profile = await this.getAccessProfile(employee)
-    if (profile.roleId === 1) return true
+    if (this.isFullAccessRoleName(profile.roleName)) return true
     return this.includesPermission(profile.permissionKeys, permissionKey)
   }
 
@@ -219,6 +287,8 @@ export default class AuthorizationService {
   }
 
   async canAccessEmployee(actor: Employee, subject: Employee): Promise<boolean> {
+    await actor.load('role')
+    if (this.isPlatformSuperAdmin(actor, actor.role)) return true
     if (actor.orgId !== subject.orgId) return false
     const scope = this.scopeFor(actor)
     if (scope === 'all' || scope === 'finance') return true
@@ -227,8 +297,11 @@ export default class AuthorizationService {
   }
 
   scopeEmployeesQuery(query: ModelQueryBuilderContract<typeof Employee>, actor: Employee) {
-    const scope = this.scopeFor(actor)
-    query.where('org_id', actor.orgId)
+    const scope = this.scopeFor(actor, actor.role)
+
+    if (!this.isPlatformSuperAdmin(actor, actor.role)) {
+      query.where('org_id', actor.orgId)
+    }
 
     if (scope === 'all' || scope === 'finance') {
       return query

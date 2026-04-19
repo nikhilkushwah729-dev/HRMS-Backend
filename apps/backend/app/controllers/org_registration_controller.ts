@@ -108,7 +108,7 @@ export default class OrgRegistrationController {
             })
 
             let creatorRole = await Role.query()
-                .where('role_name', 'Super Admin')
+                .where('role_name', 'Admin')
                 .where((query) => {
                     query.where('org_id', organization.id).orWhereNull('org_id')
                 })
@@ -117,7 +117,7 @@ export default class OrgRegistrationController {
 
             if (!creatorRole) {
                 creatorRole = await Role.query()
-                    .where('role_name', 'Admin')
+                    .where('role_name', 'HR Admin')
                     .where((query) => {
                         query.where('org_id', organization.id).orWhereNull('org_id')
                     })
@@ -126,10 +126,19 @@ export default class OrgRegistrationController {
             }
 
             if (!creatorRole) {
-                creatorRole = await Role.create({
-                    orgId: organization.id,
-                    roleName: 'Super Admin',
-                    isSystem: true,
+                const [createdRoleId] = await db.table('roles').insert({
+                    org_id: organization.id,
+                    role_name: 'Admin',
+                    is_system: true,
+                })
+
+                creatorRole = await Role.find(createdRoleId)
+            }
+
+            if (!creatorRole) {
+                return response.internalServerError({
+                    message: 'Registration failed on the server. Please try again.',
+                    error: 'Unable to provision organization admin role.',
                 })
             }
 
