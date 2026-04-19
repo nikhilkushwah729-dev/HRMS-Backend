@@ -25,7 +25,7 @@ export default class extends BaseSeeder {
       employee_id: employeeId,
       title,
       ...payload,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toSQL({ includeOffset: false }),
     }
 
     if (existing) {
@@ -74,7 +74,7 @@ export default class extends BaseSeeder {
       new_values: payload.new_values ? JSON.stringify(payload.new_values) : null,
       ip_address: payload.ip_address ?? '127.0.0.1',
       user_agent: payload.user_agent ?? 'ESS Seeder',
-      created_at: payload.created_at ?? DateTime.now().toSQL(),
+      created_at: payload.created_at ?? DateTime.now().toSQL({ includeOffset: false }),
     }
 
     if (existing) {
@@ -125,7 +125,7 @@ export default class extends BaseSeeder {
         end_date: now.minus({ days: 3 }).toISODate(),
         status: 'approved',
         resolution_note: 'Approved after verifying manager confirmation.',
-        resolved_at: now.minus({ days: 2, hours: 6 }).toSQL(),
+        resolved_at: now.minus({ days: 2, hours: 6 }).toSQL({ includeOffset: false }),
         meta: JSON.stringify({ originalCheckOut: '18:42', channel: 'ess' }),
       })
 
@@ -139,7 +139,7 @@ export default class extends BaseSeeder {
         amount: 6500,
         status: 'rejected',
         resolution_note: 'Please use the virtual onboarding format this month.',
-        resolved_at: now.minus({ days: 1, hours: 2 }).toSQL(),
+        resolved_at: now.minus({ days: 1, hours: 2 }).toSQL({ includeOffset: false }),
         meta: JSON.stringify({ mode: 'train', channel: 'ess' }),
       })
 
@@ -151,7 +151,7 @@ export default class extends BaseSeeder {
         start_date: now.minus({ days: 6 }).toISODate(),
         end_date: now.minus({ days: 6 }).toISODate(),
         status: 'cancelled',
-        resolved_at: now.minus({ days: 6, hours: 1 }).toSQL(),
+        resolved_at: now.minus({ days: 6, hours: 1 }).toSQL({ includeOffset: false }),
         meta: JSON.stringify({ channel: 'ess' }),
       })
 
@@ -172,20 +172,20 @@ export default class extends BaseSeeder {
       await this.ensureAuditLog(organization.id, member.id, 'employees', 'PROFILE_UPDATE', String(member.id), {
         entity_name: 'employees',
         new_values: { emergencyContact: 'Anita Sharma', phone: '+91-9890000000' },
-        created_at: now.minus({ days: 2 }).toSQL(),
+        created_at: now.minus({ days: 2 }).toSQL({ includeOffset: false }),
       })
 
       await this.ensureAuditLog(organization.id, member.id, 'auth', 'PASSWORD_CHANGE', String(member.id), {
         entity_name: 'employees',
         new_values: { channel: 'ess', outcome: 'success' },
-        created_at: now.minus({ hours: 18 }).toSQL(),
+        created_at: now.minus({ hours: 18 }).toSQL({ includeOffset: false }),
         ip_address: '10.10.10.25',
       })
 
       await this.ensureAuditLog(organization.id, member.id, 'auth', 'LOGIN', String(member.id), {
         entity_name: 'employees',
         new_values: { channel: 'web', session: 'trusted' },
-        created_at: now.minus({ hours: 3 }).toSQL(),
+        created_at: now.minus({ hours: 3 }).toSQL({ includeOffset: false }),
         ip_address: '10.10.10.25',
       })
 
@@ -204,7 +204,7 @@ export default class extends BaseSeeder {
       await this.ensureAuditLog(organization.id, member.id, 'ess_requests', 'CREATE', String(pendingRequestId), {
         entity_name: 'ess_requests',
         new_values: { requestType: 'wfh', title: 'WFH request for deep work day' },
-        created_at: now.minus({ hours: 4 }).toSQL(),
+        created_at: now.minus({ hours: 4 }).toSQL({ includeOffset: false }),
       })
     }
   }

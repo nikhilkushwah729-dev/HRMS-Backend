@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import OAuthService from '#services/OAuthService'
+import AuthorizationService from '#services/AuthorizationService'
 import Employee from '#models/employee'
 
 /**
@@ -8,6 +9,7 @@ import Employee from '#models/employee'
  */
 export default class SocialAuthController {
   private oauthService: OAuthService
+  private authorizationService: AuthorizationService
   private readonly firebaseApiKey = process.env.FIREBASE_API_KEY || 'AIzaSyCykZJKsYtyQ8xY8uGsTBa-42LY2Fdf-k8'
 
   // Frontend URL for OAuth redirect
@@ -15,6 +17,7 @@ export default class SocialAuthController {
 
   constructor() {
     this.oauthService = new OAuthService()
+    this.authorizationService = new AuthorizationService()
   }
 
   private buildFrontendErrorRedirect(message: string): string {
@@ -80,6 +83,7 @@ export default class SocialAuthController {
         googleUser.email,
         `${googleUser.given_name || googleUser.name?.split(' ')[0] || 'User'} ${googleUser.family_name || googleUser.name?.split(' ').slice(1).join(' ') || ''}`.trim()
       )
+      await this.authorizationService.normalizeLegacyOrganizationRole(employee)
 
       const isNew = !(employee.loginType === 'google' || employee.loginType === 'microsoft')
       const accessToken = await this.generateAccessToken(employee)
@@ -130,6 +134,7 @@ export default class SocialAuthController {
         microsoftUser.mail || microsoftUser.userPrincipalName,
         name
       )
+      await this.authorizationService.normalizeLegacyOrganizationRole(employee)
 
       const isNew = !(employee.loginType === 'google' || employee.loginType === 'microsoft')
       const accessToken = await this.generateAccessToken(employee)
@@ -248,6 +253,8 @@ export default class SocialAuthController {
           message: 'No account found with this phone number. Please contact your administrator.'
         })
       }
+
+      await this.authorizationService.normalizeLegacyOrganizationRole(employee)
 
       // Generate AdonisJS access token
       const token = await Employee.accessTokens.create(employee)

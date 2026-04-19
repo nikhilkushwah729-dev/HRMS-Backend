@@ -181,6 +181,8 @@ export default class AuthService {
             throw new Exception('Employee not found', { status: 404 })
         }
 
+        await this.authorizationService.normalizeLegacyOrganizationRole(employee)
+
         // Now verify password
         const isPasswordValid = await hash.verify(employee.passwordHash || '', password)
 
@@ -397,6 +399,8 @@ export default class AuthService {
 
         const employee = await Employee.find(otpToken.employeeId)
         if (!employee) throw new Exception('Employee not found', { status: 404 })
+
+        await this.authorizationService.normalizeLegacyOrganizationRole(employee)
 
         const token = await Employee.accessTokens.create(employee)
         const accessToken = token.value?.release()

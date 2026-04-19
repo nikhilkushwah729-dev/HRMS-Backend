@@ -205,6 +205,7 @@ export default class AuthController {
 
     async me({ auth, response }: HttpContext) {
         const user = auth.getUserOrFail()
+        await this.authorizationService.normalizeLegacyOrganizationRole(user)
         let access: {
             roleId: number | null
             roleName: string
