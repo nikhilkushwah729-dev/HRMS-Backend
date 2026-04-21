@@ -48,4 +48,5 @@ export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware'),
   permission: () => import('#middleware/permission_middleware'),
   subscription: () => import('#middleware/subscription_middleware'),
+  seatLimit: () => import('#middleware/seat_limit_middleware'),
 })

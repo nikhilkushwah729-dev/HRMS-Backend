@@ -18,26 +18,61 @@ export type AccessProfile = {
 export default class AuthorizationService {
   private permissionCatalogReady: boolean | null = null
   private userPermissionOverridesReady: boolean | null = null
+  private roleCatalogReady: boolean | null = null
+
+  private roleNameFromId(roleId: number | null | undefined): string {
+    const builtIn: Record<number, string> = {
+      1: 'Super Admin',
+      2: 'Organization Admin',
+      3: 'HR Manager',
+      4: 'Manager',
+      5: 'Employee',
+    }
+
+    return builtIn[Number(roleId ?? 0)] ?? ''
+  }
 
   private normalizedRoleName(employee: Employee, role?: Role | null): string {
-    return String(role?.roleName || employee.role?.roleName || '').trim().toLowerCase()
+    return String(
+      role?.roleName || employee.role?.roleName || this.roleNameFromId(employee.roleId)
+    )
+      .trim()
+      .toLowerCase()
   }
 
   private isPlatformSuperAdmin(employee: Employee, role?: Role | null): boolean {
     const roleName = this.normalizedRoleName(employee, role)
-    // ID 1 is "Tum" (Global Super Admin)
     return (roleName === 'super admin' || roleName.includes('tum') || Number(employee.roleId ?? 0) === 1) && (role?.orgId === null || employee.role?.orgId === null || employee.orgId === null)
   }
 
   private isOrgFullAccessRole(employee: Employee, role?: Role | null): boolean {
     const roleName = this.normalizedRoleName(employee, role)
-    // ID 2 is "HR Manager"
-    return roleName.includes('admin') || roleName.includes('hr manager') || this.isPlatformSuperAdmin(employee, role)
+    const roleId = Number(employee.roleId ?? role?.id ?? 0)
+    return [1, 2, 3].includes(roleId) ||
+      roleName.includes('organization admin') ||
+      roleName === 'admin' ||
+      roleName.includes('admin') ||
+      roleName.includes('hr manager') ||
+      roleName.includes('hr admin') ||
+      roleName.includes('human resource') ||
+      this.isPlatformSuperAdmin(employee, role)
+  }
+
+  private isManagerRole(employee: Employee, role?: Role | null): boolean {
+    const roleName = this.normalizedRoleName(employee, role)
+    return roleName === 'manager' || (roleName.includes('manager') && !roleName.includes('hr manager'))
   }
 
   private isFullAccessRoleName(roleName: string): boolean {
     const normalized = String(roleName || '').trim().toLowerCase()
-    return normalized === 'super admin' || normalized.includes('tum') || normalized === 'admin' || normalized.includes('hr manager')
+    return normalized === 'super admin' ||
+      normalized.includes('tum') ||
+      normalized === 'organization admin' ||
+      normalized === 'admin' ||
+      normalized.includes('admin') ||
+      normalized.includes('hr manager') ||
+      normalized.includes('hr admin') ||
+      normalized.includes('human resource')
   }
 
   async normalizeLegacyOrganizationRole(employee: Employee): Promise<Employee> {
@@ -56,7 +91,7 @@ export default class AuthorizationService {
     }
 
     let adminRole = await Role.query()
-      .where('role_name', 'Admin')
+      .where('role_name', 'Organization Admin')
       .where((query) => {
         query.where('org_id', employee.orgId).orWhereNull('org_id')
       })
@@ -66,7 +101,7 @@ export default class AuthorizationService {
     if (!adminRole) {
       const [createdRoleId] = await db.table('roles').insert({
         org_id: employee.orgId,
-        role_name: 'Admin',
+        role_name: 'Organization Admin',
         is_system: true,
       })
 
@@ -149,7 +184,71 @@ export default class AuthorizationService {
     rbac_manage: ['roles.view'],
   }
 
+  private readonly systemRoles: Array<{
+    id: number
+    orgId: number | null
+    roleName: string
+    isSystem: boolean
+    description: string
+    priority: number
+    isActive: boolean
+    parentRoleId: number | null
+  }> = [
+    {
+      id: 1,
+      orgId: null,
+      roleName: 'Super Admin',
+      isSystem: true,
+      description: 'Platform owner with full global control across all organizations.',
+      priority: 1,
+      isActive: true,
+      parentRoleId: null,
+    },
+    {
+      id: 2,
+      orgId: null,
+      roleName: 'Organization Admin',
+      isSystem: true,
+      description: 'Organization administrator managing employees, settings, hierarchy, and HR operations within their company.',
+      priority: 2,
+      isActive: true,
+      parentRoleId: 1,
+    },
+    {
+      id: 3,
+      orgId: null,
+      roleName: 'HR Manager',
+      isSystem: true,
+      description: 'Organization HR role responsible for employee lifecycle, approvals, attendance, and payroll workflows.',
+      priority: 3,
+      isActive: true,
+      parentRoleId: 2,
+    },
+    {
+      id: 4,
+      orgId: null,
+      roleName: 'Manager',
+      isSystem: true,
+      description: 'Team manager with reportee visibility and approval authority for team workflows.',
+      priority: 4,
+      isActive: true,
+      parentRoleId: 3,
+    },
+    {
+      id: 5,
+      orgId: null,
+      roleName: 'Employee',
+      isSystem: true,
+      description: 'Regular employee with self-service access to attendance and leave.',
+      priority: 5,
+      isActive: true,
+      parentRoleId: 4,
+    },
+  ]
+
   async ensureCatalogSeeded(): Promise<void> {
+    await this.ensureSystemRolesSeeded()
+
     if (this.permissionCatalogReady === false) return
 
     const hasPermissionsTable = await this.hasTable('permissions')
@@ -180,27 +279,58 @@ export default class AuthorizationService {
     }
   }
 
+  async ensureSystemRolesSeeded(): Promise<void> {
+    if (this.roleCatalogReady === false) return
+
+    const hasRolesTable = await this.hasTable('roles')
+    if (!hasRolesTable) {
+      this.roleCatalogReady = false
+      return
+    }
+
+    const hasDescription = await this.hasColumn('roles', 'description')
+    const hasPriority = await this.hasColumn('roles', 'priority')
+    const hasIsActive = await this.hasColumn('roles', 'is_active')
+    const hasParentRoleId = await this.hasColumn('roles', 'parent_role_id')
+
+    this.roleCatalogReady = true
+
+    for (const role of this.systemRoles) {
+      const payload: Record<string, any> = {
+        id: role.id,
+        orgId: role.orgId,
+        roleName: role.roleName,
+        isSystem: role.isSystem,
+      }
+
+      if (hasDescription) payload.description = role.description
+      if (hasPriority) payload.priority = role.priority
+      if (hasIsActive) payload.isActive = role.isActive
+      if (hasParentRoleId) payload.parentRoleId = role.parentRoleId
+
+      await Role.updateOrCreate({ id: role.id }, payload)
+    }
+  }
+
   private roleNameFor(employee: Employee, role?: Role | null): string {
     const explicitRoleName = String(role?.roleName || employee.role?.roleName || '').trim()
     if (explicitRoleName) return explicitRoleName
 
     const roleId = Number(employee.roleId ?? 0)
     const builtIn: Record<number, string> = {
-      1: 'Tum (Super Admin)',
-      2: 'HR Manager (Admin)',
-      5: 'Staff (Employee)',
+      1: 'Super Admin',
+      2: 'Organization Admin',
+      3: 'HR Manager',
+      4: 'Manager',
+      5: 'Employee',
     }
-    return builtIn[roleId] ?? 'Staff (Employee)'
+    return builtIn[roleId] ?? 'Employee'
   }
 
   private scopeFor(employee: Employee, role?: Role | null): AccessScope {
-    // ID 1 is "Tum" (Global Super Admin) - Has global access
     if (this.isPlatformSuperAdmin(employee, role)) return 'all'
-    
-    // ID 2 is "HR Manager" (Admin) - Has full access within their Organization
     if (this.isOrgFullAccessRole(employee, role)) return 'all'
-
-    // ID 5 is "Staff" (Employee) - Limited to self-service
+    if (this.isManagerRole(employee, role)) return 'team'
     return 'self'
   }
 

@@ -5,6 +5,8 @@ import Organization from '#models/organization'
 import Payment from '#models/payment'
 
 export default class Invoice extends BaseModel {
+    static table = 'invoices'
+
     @column({ isPrimary: true })
     declare id: number
 
@@ -17,20 +19,23 @@ export default class Invoice extends BaseModel {
     @column()
     declare invoiceNumber: string
 
-    @column.date()
-    declare invoiceDate: DateTime
-
+    // The actual DB column is 'subtotal' (not 'amount')
     @column()
-    declare amount: number
+    declare subtotal: number
 
-    @column()
+    // tax_percent defaults to 18.00 in DB; insert only to override
+    @column({ columnName: 'tax_percent' })
+    declare taxPercent: number | null
+
+    // tax_amount and total are GENERATED columns — read-only, never insert them
+    @column({ columnName: 'tax_amount' })
     declare taxAmount: number
 
     @column()
-    declare totalAmount: number
+    declare total: number
 
-    @column()
-    declare pdfUrl: string | null
+    @column({ columnName: 'is_void' })
+    declare isVoid: boolean
 
     @column.dateTime({ autoCreate: true })
     declare createdAt: DateTime

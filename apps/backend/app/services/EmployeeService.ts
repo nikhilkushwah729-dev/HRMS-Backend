@@ -125,6 +125,9 @@ export default class EmployeeService {
             .whereNull('deleted_at')
 
         if (actor && authorizationService) {
+            if (!actor.role) {
+                await actor.load('role')
+            }
             authorizationService.scopeEmployeesQuery(query, actor)
         }
 
@@ -168,6 +171,23 @@ export default class EmployeeService {
 
     async create(orgId: number, data: any) {
         const payload = this.parseEmployeeData(data)
+
+        // Enforce plan user limit
+        const organization = await Organization.findOrFail(orgId)
+        const activeCount = await Employee.query()
+            .where('org_id', orgId)
+            .whereNull('deleted_at')
+            .count('* as total')
+            .first()
+        
+        const count = Number(activeCount?.$extras.total || 0)
+        if (count >= organization.userLimit) {
+            throw new Exception(
+                `Workspace limit reached (${organization.userLimit} seats). Please upgrade your plan to add more employees.`, 
+                { status: 403 }
+            )
+        }
+
         if (!payload.employeeCode) {
             payload.employeeCode = await this.generateEmployeeCode(orgId)
         }

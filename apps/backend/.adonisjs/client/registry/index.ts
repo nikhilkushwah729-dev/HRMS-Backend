@@ -252,6 +252,18 @@ const routes = {
     tokens: [{"old":"/api/organization/addons/toggle","type":0,"val":"api","end":""},{"old":"/api/organization/addons/toggle","type":0,"val":"organization","end":""},{"old":"/api/organization/addons/toggle","type":0,"val":"addons","end":""},{"old":"/api/organization/addons/toggle","type":0,"val":"toggle","end":""}],
     types: placeholder as Registry['organizations.toggle_addon']['types'],
   },
+  'platform.overview': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/platform/overview',
+    tokens: [{"old":"/api/platform/overview","type":0,"val":"api","end":""},{"old":"/api/platform/overview","type":0,"val":"platform","end":""},{"old":"/api/platform/overview","type":0,"val":"overview","end":""}],
+    types: placeholder as Registry['platform.overview']['types'],
+  },
+  'employees.my_team': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/employees/my-team',
+    tokens: [{"old":"/api/employees/my-team","type":0,"val":"api","end":""},{"old":"/api/employees/my-team","type":0,"val":"employees","end":""},{"old":"/api/employees/my-team","type":0,"val":"my-team","end":""}],
+    types: placeholder as Registry['employees.my_team']['types'],
+  },
   'employees.index': {
     methods: ["GET","HEAD"],
     pattern: '/api/employees',
@@ -588,41 +600,17 @@ const routes = {
     tokens: [{"old":"/api/leaves","type":0,"val":"api","end":""},{"old":"/api/leaves","type":0,"val":"leaves","end":""}],
     types: placeholder as Registry['leaves.index']['types'],
   },
-  'leaves.get_types': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/leaves/types',
-    tokens: [{"old":"/api/leaves/types","type":0,"val":"api","end":""},{"old":"/api/leaves/types","type":0,"val":"leaves","end":""},{"old":"/api/leaves/types","type":0,"val":"types","end":""}],
-    types: placeholder as Registry['leaves.get_types']['types'],
-  },
-  'leaves.create_type': {
-    methods: ["POST"],
-    pattern: '/api/leaves/types',
-    tokens: [{"old":"/api/leaves/types","type":0,"val":"api","end":""},{"old":"/api/leaves/types","type":0,"val":"leaves","end":""},{"old":"/api/leaves/types","type":0,"val":"types","end":""}],
-    types: placeholder as Registry['leaves.create_type']['types'],
-  },
-  'leaves.update_type': {
-    methods: ["PUT"],
-    pattern: '/api/leaves/types/:id',
-    tokens: [{"old":"/api/leaves/types/:id","type":0,"val":"api","end":""},{"old":"/api/leaves/types/:id","type":0,"val":"leaves","end":""},{"old":"/api/leaves/types/:id","type":0,"val":"types","end":""},{"old":"/api/leaves/types/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['leaves.update_type']['types'],
-  },
-  'leaves.destroy_type': {
-    methods: ["DELETE"],
-    pattern: '/api/leaves/types/:id',
-    tokens: [{"old":"/api/leaves/types/:id","type":0,"val":"api","end":""},{"old":"/api/leaves/types/:id","type":0,"val":"leaves","end":""},{"old":"/api/leaves/types/:id","type":0,"val":"types","end":""},{"old":"/api/leaves/types/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['leaves.destroy_type']['types'],
-  },
   'leaves.store': {
     methods: ["POST"],
     pattern: '/api/leaves',
     tokens: [{"old":"/api/leaves","type":0,"val":"api","end":""},{"old":"/api/leaves","type":0,"val":"leaves","end":""}],
     types: placeholder as Registry['leaves.store']['types'],
   },
-  'leaves.update_status': {
+  'leaves.update': {
     methods: ["PUT"],
-    pattern: '/api/leaves/:id/status',
-    tokens: [{"old":"/api/leaves/:id/status","type":0,"val":"api","end":""},{"old":"/api/leaves/:id/status","type":0,"val":"leaves","end":""},{"old":"/api/leaves/:id/status","type":1,"val":"id","end":""},{"old":"/api/leaves/:id/status","type":0,"val":"status","end":""}],
-    types: placeholder as Registry['leaves.update_status']['types'],
+    pattern: '/api/leaves/:id',
+    tokens: [{"old":"/api/leaves/:id","type":0,"val":"api","end":""},{"old":"/api/leaves/:id","type":0,"val":"leaves","end":""},{"old":"/api/leaves/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['leaves.update']['types'],
   },
   'leave_types_alias': {
     methods: ["GET","HEAD"],
@@ -636,11 +624,11 @@ const routes = {
     tokens: [{"old":"/api/payroll","type":0,"val":"api","end":""},{"old":"/api/payroll","type":0,"val":"payroll","end":""}],
     types: placeholder as Registry['payrolls.index']['types'],
   },
-  'payrolls.store': {
+  'payrolls.process': {
     methods: ["POST"],
-    pattern: '/api/payroll',
-    tokens: [{"old":"/api/payroll","type":0,"val":"api","end":""},{"old":"/api/payroll","type":0,"val":"payroll","end":""}],
-    types: placeholder as Registry['payrolls.store']['types'],
+    pattern: '/api/payroll/process',
+    tokens: [{"old":"/api/payroll/process","type":0,"val":"api","end":""},{"old":"/api/payroll/process","type":0,"val":"payroll","end":""},{"old":"/api/payroll/process","type":0,"val":"process","end":""}],
+    types: placeholder as Registry['payrolls.process']['types'],
   },
   'projects.index': {
     methods: ["GET","HEAD"],
@@ -708,66 +696,6 @@ const routes = {
     tokens: [{"old":"/api/timesheets","type":0,"val":"api","end":""},{"old":"/api/timesheets","type":0,"val":"timesheets","end":""}],
     types: placeholder as Registry['timesheets.store']['types'],
   },
-  'visit_management.dashboard': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/visits/dashboard',
-    tokens: [{"old":"/api/visits/dashboard","type":0,"val":"api","end":""},{"old":"/api/visits/dashboard","type":0,"val":"visits","end":""},{"old":"/api/visits/dashboard","type":0,"val":"dashboard","end":""}],
-    types: placeholder as Registry['visit_management.dashboard']['types'],
-  },
-  'visit_management.references': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/visits/references',
-    tokens: [{"old":"/api/visits/references","type":0,"val":"api","end":""},{"old":"/api/visits/references","type":0,"val":"visits","end":""},{"old":"/api/visits/references","type":0,"val":"references","end":""}],
-    types: placeholder as Registry['visit_management.references']['types'],
-  },
-  'visit_management.reports': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/visits/reports',
-    tokens: [{"old":"/api/visits/reports","type":0,"val":"api","end":""},{"old":"/api/visits/reports","type":0,"val":"visits","end":""},{"old":"/api/visits/reports","type":0,"val":"reports","end":""}],
-    types: placeholder as Registry['visit_management.reports']['types'],
-  },
-  'visit_management.export_reports': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/visits/reports/export',
-    tokens: [{"old":"/api/visits/reports/export","type":0,"val":"api","end":""},{"old":"/api/visits/reports/export","type":0,"val":"visits","end":""},{"old":"/api/visits/reports/export","type":0,"val":"reports","end":""},{"old":"/api/visits/reports/export","type":0,"val":"export","end":""}],
-    types: placeholder as Registry['visit_management.export_reports']['types'],
-  },
-  'visit_management.list_clients': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/visits/clients',
-    tokens: [{"old":"/api/visits/clients","type":0,"val":"api","end":""},{"old":"/api/visits/clients","type":0,"val":"visits","end":""},{"old":"/api/visits/clients","type":0,"val":"clients","end":""}],
-    types: placeholder as Registry['visit_management.list_clients']['types'],
-  },
-  'visit_management.create_client': {
-    methods: ["POST"],
-    pattern: '/api/visits/clients',
-    tokens: [{"old":"/api/visits/clients","type":0,"val":"api","end":""},{"old":"/api/visits/clients","type":0,"val":"visits","end":""},{"old":"/api/visits/clients","type":0,"val":"clients","end":""}],
-    types: placeholder as Registry['visit_management.create_client']['types'],
-  },
-  'visit_management.update_client': {
-    methods: ["PUT"],
-    pattern: '/api/visits/clients/:id',
-    tokens: [{"old":"/api/visits/clients/:id","type":0,"val":"api","end":""},{"old":"/api/visits/clients/:id","type":0,"val":"visits","end":""},{"old":"/api/visits/clients/:id","type":0,"val":"clients","end":""},{"old":"/api/visits/clients/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['visit_management.update_client']['types'],
-  },
-  'visit_management.list_visitors': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/visits/visitors',
-    tokens: [{"old":"/api/visits/visitors","type":0,"val":"api","end":""},{"old":"/api/visits/visitors","type":0,"val":"visits","end":""},{"old":"/api/visits/visitors","type":0,"val":"visitors","end":""}],
-    types: placeholder as Registry['visit_management.list_visitors']['types'],
-  },
-  'visit_management.create_visitor': {
-    methods: ["POST"],
-    pattern: '/api/visits/visitors',
-    tokens: [{"old":"/api/visits/visitors","type":0,"val":"api","end":""},{"old":"/api/visits/visitors","type":0,"val":"visits","end":""},{"old":"/api/visits/visitors","type":0,"val":"visitors","end":""}],
-    types: placeholder as Registry['visit_management.create_visitor']['types'],
-  },
-  'visit_management.update_visitor': {
-    methods: ["PUT"],
-    pattern: '/api/visits/visitors/:id',
-    tokens: [{"old":"/api/visits/visitors/:id","type":0,"val":"api","end":""},{"old":"/api/visits/visitors/:id","type":0,"val":"visits","end":""},{"old":"/api/visits/visitors/:id","type":0,"val":"visitors","end":""},{"old":"/api/visits/visitors/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['visit_management.update_visitor']['types'],
-  },
   'visit_management.index': {
     methods: ["GET","HEAD"],
     pattern: '/api/visits',
@@ -779,54 +707,6 @@ const routes = {
     pattern: '/api/visits',
     tokens: [{"old":"/api/visits","type":0,"val":"api","end":""},{"old":"/api/visits","type":0,"val":"visits","end":""}],
     types: placeholder as Registry['visit_management.store']['types'],
-  },
-  'visit_management.show': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/visits/:id',
-    tokens: [{"old":"/api/visits/:id","type":0,"val":"api","end":""},{"old":"/api/visits/:id","type":0,"val":"visits","end":""},{"old":"/api/visits/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['visit_management.show']['types'],
-  },
-  'visit_management.update': {
-    methods: ["PUT"],
-    pattern: '/api/visits/:id',
-    tokens: [{"old":"/api/visits/:id","type":0,"val":"api","end":""},{"old":"/api/visits/:id","type":0,"val":"visits","end":""},{"old":"/api/visits/:id","type":1,"val":"id","end":""}],
-    types: placeholder as Registry['visit_management.update']['types'],
-  },
-  'visit_management.review': {
-    methods: ["POST"],
-    pattern: '/api/visits/:id/review',
-    tokens: [{"old":"/api/visits/:id/review","type":0,"val":"api","end":""},{"old":"/api/visits/:id/review","type":0,"val":"visits","end":""},{"old":"/api/visits/:id/review","type":1,"val":"id","end":""},{"old":"/api/visits/:id/review","type":0,"val":"review","end":""}],
-    types: placeholder as Registry['visit_management.review']['types'],
-  },
-  'visit_management.check_in': {
-    methods: ["POST"],
-    pattern: '/api/visits/:id/check-in',
-    tokens: [{"old":"/api/visits/:id/check-in","type":0,"val":"api","end":""},{"old":"/api/visits/:id/check-in","type":0,"val":"visits","end":""},{"old":"/api/visits/:id/check-in","type":1,"val":"id","end":""},{"old":"/api/visits/:id/check-in","type":0,"val":"check-in","end":""}],
-    types: placeholder as Registry['visit_management.check_in']['types'],
-  },
-  'visit_management.check_out': {
-    methods: ["POST"],
-    pattern: '/api/visits/:id/check-out',
-    tokens: [{"old":"/api/visits/:id/check-out","type":0,"val":"api","end":""},{"old":"/api/visits/:id/check-out","type":0,"val":"visits","end":""},{"old":"/api/visits/:id/check-out","type":1,"val":"id","end":""},{"old":"/api/visits/:id/check-out","type":0,"val":"check-out","end":""}],
-    types: placeholder as Registry['visit_management.check_out']['types'],
-  },
-  'visit_management.add_note': {
-    methods: ["POST"],
-    pattern: '/api/visits/:id/notes',
-    tokens: [{"old":"/api/visits/:id/notes","type":0,"val":"api","end":""},{"old":"/api/visits/:id/notes","type":0,"val":"visits","end":""},{"old":"/api/visits/:id/notes","type":1,"val":"id","end":""},{"old":"/api/visits/:id/notes","type":0,"val":"notes","end":""}],
-    types: placeholder as Registry['visit_management.add_note']['types'],
-  },
-  'visit_management.add_follow_up': {
-    methods: ["POST"],
-    pattern: '/api/visits/:id/follow-ups',
-    tokens: [{"old":"/api/visits/:id/follow-ups","type":0,"val":"api","end":""},{"old":"/api/visits/:id/follow-ups","type":0,"val":"visits","end":""},{"old":"/api/visits/:id/follow-ups","type":1,"val":"id","end":""},{"old":"/api/visits/:id/follow-ups","type":0,"val":"follow-ups","end":""}],
-    types: placeholder as Registry['visit_management.add_follow_up']['types'],
-  },
-  'visit_management.update_follow_up': {
-    methods: ["PUT"],
-    pattern: '/api/visits/follow-ups/:followUpId',
-    tokens: [{"old":"/api/visits/follow-ups/:followUpId","type":0,"val":"api","end":""},{"old":"/api/visits/follow-ups/:followUpId","type":0,"val":"visits","end":""},{"old":"/api/visits/follow-ups/:followUpId","type":0,"val":"follow-ups","end":""},{"old":"/api/visits/follow-ups/:followUpId","type":1,"val":"followUpId","end":""}],
-    types: placeholder as Registry['visit_management.update_follow_up']['types'],
   },
   'notifications.index': {
     methods: ["GET","HEAD"],
@@ -966,6 +846,12 @@ const routes = {
     tokens: [{"old":"/api/roles","type":0,"val":"api","end":""},{"old":"/api/roles","type":0,"val":"roles","end":""}],
     types: placeholder as Registry['roles.store']['types'],
   },
+  'roles.get_permissions': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/roles/permissions',
+    tokens: [{"old":"/api/roles/permissions","type":0,"val":"api","end":""},{"old":"/api/roles/permissions","type":0,"val":"roles","end":""},{"old":"/api/roles/permissions","type":0,"val":"permissions","end":""}],
+    types: placeholder as Registry['roles.get_permissions']['types'],
+  },
   'roles.show': {
     methods: ["GET","HEAD"],
     pattern: '/api/roles/:id',
@@ -977,12 +863,6 @@ const routes = {
     pattern: '/api/roles/:id',
     tokens: [{"old":"/api/roles/:id","type":0,"val":"api","end":""},{"old":"/api/roles/:id","type":0,"val":"roles","end":""},{"old":"/api/roles/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['roles.update']['types'],
-  },
-  'roles.get_permissions': {
-    methods: ["GET","HEAD"],
-    pattern: '/api/roles/permissions',
-    tokens: [{"old":"/api/roles/permissions","type":0,"val":"api","end":""},{"old":"/api/roles/permissions","type":0,"val":"roles","end":""},{"old":"/api/roles/permissions","type":0,"val":"permissions","end":""}],
-    types: placeholder as Registry['roles.get_permissions']['types'],
   },
   'roles.destroy': {
     methods: ["DELETE"],

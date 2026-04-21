@@ -50,12 +50,13 @@ export default class extends BaseSeeder {
       'recruitment_create', 'recruitment_read',
       'performance_read', 'performance_update',
       'reports_read', 'reports_export',
-      'settings_read', 'rbac_manage',
+      'settings_read', 'settings_update', 'rbac_manage',
     ],
     3: [
-      'employee_read', 'employee_update',
+      'employee_create', 'employee_read', 'employee_update',
       'attendance_read', 'attendance_update', 'attendance_approve',
       'leave_create', 'leave_read', 'leave_update', 'leave_approve', 'leave_reject',
+      'payroll_read', 'payroll_process',
       'recruitment_create', 'recruitment_read',
       'performance_read', 'performance_update',
       'reports_read',
@@ -69,14 +70,9 @@ export default class extends BaseSeeder {
       'reports_read',
     ],
     5: [
-      'attendance_read',
+      'attendance_create', 'attendance_read',
       'leave_create', 'leave_read', 'leave_update',
       'payroll_read',
-    ],
-    6: [
-      'employee_read',
-      'payroll_read', 'payroll_process', 'payroll_export',
-      'reports_read', 'reports_export',
     ],
   }
 
