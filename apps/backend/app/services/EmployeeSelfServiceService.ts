@@ -96,7 +96,7 @@ export default class EmployeeSelfServiceService {
       status: 'pending',
       attachment_url: payload.attachmentUrl ?? null,
       meta: payload.meta ? JSON.stringify(payload.meta) : null,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     return (await this.listRequests(employee, {})).find((item) => item.id === Number(id))
@@ -109,8 +109,8 @@ export default class EmployeeSelfServiceService {
 
     await db.from('ess_requests').where('id', requestId).update({
       status: 'cancelled',
-      resolved_at: DateTime.now().toSQL(),
-      updated_at: DateTime.now().toSQL(),
+      resolved_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
   }
 

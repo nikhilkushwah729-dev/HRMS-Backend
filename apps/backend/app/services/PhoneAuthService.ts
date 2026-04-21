@@ -171,7 +171,7 @@ export default class PhoneAuthService {
             .where('employeeId', employee.id)
             .where('isUsed', false)
             .where('purpose', 'phone_verify')
-            .where('createdAt', '>', fiveMinutesAgo.toSQL()!)
+            .where('createdAt', '>', fiveMinutesAgo.toFormat('yyyy-MM-dd HH:mm:ss')!)
             .first()
 
         if (existingOtp) {

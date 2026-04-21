@@ -470,7 +470,7 @@ export default class AuthService {
         const failedCount = await LoginAttempt.query()
             .where('employee_id', employee.id)
             .where('status', 'failed')
-            .where('created_at', '>', DateTime.now().minus({ minutes: 60 }).toSQL())
+            .where('created_at', '>', DateTime.now().minus({ minutes: 60 }).toFormat('yyyy-MM-dd HH:mm:ss'))
             .count('* as total')
 
         if (Number(failedCount[0].$extras.total) >= this.maxAttempts) {

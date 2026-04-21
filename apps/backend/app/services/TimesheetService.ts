@@ -55,7 +55,7 @@ export default class TimesheetService {
             log_date: logDate,
             hours_logged: hoursLogged,
             description: data.description ?? null,
-            created_at: DateTime.now().toSQL(),
+            created_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
         })
 
         const insertedId = Array.isArray(inserted) ? inserted[0] : inserted

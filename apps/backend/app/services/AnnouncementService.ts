@@ -6,7 +6,7 @@ export default class AnnouncementService {
         return await Announcement.query()
             .where('org_id', orgId)
             .where((q) => {
-                q.where('expires_at', '>', DateTime.now().toSQL()!)
+                q.where('expires_at', '>', DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss')!)
                     .orWhereNull('expires_at')
             })
             .orderBy('published_at', 'desc')

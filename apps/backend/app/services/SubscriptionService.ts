@@ -354,14 +354,14 @@ export default class SubscriptionService {
       if (existing) {
         await db.from('organization_addons').where('id', existing.id).update({
           is_active: enabled,
-          updated_at: DateTime.now().toSQL(),
+          updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
         })
       } else {
         await db.table('organization_addons').insert({
           org_id: orgId,
           addon_id: addon.id,
           is_active: enabled,
-          start_date: DateTime.now().toSQL(),
+          start_date: DateTime.now().toISODate(),
         })
       }
     }
@@ -398,7 +398,7 @@ export default class SubscriptionService {
 
     await Subscription.query().where('orgId', orgId).whereIn('status', ['trialing', 'active', 'grace']).update({
       status: 'cancelled',
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     await Subscription.create({
@@ -441,14 +441,14 @@ export default class SubscriptionService {
       if (existing) {
         await db.from('organization_addons').where('id', existing.id).update({
           is_active: enabled,
-          updated_at: DateTime.now().toSQL(),
+          updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
         })
       } else if (enabled) {
         await db.table('organization_addons').insert({
           org_id: orgId,
           addon_id: addon.id,
           is_active: true,
-          start_date: DateTime.now().toSQL(),
+          start_date: DateTime.now().toISODate(),
         })
       }
     }
@@ -688,7 +688,7 @@ export default class SubscriptionService {
 
     await Subscription.query().where('orgId', orgId).whereIn('status', ['trialing', 'active', 'grace']).update({
       status: 'cancelled',
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     await Subscription.create({
@@ -839,7 +839,7 @@ export default class SubscriptionService {
           await Subscription.query()
             .where('orgId', org.id)
             .where('status', 'trialing')
-            .update({ status: 'expired', grace_end_date: today.plus({ days: 3 }).toSQLDate(), updated_at: DateTime.now().toSQL() })
+            .update({ status: 'expired', grace_end_date: today.plus({ days: 3 }).toISODate(), updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') })
 
           await this.createNotification(org.id, admin?.id ?? null, 'Trial expired', 'Your trial has expired. Workspace is now in read-only mode until you upgrade.', 'error')
           await this.sendLifecycleMail(org, 'Trial expired', 'Trial expired', 'Your trial has expired and the workspace is now in read-only mode. Upgrade to restore write access.')

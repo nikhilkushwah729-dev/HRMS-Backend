@@ -435,7 +435,7 @@ export default class AttendanceService {
             check_out: data.check_out || null,
             reason: data.reason,
             status: 'pending',
-            created_at: DateTime.now().toISO()
+            created_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss')
         })
 
         return result
@@ -481,7 +481,7 @@ export default class AttendanceService {
             .update({
                 status: action,
                 approved_by: adminId,
-                approved_at: DateTime.now().toISO(),
+                approved_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
                 rejection_reason: reason || null
             })
 
@@ -514,7 +514,7 @@ export default class AttendanceService {
             hours: data.hours,
             reason: data.reason,
             status: 'pending',
-            created_at: DateTime.now().toISO()
+            created_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss')
         })
 
         return result
@@ -616,8 +616,8 @@ export default class AttendanceService {
             radius_meters: data.radius_meters,
             is_active: data.is_active ?? true,
             address: data.address ?? null,
-            created_at: DateTime.now().toSQL(),
-            updated_at: DateTime.now().toSQL(),
+            created_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
+            updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
         })
 
         const created = await db.from('org_locations').where('id', id).first()
@@ -651,7 +651,7 @@ export default class AttendanceService {
                 radius_meters: data.radius_meters ?? zone.radius_meters,
                 is_active: data.is_active ?? zone.is_active,
                 address: data.address ?? zone.address,
-                updated_at: DateTime.now().toSQL(),
+                updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
             })
 
         const updated = await db.from('org_locations').where('id', id).first()
