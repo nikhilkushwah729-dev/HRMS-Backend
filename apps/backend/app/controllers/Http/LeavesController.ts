@@ -133,6 +133,7 @@ export default class LeavesController {
      * Get available leave types
      */
     async getTypes({ auth, request, response }: HttpContext) {
+        const employee = auth.user!
         const yearParam = Number(request.input('year'))
         const year = Number.isInteger(yearParam) && yearParam > 0 ? yearParam : undefined
         const types = await this.leaveService.getLeaveTypes(employee.orgId, employee.id, year)
