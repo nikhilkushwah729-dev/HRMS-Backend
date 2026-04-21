@@ -103,6 +103,58 @@ export default class EmployeesController {
     }
 
     /**
+     * Current user's team network
+     */
+    async myTeam({ auth, response }: HttpContext) {
+        const currentUser = auth.user!
+
+        const people = await Employee.query()
+            .where('org_id', currentUser.orgId)
+            .whereNull('deleted_at')
+            .where((query) => {
+                query.where('id', currentUser.id)
+
+                if (currentUser.managerId) {
+                    query.orWhere('id', currentUser.managerId)
+                    query.orWhere('manager_id', currentUser.managerId)
+                }
+
+                query.orWhere('manager_id', currentUser.id)
+            })
+            .preload('department')
+            .preload('designation')
+            .preload('role')
+            .orderBy('first_name', 'asc')
+
+        const serialized = people.map((person) => person.serialize())
+        const current = serialized.find((person) => Number(person.id) === Number(currentUser.id)) ?? null
+        const manager = currentUser.managerId
+            ? serialized.find((person) => Number(person.id) === Number(currentUser.managerId)) ?? null
+            : null
+        const peers = currentUser.managerId
+            ? serialized.filter(
+                (person) =>
+                    Number(person.id) !== Number(currentUser.id) &&
+                    Number(person.managerId ?? person.manager_id ?? 0) === Number(currentUser.managerId)
+            )
+            : []
+        const reportees = serialized.filter(
+            (person) => Number(person.managerId ?? person.manager_id ?? 0) === Number(currentUser.id)
+        )
+
+        return response.ok({
+            status: 'success',
+            data: {
+                currentUser: current,
+                manager,
+                peers,
+                reportees,
+                members: serialized,
+            },
+        })
+    }
+
+    /**
      * Show employee details
      */
     async show({ auth, params, response }: HttpContext) {

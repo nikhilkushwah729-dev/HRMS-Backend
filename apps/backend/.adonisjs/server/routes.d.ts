@@ -45,6 +45,8 @@ export type ScannedRoutes = {
     'holidays.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
     'organizations.toggle_addon': { paramsTuple?: []; params?: {} }
+    'platform.overview': { paramsTuple?: []; params?: {} }
+    'employees.my_team': { paramsTuple?: []; params?: {} }
     'employees.index': { paramsTuple?: []; params?: {} }
     'employees.store': { paramsTuple?: []; params?: {} }
     'employees.occasions': { paramsTuple?: []; params?: {} }
@@ -101,15 +103,11 @@ export type ScannedRoutes = {
     'tracking.update': { paramsTuple?: []; params?: {} }
     'tracking.history': { paramsTuple?: []; params?: {} }
     'leaves.index': { paramsTuple?: []; params?: {} }
-    'leaves.get_types': { paramsTuple?: []; params?: {} }
-    'leaves.create_type': { paramsTuple?: []; params?: {} }
-    'leaves.update_type': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'leaves.destroy_type': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'leaves.store': { paramsTuple?: []; params?: {} }
-    'leaves.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'leaves.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'leave_types_alias': { paramsTuple?: []; params?: {} }
     'payrolls.index': { paramsTuple?: []; params?: {} }
-    'payrolls.store': { paramsTuple?: []; params?: {} }
+    'payrolls.process': { paramsTuple?: []; params?: {} }
     'projects.index': { paramsTuple?: []; params?: {} }
     'projects.store': { paramsTuple?: []; params?: {} }
     'projects.tasks': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -121,26 +119,8 @@ export type ScannedRoutes = {
     'expenses.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'timesheets.index': { paramsTuple?: []; params?: {} }
     'timesheets.store': { paramsTuple?: []; params?: {} }
-    'visit_management.dashboard': { paramsTuple?: []; params?: {} }
-    'visit_management.references': { paramsTuple?: []; params?: {} }
-    'visit_management.reports': { paramsTuple?: []; params?: {} }
-    'visit_management.export_reports': { paramsTuple?: []; params?: {} }
-    'visit_management.list_clients': { paramsTuple?: []; params?: {} }
-    'visit_management.create_client': { paramsTuple?: []; params?: {} }
-    'visit_management.update_client': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.list_visitors': { paramsTuple?: []; params?: {} }
-    'visit_management.create_visitor': { paramsTuple?: []; params?: {} }
-    'visit_management.update_visitor': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'visit_management.index': { paramsTuple?: []; params?: {} }
     'visit_management.store': { paramsTuple?: []; params?: {} }
-    'visit_management.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.review': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.check_in': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.check_out': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.add_note': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.add_follow_up': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.update_follow_up': { paramsTuple: [ParamValue]; params: {'followUpId': ParamValue} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'notifications.mark_as_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.mark_all_as_read': { paramsTuple?: []; params?: {} }
@@ -164,9 +144,9 @@ export type ScannedRoutes = {
     'documents.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.index': { paramsTuple?: []; params?: {} }
     'roles.store': { paramsTuple?: []; params?: {} }
+    'roles.get_permissions': { paramsTuple?: []; params?: {} }
     'roles.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'roles.get_permissions': { paramsTuple?: []; params?: {} }
     'roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_experiences.index': { paramsTuple?: []; params?: {} }
     'employee_experiences.store': { paramsTuple?: []; params?: {} }
@@ -210,6 +190,8 @@ export type ScannedRoutes = {
     'organizations.get_setting_collection': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'holidays.index': { paramsTuple?: []; params?: {} }
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
+    'platform.overview': { paramsTuple?: []; params?: {} }
+    'employees.my_team': { paramsTuple?: []; params?: {} }
     'employees.index': { paramsTuple?: []; params?: {} }
     'employees.occasions': { paramsTuple?: []; params?: {} }
     'employee_invitations.list': { paramsTuple?: []; params?: {} }
@@ -235,7 +217,6 @@ export type ScannedRoutes = {
     'regularizations.index': { paramsTuple?: []; params?: {} }
     'tracking.history': { paramsTuple?: []; params?: {} }
     'leaves.index': { paramsTuple?: []; params?: {} }
-    'leaves.get_types': { paramsTuple?: []; params?: {} }
     'leave_types_alias': { paramsTuple?: []; params?: {} }
     'payrolls.index': { paramsTuple?: []; params?: {} }
     'projects.index': { paramsTuple?: []; params?: {} }
@@ -243,14 +224,7 @@ export type ScannedRoutes = {
     'announcements.index': { paramsTuple?: []; params?: {} }
     'expenses.index': { paramsTuple?: []; params?: {} }
     'timesheets.index': { paramsTuple?: []; params?: {} }
-    'visit_management.dashboard': { paramsTuple?: []; params?: {} }
-    'visit_management.references': { paramsTuple?: []; params?: {} }
-    'visit_management.reports': { paramsTuple?: []; params?: {} }
-    'visit_management.export_reports': { paramsTuple?: []; params?: {} }
-    'visit_management.list_clients': { paramsTuple?: []; params?: {} }
-    'visit_management.list_visitors': { paramsTuple?: []; params?: {} }
     'visit_management.index': { paramsTuple?: []; params?: {} }
-    'visit_management.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'employee_self_service.dashboard': { paramsTuple?: []; params?: {} }
     'employee_self_service.list_requests': { paramsTuple?: []; params?: {} }
@@ -264,8 +238,8 @@ export type ScannedRoutes = {
     'documents.index': { paramsTuple?: []; params?: {} }
     'documents.download': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.index': { paramsTuple?: []; params?: {} }
-    'roles.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.get_permissions': { paramsTuple?: []; params?: {} }
+    'roles.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_experiences.index': { paramsTuple?: []; params?: {} }
     'employee_educations.index': { paramsTuple?: []; params?: {} }
     'face_recognition.status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -297,6 +271,8 @@ export type ScannedRoutes = {
     'organizations.get_setting_collection': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'holidays.index': { paramsTuple?: []; params?: {} }
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
+    'platform.overview': { paramsTuple?: []; params?: {} }
+    'employees.my_team': { paramsTuple?: []; params?: {} }
     'employees.index': { paramsTuple?: []; params?: {} }
     'employees.occasions': { paramsTuple?: []; params?: {} }
     'employee_invitations.list': { paramsTuple?: []; params?: {} }
@@ -322,7 +298,6 @@ export type ScannedRoutes = {
     'regularizations.index': { paramsTuple?: []; params?: {} }
     'tracking.history': { paramsTuple?: []; params?: {} }
     'leaves.index': { paramsTuple?: []; params?: {} }
-    'leaves.get_types': { paramsTuple?: []; params?: {} }
     'leave_types_alias': { paramsTuple?: []; params?: {} }
     'payrolls.index': { paramsTuple?: []; params?: {} }
     'projects.index': { paramsTuple?: []; params?: {} }
@@ -330,14 +305,7 @@ export type ScannedRoutes = {
     'announcements.index': { paramsTuple?: []; params?: {} }
     'expenses.index': { paramsTuple?: []; params?: {} }
     'timesheets.index': { paramsTuple?: []; params?: {} }
-    'visit_management.dashboard': { paramsTuple?: []; params?: {} }
-    'visit_management.references': { paramsTuple?: []; params?: {} }
-    'visit_management.reports': { paramsTuple?: []; params?: {} }
-    'visit_management.export_reports': { paramsTuple?: []; params?: {} }
-    'visit_management.list_clients': { paramsTuple?: []; params?: {} }
-    'visit_management.list_visitors': { paramsTuple?: []; params?: {} }
     'visit_management.index': { paramsTuple?: []; params?: {} }
-    'visit_management.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'employee_self_service.dashboard': { paramsTuple?: []; params?: {} }
     'employee_self_service.list_requests': { paramsTuple?: []; params?: {} }
@@ -351,8 +319,8 @@ export type ScannedRoutes = {
     'documents.index': { paramsTuple?: []; params?: {} }
     'documents.download': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.index': { paramsTuple?: []; params?: {} }
-    'roles.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.get_permissions': { paramsTuple?: []; params?: {} }
+    'roles.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_experiences.index': { paramsTuple?: []; params?: {} }
     'employee_educations.index': { paramsTuple?: []; params?: {} }
     'face_recognition.status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -412,22 +380,14 @@ export type ScannedRoutes = {
     'attendances.create_shift': { paramsTuple?: []; params?: {} }
     'regularizations.store': { paramsTuple?: []; params?: {} }
     'tracking.update': { paramsTuple?: []; params?: {} }
-    'leaves.create_type': { paramsTuple?: []; params?: {} }
     'leaves.store': { paramsTuple?: []; params?: {} }
-    'payrolls.store': { paramsTuple?: []; params?: {} }
+    'payrolls.process': { paramsTuple?: []; params?: {} }
     'projects.store': { paramsTuple?: []; params?: {} }
     'projects.store_task': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'announcements.store': { paramsTuple?: []; params?: {} }
     'expenses.store': { paramsTuple?: []; params?: {} }
     'timesheets.store': { paramsTuple?: []; params?: {} }
-    'visit_management.create_client': { paramsTuple?: []; params?: {} }
-    'visit_management.create_visitor': { paramsTuple?: []; params?: {} }
     'visit_management.store': { paramsTuple?: []; params?: {} }
-    'visit_management.review': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.check_in': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.check_out': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.add_note': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.add_follow_up': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.mark_all_as_read': { paramsTuple?: []; params?: {} }
     'employee_self_service.create_request': { paramsTuple?: []; params?: {} }
     'employee_self_service.cancel_request': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -454,13 +414,8 @@ export type ScannedRoutes = {
     'attendances.update_geo_fence_settings': { paramsTuple?: []; params?: {} }
     'attendances.update_shift': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'regularizations.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'leaves.update_type': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'leaves.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'leaves.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'expenses.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.update_client': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.update_visitor': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'visit_management.update_follow_up': { paramsTuple: [ParamValue]; params: {'followUpId': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_experiences.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_educations.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -473,7 +428,6 @@ export type ScannedRoutes = {
     'employees.remove_geofence': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'attendances.delete_zone': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'attendances.delete_shift': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'leaves.destroy_type': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'documents.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

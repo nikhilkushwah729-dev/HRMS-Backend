@@ -24,6 +24,7 @@ export const controllers = {
     Notifications: () => import('#controllers/Http/NotificationsController'),
     Organizations: () => import('#controllers/Http/OrganizationsController'),
     Payrolls: () => import('#controllers/Http/PayrollsController'),
+    Platform: () => import('#controllers/Http/PlatformController'),
     Projects: () => import('#controllers/Http/ProjectsController'),
     Regularizations: () => import('#controllers/Http/RegularizationsController'),
     Reports: () => import('#controllers/Http/ReportsController'),

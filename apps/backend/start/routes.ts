@@ -1,4 +1,4 @@
-import router from '@adonisjs/core/services/router'
+﻿import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -19,6 +19,7 @@ const VisitManagementController = () => import('#controllers/Http/VisitManagemen
 const EmployeeSelfServiceController = () => import('#controllers/Http/EmployeeSelfServiceController')
 const SubscriptionsController = () => import('#controllers/Http/SubscriptionsController')
 const EmployeeInvitationsController = () => import('#controllers/Http/EmployeeInvitationsController')
+const PlatformController = () => import('#controllers/Http/PlatformController')
 
 router.get('/', async () => {
   return { status: 'online', version: '1.0.0' }
@@ -113,16 +114,28 @@ router.group(() => {
   router.delete('holidays/:id', [HolidaysController, 'destroy'])
   router.get('addons', [OrganizationsController, 'getAddons'])
   router.post('addons/toggle', [OrganizationsController, 'toggleAddon'])
-}).prefix('api/organization').use(middleware.auth())
+}).prefix('api/organization').use(middleware.auth()).use(middleware.subscription({ module: 'ESS' }))
+
+
+/**
+ * Platform / Tenant Management Routes
+ */
+router.group(() => {
+  router.get('overview', [PlatformController, 'overview'])
+}).prefix('api/platform').use(middleware.auth())
+
+router
+  .get('api/employees/my-team', [EmployeesController, 'myTeam'])
+  .use(middleware.auth())
 
 /**
  * Employee Management Routes
  */
 router.group(() => {
   router.get('/', [EmployeesController, 'index'])
-  router.post('/', [EmployeesController, 'store'])
+  router.post('/', [EmployeesController, 'store']).use(middleware.seatLimit())
   router.get('occasions', [EmployeesController, 'occasions'])
-  router.post('invite', [EmployeeInvitationsController, 'invite'])
+  router.post('invite', [EmployeeInvitationsController, 'invite']).use(middleware.seatLimit())
   router.get('invitations', [EmployeeInvitationsController, 'list'])
   router.post('invitations/:id/revoke', [EmployeeInvitationsController, 'revoke'])
   router.post('invitations/:id/resend', [EmployeeInvitationsController, 'resend'])
@@ -199,7 +212,7 @@ router.group(() => {
   router.post('shifts', [AttendancesController, 'createShift'])
   router.put('shifts/:id', [AttendancesController, 'updateShift'])
   router.delete('shifts/:id', [AttendancesController, 'deleteShift'])
-}).prefix('api/attendance').use(middleware.auth()).use(middleware.subscription({ module: 'attendance' }))
+}).prefix('api/attendance').use(middleware.auth()).use(middleware.subscription({ module: 'Attendance' }))
 
 const RegularizationsController = () => import('#controllers/Http/RegularizationsController')
 
@@ -223,13 +236,9 @@ router.group(() => {
  */
 router.group(() => {
   router.get('/', [LeavesController, 'index'])
-  router.get('types', [LeavesController, 'getTypes'])
-  router.post('types', [LeavesController, 'createType'])
-  router.put('types/:id', [LeavesController, 'updateType'])
-  router.delete('types/:id', [LeavesController, 'destroyType'])
   router.post('/', [LeavesController, 'store'])
-  router.put(':id/status', [LeavesController, 'updateStatus'])
-}).prefix('api/leaves').use(middleware.auth()).use(middleware.permission({ anyOf: ['leave_read', 'leave_create', 'leave_approve'] }))
+  router.put('/:id', [LeavesController, 'update'])
+}).prefix('api/leaves').use(middleware.auth()).use(middleware.subscription({ module: 'Leaves' })).use(middleware.permission({ anyOf: ['leave_read', 'leave_create', 'leave_approve'] }))
 
 // Backward-compatible alias for frontend path `/api/leave-types`
 router.group(() => {
@@ -240,11 +249,10 @@ router.group(() => {
  * Payroll Routes
  */
 const PayrollsController = () => import('#controllers/Http/PayrollsController')
-
 router.group(() => {
   router.get('/', [PayrollsController, 'index'])
-  router.post('/', [PayrollsController, 'store'])
-}).prefix('api/payroll').use(middleware.auth()).use(middleware.permission({ anyOf: ['payroll_read', 'payroll_process'] })).use(middleware.subscription({ module: 'payroll' }))
+  router.post('process', [PayrollsController, 'process'])
+}).prefix('api/payroll').use(middleware.auth()).use(middleware.subscription({ module: 'Payroll' })).use(middleware.permission({ anyOf: ['payroll_read', 'payroll_process'] }))
 
 /**
  * Project Management Routes
@@ -256,7 +264,7 @@ router.group(() => {
   router.post('/', [ProjectsController, 'store'])
   router.get(':id/tasks', [ProjectsController, 'tasks'])
   router.post(':id/tasks', [ProjectsController, 'storeTask'])
-}).prefix('api/projects').use(middleware.auth())
+}).prefix('api/projects').use(middleware.auth()).use(middleware.subscription({ module: 'Projects' }))
 
 const AnnouncementsController = () => import('#controllers/Http/AnnouncementsController')
 
@@ -271,7 +279,7 @@ router.group(() => {
   router.get('/', [ExpensesController, 'index'])
   router.post('/', [ExpensesController, 'store'])
   router.put(':id/status', [ExpensesController, 'updateStatus'])
-}).prefix('api/expenses').use(middleware.auth())
+}).prefix('api/expenses').use(middleware.auth()).use(middleware.subscription({ module: 'Expenses' }))
 
 const TimesheetsController = () => import('#controllers/Http/TimesheetsController')
 
@@ -282,27 +290,9 @@ router.group(() => {
 
 // Notifications
 router.group(() => {
-  router.get('dashboard', [VisitManagementController, 'dashboard'])
-  router.get('references', [VisitManagementController, 'references'])
-  router.get('reports', [VisitManagementController, 'reports'])
-  router.get('reports/export', [VisitManagementController, 'exportReports'])
-  router.get('clients', [VisitManagementController, 'listClients'])
-  router.post('clients', [VisitManagementController, 'createClient'])
-  router.put('clients/:id', [VisitManagementController, 'updateClient'])
-  router.get('visitors', [VisitManagementController, 'listVisitors'])
-  router.post('visitors', [VisitManagementController, 'createVisitor'])
-  router.put('visitors/:id', [VisitManagementController, 'updateVisitor'])
   router.get('/', [VisitManagementController, 'index'])
   router.post('/', [VisitManagementController, 'store'])
-  router.get(':id', [VisitManagementController, 'show'])
-  router.put(':id', [VisitManagementController, 'update'])
-  router.post(':id/review', [VisitManagementController, 'review'])
-  router.post(':id/check-in', [VisitManagementController, 'checkIn'])
-  router.post(':id/check-out', [VisitManagementController, 'checkOut'])
-  router.post(':id/notes', [VisitManagementController, 'addNote'])
-  router.post(':id/follow-ups', [VisitManagementController, 'addFollowUp'])
-  router.put('follow-ups/:followUpId', [VisitManagementController, 'updateFollowUp'])
-}).prefix('api/visits').use(middleware.auth()).use(middleware.subscription({ module: 'visitorManagement' }))
+}).prefix('api/visits').use(middleware.auth()).use(middleware.subscription({ module: 'Visits' }))
 
 router.group(() => {
   router.get('/', [NotificationsController, 'index'])
@@ -344,9 +334,9 @@ router.group(() => {
 router.group(() => {
   router.get('/', [RolesController, 'index'])
   router.post('/', [RolesController, 'store'])
+  router.get('/permissions', [RolesController, 'getPermissions'])
   router.get('/:id', [RolesController, 'show'])
   router.put('/:id', [RolesController, 'update'])
-  router.get('/permissions', [RolesController, 'getPermissions'])
   router.delete('/:id', [RolesController, 'destroy'])
 }).prefix('api/roles').use(middleware.auth()).use(middleware.permission({ permission: 'rbac_manage' }))
 
@@ -409,6 +399,7 @@ router.group(() => {
   router.get('/by-department', [ReportsController, 'getDepartmentWiseAttendance'])
   router.get('/export/excel', [ReportsController, 'exportExcel'])
   router.get('/export/pdf', [ReportsController, 'exportPdf'])
-}).prefix('api/reports').use(middleware.auth())
+}).prefix('api/reports').use(middleware.auth()).use(middleware.subscription({ module: 'Reports' }))
+
 
 

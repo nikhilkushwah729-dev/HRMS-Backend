@@ -10,12 +10,12 @@ export default class TenantMiddleware {
       return await next()
     }
 
-    // Role ID 1 is "Tum (Super Admin)" - No isolation required.
+    // Role ID 1 is global Super Admin - No tenant isolation required.
     if (Number(user.roleId) === 1) {
       return await next()
     }
 
-    // HR Manager and Staff MUST have an org_id assigned.
+    // Organization Admin, HR Manager, Manager, and Employee must have an org_id assigned.
     if (!user.orgId) {
       return ctx.response.unauthorized({
         status: 'error',

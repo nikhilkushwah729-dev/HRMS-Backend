@@ -71,6 +71,7 @@ export default class RolesController {
         const employee = auth.user!
         const isPlatformSuperAdmin = await this.isPlatformSuperAdmin(employee)
         try {
+            await this.authorizationService.ensureCatalogSeeded()
             const hasRolePermissionsTable = await this.hasTable('role_permissions')
             let roleQuery = Role.query()
                 .where('id', params.id)
@@ -142,6 +143,7 @@ export default class RolesController {
      */
     async update({ auth, params, request, response }: HttpContext) {
         const employee = auth.user!
+        await this.authorizationService.ensureCatalogSeeded()
         const { roleName, description, parentRoleId, permissions } = await request.validateUsing(RolesController.roleValidator)
 
         const role = await Role.query()
@@ -195,6 +197,7 @@ export default class RolesController {
 
     async destroy({ auth, params, response }: HttpContext) {
         const employee = auth.user!
+        await this.authorizationService.ensureCatalogSeeded()
         const role = await Role.query()
             .where('id', params.id)
             .where('org_id', employee.orgId)

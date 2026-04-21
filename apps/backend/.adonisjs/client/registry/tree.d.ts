@@ -55,7 +55,11 @@ export interface ApiDefinition {
     update: typeof routes['holidays.update']
     destroy: typeof routes['holidays.destroy']
   }
+  platform: {
+    overview: typeof routes['platform.overview']
+  }
   employees: {
+    myTeam: typeof routes['employees.my_team']
     index: typeof routes['employees.index']
     store: typeof routes['employees.store']
     occasions: typeof routes['employees.occasions']
@@ -126,19 +130,15 @@ export interface ApiDefinition {
   }
   leaves: {
     index: typeof routes['leaves.index']
-    getTypes: typeof routes['leaves.get_types']
-    createType: typeof routes['leaves.create_type']
-    updateType: typeof routes['leaves.update_type']
-    destroyType: typeof routes['leaves.destroy_type']
     store: typeof routes['leaves.store']
-    updateStatus: typeof routes['leaves.update_status']
+    update: typeof routes['leaves.update']
     getBalances: typeof routes['leaves.get_balances']
     adjustBalance: typeof routes['leaves.adjust_balance']
   }
   leaveTypesAlias: typeof routes['leave_types_alias']
   payrolls: {
     index: typeof routes['payrolls.index']
-    store: typeof routes['payrolls.store']
+    process: typeof routes['payrolls.process']
   }
   projects: {
     index: typeof routes['projects.index']
@@ -160,26 +160,8 @@ export interface ApiDefinition {
     store: typeof routes['timesheets.store']
   }
   visitManagement: {
-    dashboard: typeof routes['visit_management.dashboard']
-    references: typeof routes['visit_management.references']
-    reports: typeof routes['visit_management.reports']
-    exportReports: typeof routes['visit_management.export_reports']
-    listClients: typeof routes['visit_management.list_clients']
-    createClient: typeof routes['visit_management.create_client']
-    updateClient: typeof routes['visit_management.update_client']
-    listVisitors: typeof routes['visit_management.list_visitors']
-    createVisitor: typeof routes['visit_management.create_visitor']
-    updateVisitor: typeof routes['visit_management.update_visitor']
     index: typeof routes['visit_management.index']
     store: typeof routes['visit_management.store']
-    show: typeof routes['visit_management.show']
-    update: typeof routes['visit_management.update']
-    review: typeof routes['visit_management.review']
-    checkIn: typeof routes['visit_management.check_in']
-    checkOut: typeof routes['visit_management.check_out']
-    addNote: typeof routes['visit_management.add_note']
-    addFollowUp: typeof routes['visit_management.add_follow_up']
-    updateFollowUp: typeof routes['visit_management.update_follow_up']
   }
   notifications: {
     index: typeof routes['notifications.index']
@@ -213,9 +195,9 @@ export interface ApiDefinition {
   roles: {
     index: typeof routes['roles.index']
     store: typeof routes['roles.store']
+    getPermissions: typeof routes['roles.get_permissions']
     show: typeof routes['roles.show']
     update: typeof routes['roles.update']
-    getPermissions: typeof routes['roles.get_permissions']
     destroy: typeof routes['roles.destroy']
   }
   employeeExperiences: {

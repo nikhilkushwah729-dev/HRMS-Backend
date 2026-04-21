@@ -12,6 +12,7 @@ import db from '@adonisjs/lucid/services/db'
 import mail from '@adonisjs/mail/services/main'
 import RegistrationMailer from '#mailers/registration_mailer'
 import SubscriptionService from '#services/SubscriptionService'
+import AuthorizationService from '#services/AuthorizationService'
 import { COUNTRIES, CountryCodeData } from '../constants/countries.js'
 
 /**
@@ -107,12 +108,14 @@ export default class OrgRegistrationController {
                 timezone: 'Asia/Kolkata',
             })
 
+            await new AuthorizationService().ensureCatalogSeeded()
+
             let creatorRole = await Role.query()
-                .where('role_name', 'Admin')
+                .where('role_name', 'Organization Admin')
                 .where((query) => {
                     query.where('org_id', organization.id).orWhereNull('org_id')
                 })
-                .orderByRaw('CASE WHEN org_id IS NULL THEN 1 ELSE 0 END')
+                .orderByRaw('CASE WHEN org_id IS NULL THEN 0 ELSE 1 END')
                 .first()
 
             if (!creatorRole) {
@@ -121,14 +124,14 @@ export default class OrgRegistrationController {
                     .where((query) => {
                         query.where('org_id', organization.id).orWhereNull('org_id')
                     })
-                    .orderByRaw('CASE WHEN org_id IS NULL THEN 1 ELSE 0 END')
+                    .orderByRaw('CASE WHEN org_id IS NULL THEN 0 ELSE 1 END')
                     .first()
             }
 
             if (!creatorRole) {
                 const [createdRoleId] = await db.table('roles').insert({
                     org_id: organization.id,
-                    role_name: 'Admin',
+                    role_name: 'Organization Admin',
                     is_system: true,
                 })
 

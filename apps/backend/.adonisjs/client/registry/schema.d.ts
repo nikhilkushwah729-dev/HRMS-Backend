@@ -458,6 +458,28 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/OrganizationsController').default['toggleAddon']>>>
     }
   }
+  'platform.overview': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/platform/overview'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['overview']>>>
+    }
+  }
+  'employees.my_team': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/employees/my-team'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeesController').default['myTeam']>>>
+    }
+  }
   'employees.index': {
     methods: ["GET","HEAD"]
     pattern: '/api/employees'
@@ -1074,50 +1096,6 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['index']>>>
     }
   }
-  'leaves.get_types': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/leaves/types'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['getTypes']>>>
-    }
-  }
-  'leaves.create_type': {
-    methods: ["POST"]
-    pattern: '/api/leaves/types'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/LeavesController').default)['leaveTypeValidator']>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/LeavesController').default)['leaveTypeValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['createType']>>>
-    }
-  }
-  'leaves.update_type': {
-    methods: ["PUT"]
-    pattern: '/api/leaves/types/:id'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/LeavesController').default)['leaveTypeValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/LeavesController').default)['leaveTypeValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['updateType']>>>
-    }
-  }
-  'leaves.destroy_type': {
-    methods: ["DELETE"]
-    pattern: '/api/leaves/types/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['destroyType']>>>
-    }
-  }
   'leaves.store': {
     methods: ["POST"]
     pattern: '/api/leaves'
@@ -1129,15 +1107,15 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['store']>>>
     }
   }
-  'leaves.update_status': {
+  'leaves.update': {
     methods: ["PUT"]
-    pattern: '/api/leaves/:id/status'
+    pattern: '/api/leaves/:id'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/LeavesController').default)['statusValidator']>>
+      body: {}
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/LeavesController').default)['statusValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['updateStatus']>>>
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['update']>>>
     }
   }
   'leave_types_alias': {
@@ -1162,15 +1140,15 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PayrollsController').default['index']>>>
     }
   }
-  'payrolls.store': {
+  'payrolls.process': {
     methods: ["POST"]
-    pattern: '/api/payroll'
+    pattern: '/api/payroll/process'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/PayrollsController').default)['payrollValidator']>>
+      body: {}
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/PayrollsController').default)['payrollValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PayrollsController').default['store']>>>
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PayrollsController').default['process']>>>
     }
   }
   'projects.index': {
@@ -1294,116 +1272,6 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['store']>>>
     }
   }
-  'visit_management.dashboard': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/visits/dashboard'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['dashboard']>>>
-    }
-  }
-  'visit_management.references': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/visits/references'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['references']>>>
-    }
-  }
-  'visit_management.reports': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/visits/reports'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['reports']>>>
-    }
-  }
-  'visit_management.export_reports': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/visits/reports/export'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['exportReports']>>>
-    }
-  }
-  'visit_management.list_clients': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/visits/clients'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['listClients']>>>
-    }
-  }
-  'visit_management.create_client': {
-    methods: ["POST"]
-    pattern: '/api/visits/clients'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['clientValidator']>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['clientValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['createClient']>>>
-    }
-  }
-  'visit_management.update_client': {
-    methods: ["PUT"]
-    pattern: '/api/visits/clients/:id'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['clientValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['clientValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['updateClient']>>>
-    }
-  }
-  'visit_management.list_visitors': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/visits/visitors'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['listVisitors']>>>
-    }
-  }
-  'visit_management.create_visitor': {
-    methods: ["POST"]
-    pattern: '/api/visits/visitors'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['visitorValidator']>>
-      paramsTuple: []
-      params: {}
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['visitorValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['createVisitor']>>>
-    }
-  }
-  'visit_management.update_visitor': {
-    methods: ["PUT"]
-    pattern: '/api/visits/visitors/:id'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['visitorValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['visitorValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['updateVisitor']>>>
-    }
-  }
   'visit_management.index': {
     methods: ["GET","HEAD"]
     pattern: '/api/visits'
@@ -1424,94 +1292,6 @@ export interface Registry {
       params: {}
       query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['visitValidator']>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['store']>>>
-    }
-  }
-  'visit_management.show': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/visits/:id'
-    types: {
-      body: {}
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['show']>>>
-    }
-  }
-  'visit_management.update': {
-    methods: ["PUT"]
-    pattern: '/api/visits/:id'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['visitValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['visitValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['update']>>>
-    }
-  }
-  'visit_management.review': {
-    methods: ["POST"]
-    pattern: '/api/visits/:id/review'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['reviewValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['reviewValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['review']>>>
-    }
-  }
-  'visit_management.check_in': {
-    methods: ["POST"]
-    pattern: '/api/visits/:id/check-in'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['checkFlowValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['checkFlowValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['checkIn']>>>
-    }
-  }
-  'visit_management.check_out': {
-    methods: ["POST"]
-    pattern: '/api/visits/:id/check-out'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['checkFlowValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['checkFlowValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['checkOut']>>>
-    }
-  }
-  'visit_management.add_note': {
-    methods: ["POST"]
-    pattern: '/api/visits/:id/notes'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['noteValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['noteValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['addNote']>>>
-    }
-  }
-  'visit_management.add_follow_up': {
-    methods: ["POST"]
-    pattern: '/api/visits/:id/follow-ups'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['followUpValidator']>>
-      paramsTuple: [ParamValue]
-      params: { id: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['followUpValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['addFollowUp']>>>
-    }
-  }
-  'visit_management.update_follow_up': {
-    methods: ["PUT"]
-    pattern: '/api/visits/follow-ups/:followUpId'
-    types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['followUpValidator']>>
-      paramsTuple: [ParamValue]
-      params: { followUpId: ParamValue }
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/VisitManagementController').default)['followUpValidator']>>
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/VisitManagementController').default['updateFollowUp']>>>
     }
   }
   'notifications.index': {
@@ -1767,6 +1547,17 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/RolesController').default['store']>>>
     }
   }
+  'roles.get_permissions': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/roles/permissions'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/RolesController').default['getPermissions']>>>
+    }
+  }
   'roles.show': {
     methods: ["GET","HEAD"]
     pattern: '/api/roles/:id'
@@ -1787,17 +1578,6 @@ export interface Registry {
       params: { id: ParamValue }
       query: ExtractQuery<InferInput<(typeof import('#controllers/Http/RolesController').default)['roleValidator']>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/RolesController').default['update']>>>
-    }
-  }
-  'roles.get_permissions': {
-    methods: ["GET","HEAD"]
-    pattern: '/api/roles/permissions'
-    types: {
-      body: {}
-      paramsTuple: []
-      params: {}
-      query: {}
-      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/RolesController').default['getPermissions']>>>
     }
   }
   'roles.destroy': {
