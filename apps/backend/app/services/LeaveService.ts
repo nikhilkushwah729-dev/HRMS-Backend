@@ -54,6 +54,22 @@ export default class LeaveService {
     }
 
     /**
+     * Update leave request
+     */
+    async update(id: number, orgId: number, data: any) {
+        const leave = await Leave.query().where('id', id).where('org_id', orgId).first()
+        if (!leave) {
+            throw new Exception('Leave request not found', { status: 404 })
+        }
+        if (leave.status !== 'pending') {
+            throw new Exception('Only pending leave requests can be updated', { status: 400 })
+        }
+        leave.merge(data)
+        await leave.save()
+        return leave
+    }
+
+    /**
      * Approve/Reject leave
      */
     async updateStatus(id: number, orgId: number, status: 'approved' | 'rejected', approverId: number, rejectionNote?: string) {

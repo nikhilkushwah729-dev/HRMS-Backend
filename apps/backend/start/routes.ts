@@ -1,4 +1,4 @@
-﻿import router from '@adonisjs/core/services/router'
+import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -238,6 +238,7 @@ router.group(() => {
   router.get('/', [LeavesController, 'index'])
   router.post('/', [LeavesController, 'store'])
   router.put('/:id', [LeavesController, 'update'])
+  router.put('/:id/status', [LeavesController, 'updateStatus'])
 }).prefix('api/leaves').use(middleware.auth()).use(middleware.subscription({ module: 'Leaves' })).use(middleware.permission({ anyOf: ['leave_read', 'leave_create', 'leave_approve'] }))
 
 // Backward-compatible alias for frontend path `/api/leave-types`
@@ -251,6 +252,7 @@ router.group(() => {
 const PayrollsController = () => import('#controllers/Http/PayrollsController')
 router.group(() => {
   router.get('/', [PayrollsController, 'index'])
+  router.post('/', [PayrollsController, 'process']) // Standard store mapped to process
   router.post('process', [PayrollsController, 'process'])
 }).prefix('api/payroll').use(middleware.auth()).use(middleware.subscription({ module: 'Payroll' })).use(middleware.permission({ anyOf: ['payroll_read', 'payroll_process'] }))
 

@@ -104,10 +104,35 @@ export default class LeavesController {
     }
 
     /**
+     * Update leave request
+     */
+    async update({ auth, params, request, response }: HttpContext) {
+        const employee = auth.user!
+        const data = await request.validateUsing(LeavesController.leaveValidator)
+        const leave = await this.leaveService.update(Number(params.id), employee.orgId, data)
+        
+        await this.auditLogService.log({
+            orgId: employee.orgId,
+            employeeId: employee.id,
+            action: 'UPDATE',
+            module: 'leaves',
+            entityName: 'leaves',
+            entityId: leave.id,
+            newValues: data,
+            ctx: { request } as any
+        })
+        
+        return response.ok({
+            status: 'success',
+            message: 'Leave request updated',
+            data: leave,
+        })
+    }
+
+    /**
      * Get available leave types
      */
     async getTypes({ auth, request, response }: HttpContext) {
-        const employee = auth.user!
         const yearParam = Number(request.input('year'))
         const year = Number.isInteger(yearParam) && yearParam > 0 ? yearParam : undefined
         const types = await this.leaveService.getLeaveTypes(employee.orgId, employee.id, year)
