@@ -9,17 +9,23 @@ export default class AttendanceRegularization extends BaseModel {
     @column({ isPrimary: true })
     declare id: number
 
-    @column()
+    @column({ columnName: 'employee_id' })
     declare employeeId: number
 
-    @column()
+    @column({ columnName: 'org_id' })
     declare orgId: number
 
-    @column()
+    @column({ columnName: 'attendance_id' })
     declare attendanceId: number | null
 
-    @column.date()
+    @column.date({ columnName: 'regularization_date' })
     declare regularizationDate: DateTime
+
+    @column({ columnName: 'check_in' })
+    declare checkIn: string | null
+
+    @column({ columnName: 'check_out' })
+    declare checkOut: string | null
 
     @column()
     declare type: 'missed_punch' | 'late_arrival' | 'half_day' | 'other'
@@ -30,17 +36,23 @@ export default class AttendanceRegularization extends BaseModel {
     @column()
     declare status: 'pending' | 'approved' | 'rejected'
 
-    @column()
+    @column({ columnName: 'admin_notes' })
     declare adminNotes: string | null
 
-    @column()
+    @column({ columnName: 'rejection_reason' })
+    declare rejectionReason: string | null
+
+    @column({ columnName: 'approved_by' })
     declare approvedBy: number | null
 
-    @column.dateTime()
+    @column.dateTime({ columnName: 'approved_at' })
     declare approvedAt: DateTime | null
 
-    @column.dateTime({ autoCreate: true })
+    @column.dateTime({ autoCreate: true, columnName: 'created_at' })
     declare createdAt: DateTime
+
+    @column.dateTime({ autoCreate: true, autoUpdate: true, columnName: 'updated_at' })
+    declare updatedAt: DateTime
 
     @belongsTo(() => Employee, { foreignKey: 'employeeId' })
     declare employee: BelongsTo<typeof Employee>
