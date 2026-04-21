@@ -430,7 +430,7 @@ export default class AttendanceService {
         const result = await db.table('attendance_regularizations').insert({
             employee_id: employeeId,
             org_id: orgId,
-            attendance_date: data.date,
+            regularization_date: data.date,
             check_in: data.check_in,
             check_out: data.check_out || null,
             reason: data.reason,
@@ -453,7 +453,7 @@ export default class AttendanceService {
         return results.map(r => ({
             id: r.id,
             employee_id: r.employee_id,
-            date: r.attendance_date,
+            date: r.regularization_date,
             check_in: r.check_in,
             check_out: r.check_out,
             reason: r.reason,
@@ -489,7 +489,7 @@ export default class AttendanceService {
         if (action === 'approved') {
             await db.from('attendances')
                 .where('employee_id', request.employee_id)
-                .where('attendance_date', request.attendance_date)
+                .where('attendance_date', request.regularization_date)
                 .update({
                     check_in: request.check_in,
                     check_out: request.check_out
