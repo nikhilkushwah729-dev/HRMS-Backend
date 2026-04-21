@@ -31,7 +31,7 @@ export default class PayrollsController {
     /**
      * Generate payroll
      */
-    async store({ auth, request, response }: HttpContext) {
+    async process({ auth, request, response }: HttpContext) {
         const currentUser = auth.user!
         const { employeeId, month, year } = await request.validateUsing(PayrollsController.payrollValidator)
         const payroll = await this.payrollService.generate(employeeId, currentUser.orgId, month, year)
