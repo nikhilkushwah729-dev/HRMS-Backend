@@ -392,7 +392,7 @@ export default class VisitManagementService {
       phone: data.phone ?? null,
       address: data.address ?? null,
       is_active: data.isActive ?? true,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     return (await this.listClients(orgId)).find((client) => client.id === Number(id))
@@ -412,7 +412,7 @@ export default class VisitManagementService {
       phone: data.phone ?? existing.phone,
       address: data.address ?? existing.address,
       is_active: data.isActive ?? existing.is_active,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     return (await this.listClients(orgId)).find((client) => client.id === Number(id))
@@ -451,7 +451,7 @@ export default class VisitManagementService {
       address: data.address ?? null,
       notes: data.notes ?? null,
       is_active: data.isActive ?? true,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     return (await this.listVisitors(orgId)).find((visitor) => visitor.id === Number(id))
@@ -472,7 +472,7 @@ export default class VisitManagementService {
       address: data.address ?? existing.address,
       notes: data.notes ?? existing.notes,
       is_active: data.isActive ?? existing.is_active,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     return (await this.listVisitors(orgId)).find((visitor) => visitor.id === Number(id))
@@ -543,7 +543,7 @@ export default class VisitManagementService {
       attachment_urls: this.serializeArray(data.attachmentUrls),
       approval_notes: data.approvalNotes ?? null,
       completion_notes: data.completionNotes ?? null,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     if (data.initialNote) {
@@ -594,7 +594,7 @@ export default class VisitManagementService {
       reminder_at: data.reminderAt ?? visit.reminder_at,
       photo_proof_url: data.photoProofUrl ?? visit.photo_proof_url,
       attachment_urls: data.attachmentUrls ? this.serializeArray(data.attachmentUrls) : visit.attachment_urls,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     return this.getVisitDetail(employee, visitId)
@@ -612,9 +612,9 @@ export default class VisitManagementService {
     await db.from('visits').where('id', visitId).where('org_id', employee.orgId).update({
       status: nextStatus,
       approved_by: employee.id,
-      approved_at: DateTime.now().toSQL(),
+      approved_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
       approval_notes: notes ?? null,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     await this.notifyEmployees(
@@ -636,12 +636,12 @@ export default class VisitManagementService {
 
     await db.from('visits').where('id', visitId).where('org_id', employee.orgId).update({
       status: 'in_progress',
-      actual_check_in_at: DateTime.now().toSQL(),
+      actual_check_in_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
       check_in_latitude: data.latitude ?? null,
       check_in_longitude: data.longitude ?? null,
       check_in_address: data.address ?? null,
       photo_proof_url: data.photoProofUrl ?? visit.photo_proof_url,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     if (data.note) {
@@ -667,13 +667,13 @@ export default class VisitManagementService {
 
     await db.from('visits').where('id', visitId).where('org_id', employee.orgId).update({
       status: 'completed',
-      actual_check_out_at: DateTime.now().toSQL(),
+      actual_check_out_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
       check_out_latitude: data.latitude ?? null,
       check_out_longitude: data.longitude ?? null,
       check_out_address: data.address ?? null,
       completion_notes: data.completionNotes ?? null,
       photo_proof_url: data.photoProofUrl ?? visit.photo_proof_url,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     if (data.note) {
@@ -718,7 +718,7 @@ export default class VisitManagementService {
       title: data.title,
       description: data.description ?? null,
       due_at: data.dueAt ?? null,
-      updated_at: DateTime.now().toSQL(),
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     await this.notifyEmployees(
@@ -752,8 +752,8 @@ export default class VisitManagementService {
       title: data.title ?? followUp.title,
       description: data.description ?? followUp.description,
       due_at: data.dueAt ?? followUp.due_at,
-      completed_at: nextStatus === 'completed' ? DateTime.now().toSQL() : null,
-      updated_at: DateTime.now().toSQL(),
+      completed_at: nextStatus === 'completed' ? DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') : null,
+      updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
     })
 
     return db.from('visit_follow_ups').where('id', followUpId).first()

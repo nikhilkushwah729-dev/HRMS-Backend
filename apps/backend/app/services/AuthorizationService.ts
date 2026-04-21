@@ -370,10 +370,10 @@ export default class AuthorizationService {
         .where('employee_id', employee.id)
         .preload('permission')
         .where((query) => {
-          query.whereNull('starts_at').orWhere('starts_at', '<=', now.toSQL()!)
+          query.whereNull('starts_at').orWhere('starts_at', '<=', now.toFormat('yyyy-MM-dd HH:mm:ss')!)
         })
         .where((query) => {
-          query.whereNull('ends_at').orWhere('ends_at', '>=', now.toSQL()!)
+          query.whereNull('ends_at').orWhere('ends_at', '>=', now.toFormat('yyyy-MM-dd HH:mm:ss')!)
         })
 
       userOverrides.forEach((override) => {
