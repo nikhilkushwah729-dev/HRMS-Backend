@@ -612,6 +612,12 @@ const routes = {
     tokens: [{"old":"/api/leaves/:id","type":0,"val":"api","end":""},{"old":"/api/leaves/:id","type":0,"val":"leaves","end":""},{"old":"/api/leaves/:id","type":1,"val":"id","end":""}],
     types: placeholder as Registry['leaves.update']['types'],
   },
+  'leaves.update_status': {
+    methods: ["PUT"],
+    pattern: '/api/leaves/:id/status',
+    tokens: [{"old":"/api/leaves/:id/status","type":0,"val":"api","end":""},{"old":"/api/leaves/:id/status","type":0,"val":"leaves","end":""},{"old":"/api/leaves/:id/status","type":1,"val":"id","end":""},{"old":"/api/leaves/:id/status","type":0,"val":"status","end":""}],
+    types: placeholder as Registry['leaves.update_status']['types'],
+  },
   'leave_types_alias': {
     methods: ["GET","HEAD"],
     pattern: '/api/leave-types',
@@ -623,6 +629,12 @@ const routes = {
     pattern: '/api/payroll',
     tokens: [{"old":"/api/payroll","type":0,"val":"api","end":""},{"old":"/api/payroll","type":0,"val":"payroll","end":""}],
     types: placeholder as Registry['payrolls.index']['types'],
+  },
+  'payrolls.store': {
+    methods: ["POST"],
+    pattern: '/api/payroll',
+    tokens: [{"old":"/api/payroll","type":0,"val":"api","end":""},{"old":"/api/payroll","type":0,"val":"payroll","end":""}],
+    types: placeholder as Registry['payrolls.store']['types'],
   },
   'payrolls.process': {
     methods: ["POST"],

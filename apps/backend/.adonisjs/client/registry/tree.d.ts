@@ -132,12 +132,14 @@ export interface ApiDefinition {
     index: typeof routes['leaves.index']
     store: typeof routes['leaves.store']
     update: typeof routes['leaves.update']
+    updateStatus: typeof routes['leaves.update_status']
     getBalances: typeof routes['leaves.get_balances']
     adjustBalance: typeof routes['leaves.adjust_balance']
   }
   leaveTypesAlias: typeof routes['leave_types_alias']
   payrolls: {
     index: typeof routes['payrolls.index']
+    store: typeof routes['payrolls.store']
     process: typeof routes['payrolls.process']
   }
   projects: {
