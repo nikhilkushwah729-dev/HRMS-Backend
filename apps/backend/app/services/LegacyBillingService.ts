@@ -49,12 +49,20 @@ export default class LegacyBillingService {
     announcements: 100,
   }
 
-  isConfigured() {
+  private hasLegacyGateway() {
     return Boolean(this.baseUrl)
   }
 
+  private hasRazorpayGateway() {
+    return Boolean(env.get('RAZORPAY_KEY_ID', '') && env.get('RAZORPAY_KEY_SECRET', ''))
+  }
+
+  isConfigured() {
+    return this.hasLegacyGateway() || this.hasRazorpayGateway()
+  }
+
   private ensureConfigured() {
-    if (!this.isConfigured()) {
+    if (!this.hasLegacyGateway()) {
       throw new Exception('Legacy billing gateway is not configured', { status: 400 })
     }
   }
@@ -156,14 +164,18 @@ export default class LegacyBillingService {
   }
 
   private isGatewayUnavailable(error: any) {
-    return error?.status === 503 || error?.code === 'ECONNABORTED'
+    return (
+      error?.status === 503 ||
+      error?.code === 'ECONNABORTED' ||
+      String(error?.message || '').toLowerCase().includes('legacy billing gateway is not configured')
+    )
   }
 
   private async createLocalRazorpayOrder(amount: number, receipt: string) {
     const keyId = env.get('RAZORPAY_KEY_ID', '')
     const keySecret = env.get('RAZORPAY_KEY_SECRET', '')
     if (!keyId || !keySecret) {
-      throw new Exception('Razorpay test credentials are not configured', { status: 400 })
+      throw new Exception('Payment gateway credentials are not configured', { status: 400 })
     }
 
     const response = await axios.post(
@@ -341,7 +353,7 @@ export default class LegacyBillingService {
       orderId: order.id,
       publishableKey: env.get('RAZORPAY_KEY_ID', ''),
       status: true,
-      message: 'Legacy gateway is unavailable, using Razorpay test fallback order.',
+      message: 'Payment checkout initialized with Razorpay.',
       paymentAmount,
       amount: paymentAmount,
       currency: 'INR',
@@ -353,8 +365,14 @@ export default class LegacyBillingService {
   }
 
   async getContext(orgId: number) {
-    if (!this.isConfigured()) {
-      return this.fallbackContext(orgId, false)
+    if (!this.hasLegacyGateway()) {
+      return this.fallbackContext(
+        orgId,
+        this.hasRazorpayGateway(),
+        this.hasRazorpayGateway()
+          ? 'Legacy billing gateway is not configured. Razorpay checkout is available.'
+          : 'Payment gateway credentials are not configured.'
+      )
     }
 
     let existingPlan
@@ -435,6 +453,18 @@ export default class LegacyBillingService {
     const requestedAmount = Number(payload.paymentAmount ?? 0)
     const paymentAmount = Number((requestedAmount > 0 ? requestedAmount : calculatedAmount).toFixed(2))
     const tax = Number((Number(payload.tax ?? 0) > 0 ? Number(payload.tax) : this.calculateTax(paymentAmount)).toFixed(2))
+
+    if (!this.isConfigured()) {
+      return this.createFallbackPurchase(
+        org,
+        orgId,
+        payload,
+        addons,
+        paymentAmount,
+        tax,
+        'Legacy billing gateway is not configured. Using Razorpay fallback checkout.'
+      )
+    }
 
     let response
     try {
