@@ -1111,11 +1111,22 @@ export interface Registry {
     methods: ["PUT"]
     pattern: '/api/leaves/:id'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/LeavesController').default)['leaveValidator']>>
       paramsTuple: [ParamValue]
       params: { id: ParamValue }
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/LeavesController').default)['leaveValidator']>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['update']>>>
+    }
+  }
+  'leaves.update_status': {
+    methods: ["PUT"]
+    pattern: '/api/leaves/:id/status'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/LeavesController').default)['statusValidator']>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/LeavesController').default)['statusValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['updateStatus']>>>
     }
   }
   'leave_types_alias': {
@@ -1140,14 +1151,25 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PayrollsController').default['index']>>>
     }
   }
+  'payrolls.store': {
+    methods: ["POST"]
+    pattern: '/api/payroll'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/PayrollsController').default)['payrollValidator']>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/PayrollsController').default)['payrollValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PayrollsController').default['process']>>>
+    }
+  }
   'payrolls.process': {
     methods: ["POST"]
     pattern: '/api/payroll/process'
     types: {
-      body: {}
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/PayrollsController').default)['payrollValidator']>>
       paramsTuple: []
       params: {}
-      query: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/PayrollsController').default)['payrollValidator']>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PayrollsController').default['process']>>>
     }
   }

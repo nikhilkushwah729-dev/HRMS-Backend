@@ -251,9 +251,9 @@ router.group(() => {
  */
 const PayrollsController = () => import('#controllers/Http/PayrollsController')
 router.group(() => {
-  router.get('/', [PayrollsController, 'index'])
-  router.post('/', [PayrollsController, 'process']) // Standard store mapped to process
-  router.post('process', [PayrollsController, 'process'])
+  router.get('/', [PayrollsController, 'index']).as('payrolls.index')
+  router.post('/', [PayrollsController, 'process']).as('payrolls.store') // Standard store mapped to process
+  router.post('process', [PayrollsController, 'process']).as('payrolls.process')
 }).prefix('api/payroll').use(middleware.auth()).use(middleware.subscription({ module: 'Payroll' })).use(middleware.permission({ anyOf: ['payroll_read', 'payroll_process'] }))
 
 /**

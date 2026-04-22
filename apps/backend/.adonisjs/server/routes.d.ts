@@ -105,8 +105,10 @@ export type ScannedRoutes = {
     'leaves.index': { paramsTuple?: []; params?: {} }
     'leaves.store': { paramsTuple?: []; params?: {} }
     'leaves.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'leaves.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'leave_types_alias': { paramsTuple?: []; params?: {} }
     'payrolls.index': { paramsTuple?: []; params?: {} }
+    'payrolls.store': { paramsTuple?: []; params?: {} }
     'payrolls.process': { paramsTuple?: []; params?: {} }
     'projects.index': { paramsTuple?: []; params?: {} }
     'projects.store': { paramsTuple?: []; params?: {} }
@@ -381,6 +383,7 @@ export type ScannedRoutes = {
     'regularizations.store': { paramsTuple?: []; params?: {} }
     'tracking.update': { paramsTuple?: []; params?: {} }
     'leaves.store': { paramsTuple?: []; params?: {} }
+    'payrolls.store': { paramsTuple?: []; params?: {} }
     'payrolls.process': { paramsTuple?: []; params?: {} }
     'projects.store': { paramsTuple?: []; params?: {} }
     'projects.store_task': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -415,6 +418,7 @@ export type ScannedRoutes = {
     'attendances.update_shift': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'regularizations.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'leaves.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'leaves.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'expenses.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_experiences.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

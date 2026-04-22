@@ -5,7 +5,7 @@ import Employee from '#models/employee'
 import Organization from '#models/organization'
 
 export default class Payroll extends BaseModel {
-    static table = 'payroll'
+    static table = 'payrolls'
 
     @column({ isPrimary: true })
     declare id: number
