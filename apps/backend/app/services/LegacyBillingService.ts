@@ -1,10 +1,12 @@
 import axios from 'axios'
+import db from '@adonisjs/lucid/services/db'
 import env from '#start/env'
 import { Exception } from '@adonisjs/core/exceptions'
 import Organization from '#models/organization'
 import SubscriptionService from '#services/SubscriptionService'
 import Payment from '#models/payment'
 import { DateTime } from 'luxon'
+import crypto from 'node:crypto'
 
 type LegacyAddon = {
   name: string
@@ -16,6 +18,8 @@ export default class LegacyBillingService {
   private readonly baseUrl = (env.get('LEGACY_BILLING_BASE_URL') || '').replace(/\/+$/, '')
   private readonly appName = env.get('LEGACY_BILLING_APP_NAME') || 'ubiAttendance'
   private readonly basePlanAmount = Number(env.get('LEGACY_BILLING_PLAN_BASE_AMOUNT') || 3000)
+  private readonly getTimeoutMs = Number(env.get('LEGACY_BILLING_GET_TIMEOUT_MS') || 5000)
+  private readonly postTimeoutMs = Number(env.get('LEGACY_BILLING_POST_TIMEOUT_MS') || 5000)
   private readonly subscriptionService = new SubscriptionService()
   private readonly addonAliases: Record<string, string[]> = {
     leaveandtimeoff: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
@@ -29,6 +33,21 @@ export default class LegacyBillingService {
     manageclients: ['manageclients', 'clients', 'clientmanagement'],
     expense: ['expense', 'expenses'],
   }
+  private readonly addonDefaultPrices: Record<string, number> = {
+    leaveandtimeoff: 300,
+    employeetracking: 400,
+    trackvisits: 300,
+    geofence: 200,
+    facerecognition: 1000,
+    shiftplanner: 300,
+    timesheet: 200,
+    payroll: 500,
+    manageclients: 300,
+    expense: 300,
+    attendance: 400,
+    projects: 300,
+    announcements: 100,
+  }
 
   isConfigured() {
     return Boolean(this.baseUrl)
@@ -40,10 +59,23 @@ export default class LegacyBillingService {
     }
   }
 
+  private toGatewayException(error: any) {
+    const code = error?.code
+    const message = code === 'ECONNABORTED'
+      ? 'Legacy billing gateway is not responding. Please try again after checking the legacy billing server.'
+      : 'Legacy billing gateway request failed. Please check the legacy billing server.'
+
+    return new Exception(message, { status: 503 })
+  }
+
   private async get(url: string, params: Record<string, any> = {}) {
     this.ensureConfigured()
-    const response = await axios.get(`${this.baseUrl}${url}`, { params, timeout: 20000 })
-    return response.data
+    try {
+      const response = await axios.get(`${this.baseUrl}${url}`, { params, timeout: this.getTimeoutMs })
+      return response.data
+    } catch (error) {
+      throw this.toGatewayException(error)
+    }
   }
 
   private async postForm(url: string, payload: Record<string, any>) {
@@ -52,11 +84,15 @@ export default class LegacyBillingService {
     Object.entries(payload).forEach(([key, value]) => {
       form.append(key, value == null ? '' : String(value))
     })
-    const response = await axios.post(`${this.baseUrl}${url}`, form, {
-      timeout: 30000,
-      headers: form instanceof FormData ? undefined : {},
-    })
-    return response.data
+    try {
+      const response = await axios.post(`${this.baseUrl}${url}`, form, {
+        timeout: this.postTimeoutMs,
+        headers: form instanceof FormData ? undefined : {},
+      })
+      return response.data
+    } catch (error) {
+      throw this.toGatewayException(error)
+    }
   }
 
   private normalizePlanStatus(raw: any) {
@@ -85,7 +121,7 @@ export default class LegacyBillingService {
     if (!Array.isArray(raw)) return []
     return raw.map((item) => ({
       name: String(item?.name ?? ''),
-      price: String(item?.price ?? item?.Price ?? '0'),
+      price: String(this.normalizeAddonPrice(item?.price ?? item?.Price, String(item?.name ?? ''))),
       status: String(item?.status ?? item?.Status ?? '0'),
     }))
   }
@@ -104,8 +140,146 @@ export default class LegacyBillingService {
     return [normalized]
   }
 
+  private addonDefaultPrice(value: string) {
+    const keys = this.addonKeys(value)
+    const matchedKey = keys.find((key) => this.addonDefaultPrices[key] != null)
+    return matchedKey ? this.addonDefaultPrices[matchedKey] : 300
+  }
+
+  private normalizeAddonPrice(value: any, name: string) {
+    const price = Number(value)
+    return Number.isFinite(price) && price > 0 ? price : this.addonDefaultPrice(name)
+  }
+
   private calculateTax(baseAmount: number) {
     return Number((baseAmount * 0.18).toFixed(2))
+  }
+
+  private isGatewayUnavailable(error: any) {
+    return error?.status === 503 || error?.code === 'ECONNABORTED'
+  }
+
+  private async createLocalRazorpayOrder(amount: number, receipt: string) {
+    const keyId = env.get('RAZORPAY_KEY_ID', '')
+    const keySecret = env.get('RAZORPAY_KEY_SECRET', '')
+    if (!keyId || !keySecret) {
+      throw new Exception('Razorpay test credentials are not configured', { status: 400 })
+    }
+
+    const response = await axios.post(
+      'https://api.razorpay.com/v1/orders',
+      {
+        amount: Math.round(amount * 100),
+        currency: 'INR',
+        receipt,
+        payment_capture: 1,
+      },
+      {
+        auth: { username: keyId, password: keySecret },
+        timeout: 20000,
+      }
+    )
+
+    return response.data
+  }
+
+  private async fallbackContext(orgId: number, configured: boolean, gatewayMessage = '') {
+    const org = await Organization.find(orgId)
+    const localAddons = await db
+      .from('addon_prices')
+      .leftJoin('organization_addons', function () {
+        this.on('organization_addons.addon_id', '=', 'addon_prices.id').andOnVal('organization_addons.org_id', orgId)
+      })
+      .where('addon_prices.is_active', true)
+      .select(
+        'addon_prices.name',
+        'addon_prices.price',
+        'organization_addons.is_active as enabled'
+      )
+
+    const addonCatalog = localAddons.length
+      ? localAddons.map((addon) => ({
+          name: String(addon.name ?? ''),
+          price: String(this.normalizeAddonPrice(addon.price, String(addon.name ?? ''))),
+          status: Number(addon.enabled) === 1 || addon.enabled === true ? '1' : '0',
+        }))
+      : [
+          { name: 'Payroll', price: '500', status: '0' },
+          { name: 'Leave & Timeoff', price: '300', status: '0' },
+          { name: 'Face Recognition', price: '1000', status: '0' },
+          { name: 'Employee Tracking', price: '400', status: '0' },
+          { name: 'Timesheet', price: '200', status: '0' },
+          { name: 'Visit Management', price: '300', status: '0' },
+          { name: 'Geofencing', price: '200', status: '0' },
+        ]
+
+    return {
+      configured,
+      gatewayAvailable: false,
+      gatewayMessage,
+      appName: this.appName,
+      currentOrgSts: org?.isTrialActive ? 'TrialOrg' : 'PaidOrg',
+      existingPlan: {
+        orgid: orgId,
+        orgName: org?.companyName || '',
+        email: org?.email || '',
+        phoneNumber: org?.phone || '',
+        countryname: org?.countryName || 'India',
+        startDate: org?.trialStartDate ? (typeof org.trialStartDate.toISODate === 'function' ? org.trialStartDate.toISODate() : DateTime.fromJSDate(org.trialStartDate as any).toISODate()) : null,
+        endDate: org?.trialEndDate ? (typeof org.trialEndDate.toISODate === 'function' ? org.trialEndDate.toISODate() : DateTime.fromJSDate(org.trialEndDate as any).toISODate()) : null,
+        noemp: org?.userLimit || 0,
+        userlimit: org?.userLimit || 0,
+        planStatus: org?.isTrialActive ? 0 : 1,
+        trialItemCount: 0,
+        turnOffMyPlan: false,
+        stateName: org?.state || '',
+        cityName: org?.city || '',
+        gstin: org?.gstin || '',
+        zip: org?.postalCode || '',
+      },
+      states: [
+        { code: 'AN', name: 'Andaman and Nicobar Islands' },
+        { code: 'AP', name: 'Andhra Pradesh' },
+        { code: 'AR', name: 'Arunachal Pradesh' },
+        { code: 'AS', name: 'Assam' },
+        { code: 'BR', name: 'Bihar' },
+        { code: 'CH', name: 'Chandigarh' },
+        { code: 'CT', name: 'Chhattisgarh' },
+        { code: 'DN', name: 'Dadra and Nagar Haveli' },
+        { code: 'DD', name: 'Daman and Diu' },
+        { code: 'DL', name: 'Delhi' },
+        { code: 'GA', name: 'Goa' },
+        { code: 'GJ', name: 'Gujarat' },
+        { code: 'HR', name: 'Haryana' },
+        { code: 'HP', name: 'Himachal Pradesh' },
+        { code: 'JK', name: 'Jammu and Kashmir' },
+        { code: 'JH', name: 'Jharkhand' },
+        { code: 'KA', name: 'Karnataka' },
+        { code: 'KL', name: 'Kerala' },
+        { code: 'LD', name: 'Lakshadweep' },
+        { code: 'MP', name: 'Madhya Pradesh' },
+        { code: 'MH', name: 'Maharashtra' },
+        { code: 'MN', name: 'Manipur' },
+        { code: 'ML', name: 'Meghalaya' },
+        { code: 'MZ', name: 'Mizoram' },
+        { code: 'NL', name: 'Nagaland' },
+        { code: 'OR', name: 'Odisha' },
+        { code: 'PY', name: 'Puducherry' },
+        { code: 'PB', name: 'Punjab' },
+        { code: 'RJ', name: 'Rajasthan' },
+        { code: 'SK', name: 'Sikkim' },
+        { code: 'TN', name: 'Tamil Nadu' },
+        { code: 'TG', name: 'Telangana' },
+        { code: 'TR', name: 'Tripura' },
+        { code: 'UP', name: 'Uttar Pradesh' },
+        { code: 'UK', name: 'Uttarakhand' },
+        { code: 'WB', name: 'West Bengal' },
+      ],
+      addonCatalog,
+      pricingMatrix: null,
+      basePlanAmount: this.basePlanAmount,
+      suggestedAction: org?.isTrialActive ? 'Buy' : 'Upgrade',
+    }
   }
 
   private async buildSelectedAddons(selectedAddons: Array<{ name: string; status: boolean }>, externalCatalog: LegacyAddon[]) {
@@ -116,16 +290,81 @@ export default class LegacyBillingService {
         .find(Boolean)
       return {
         name: item.name,
-        Price: matched?.price ?? '0.00',
+        Price: String(this.normalizeAddonPrice(matched?.price, item.name)),
         Status: item.status ? '1' : '0',
       }
     })
   }
 
+  private async createFallbackPurchase(
+    org: Organization,
+    orgId: number,
+    payload: {
+      nouser: number
+      selectedAddons: Array<{ name: string; status: boolean }>
+      paymentMethod: string
+      duration: number
+      durationType: string
+      action: 'Buy' | 'Upgrade'
+    },
+    addons: Array<{ name: string; Price: string; Status: string }>,
+    paymentAmount: number,
+    tax: number,
+    failureMessage: string
+  ) {
+    const order = await this.createLocalRazorpayOrder(paymentAmount, `legacy-fallback-${orgId}-${Date.now()}`)
+    const payment = await Payment.create({
+      orgId,
+      planId: org.planId,
+      amount: paymentAmount,
+      currency: 'INR',
+      paymentMethod: payload.paymentMethod,
+      paymentGateway: 'razorpay',
+      provider: 'razorpay',
+      providerOrderId: order.id,
+      transactionId: `fallback_${crypto.randomUUID()}`,
+      status: 'pending',
+      billingCycle: payload.durationType.toLowerCase().startsWith('year') ? 'yearly' : 'monthly',
+      metadata: JSON.stringify({
+        action: payload.action,
+        selectedAddons: addons,
+        nouser: payload.nouser,
+        tax,
+        source: 'legacy_gateway_fallback',
+        legacyGatewayError: failureMessage,
+      }),
+    })
+
+    return {
+      paymentRecordId: payment.id,
+      legacyPaymentId: null,
+      orderId: order.id,
+      publishableKey: env.get('RAZORPAY_KEY_ID', ''),
+      status: true,
+      message: 'Legacy gateway is unavailable, using Razorpay test fallback order.',
+      paymentAmount,
+      amount: paymentAmount,
+      currency: 'INR',
+      tax,
+      addons,
+      configured: true,
+      fallback: true,
+    }
+  }
+
   async getContext(orgId: number) {
-    this.ensureConfigured()
-    const existingPlan = this.normalizePlanStatus(await this.get('/existingPlan', { Orgid: orgId, appName: this.appName }))
-    const states = await this.get('/stateList')
+    if (!this.isConfigured()) {
+      return this.fallbackContext(orgId, false)
+    }
+
+    let existingPlan
+    let states
+    try {
+      existingPlan = this.normalizePlanStatus(await this.get('/existingPlan', { Orgid: orgId, appName: this.appName }))
+      states = await this.get('/stateList')
+    } catch (error: any) {
+      return this.fallbackContext(orgId, true, error?.message || 'Legacy billing gateway is not responding.')
+    }
     const currentOrgSts = existingPlan.planStatus === 0 ? 'TrialOrg' : 'PaidOrg'
 
     let addonCatalog: LegacyAddon[] = []
@@ -178,6 +417,9 @@ export default class LegacyBillingService {
       name: string
       duration: number
       durationType: string
+      subtotal?: number
+      tax?: number
+      paymentAmount?: number
       gstin?: string
       remark?: string
       action: 'Buy' | 'Upgrade'
@@ -189,31 +431,41 @@ export default class LegacyBillingService {
     const selectedTotal = addons
       .filter((item) => item.Status === '1')
       .reduce((sum, item) => sum + Number(item.Price || 0), 0)
-    const paymentAmount = Number((this.basePlanAmount + selectedTotal).toFixed(2))
-    const tax = this.calculateTax(paymentAmount)
+    const calculatedAmount = Number((this.basePlanAmount + selectedTotal).toFixed(2))
+    const requestedAmount = Number(payload.paymentAmount ?? 0)
+    const paymentAmount = Number((requestedAmount > 0 ? requestedAmount : calculatedAmount).toFixed(2))
+    const tax = Number((Number(payload.tax ?? 0) > 0 ? Number(payload.tax) : this.calculateTax(paymentAmount)).toFixed(2))
 
-    const response = await this.postForm('/planPurchase', {
-      orgid: orgId,
-      nouser: payload.nouser,
-      addons: JSON.stringify([{ addons }]),
-      payment_amount: paymentAmount,
-      payment_status: 'Pending',
-      leadowner: orgId,
-      Company: org.companyName,
-      tax,
-      remark: payload.remark || 'Auto Mode',
-      action: payload.action,
-      gstin: payload.gstin || '',
-      payment_method: payload.paymentMethod,
-      state: payload.state,
-      country: payload.country,
-      zip: payload.zip || '',
-      city: payload.city || '',
-      name: payload.name,
-      duration: payload.duration,
-      durationType: payload.durationType,
-      appName: this.appName,
-    })
+    let response
+    try {
+      response = await this.postForm('/planPurchase', {
+        orgid: orgId,
+        nouser: payload.nouser,
+        addons: JSON.stringify([{ addons }]),
+        payment_amount: paymentAmount,
+        payment_status: 'Pending',
+        leadowner: orgId,
+        Company: org.companyName,
+        tax,
+        remark: payload.remark || 'Auto Mode',
+        action: payload.action,
+        gstin: payload.gstin || '',
+        payment_method: payload.paymentMethod,
+        state: payload.state,
+        country: payload.country,
+        zip: payload.zip || '',
+        city: payload.city || '',
+        name: payload.name,
+        duration: payload.duration,
+        durationType: payload.durationType,
+        appName: this.appName,
+      })
+    } catch (error: any) {
+      if (this.isGatewayUnavailable(error)) {
+        return this.createFallbackPurchase(org, orgId, payload, addons, paymentAmount, tax, error?.message || 'Legacy gateway unavailable')
+      }
+      throw error
+    }
 
     const normalized = Array.isArray(response) ? response[0] : response
     const payment = await Payment.create({
@@ -272,19 +524,24 @@ export default class LegacyBillingService {
     const metadata = typeof payment.metadata === 'string' ? JSON.parse(payment.metadata) : payment.metadata || {}
     const legacyPaymentId = metadata.legacyPaymentId ?? payment.transactionId
 
-    const successResponse = await this.postForm('/successPayment', {
-      paymentid: legacyPaymentId,
-      orderid: payload.orderId,
-      payment_status: payload.paymentStatus,
-      orgid: orgId,
-      payment_rzr_id: payload.paymentRzrId,
-      nouser: payload.nouser,
-      duration: payload.duration,
-      duration_type: payload.durationType,
-      addons: JSON.stringify([{ addons: metadata.selectedAddons ?? [] }]),
-      action: payload.action,
-      appName: this.appName,
-    })
+    let successResponse: any = null
+    const isFallbackPayment = metadata.source === 'legacy_gateway_fallback'
+
+    if (!isFallbackPayment) {
+      successResponse = await this.postForm('/successPayment', {
+        paymentid: legacyPaymentId,
+        orderid: payload.orderId,
+        payment_status: payload.paymentStatus,
+        orgid: orgId,
+        payment_rzr_id: payload.paymentRzrId,
+        nouser: payload.nouser,
+        duration: payload.duration,
+        duration_type: payload.durationType,
+        addons: JSON.stringify([{ addons: metadata.selectedAddons ?? [] }]),
+        action: payload.action,
+        appName: this.appName,
+      })
+    }
 
     payment.providerPaymentId = payload.paymentRzrId
     payment.providerSignature = payload.orderId
@@ -294,7 +551,9 @@ export default class LegacyBillingService {
 
     let invoice: any = null
     if (payment.status === 'success') {
-      invoice = await this.get('/inVoiceGenerate', { id: payload.paymentRzrId, appName: this.appName })
+      if (!isFallbackPayment) {
+        invoice = await this.get('/inVoiceGenerate', { id: payload.paymentRzrId, appName: this.appName })
+      }
       await this.subscriptionService.markExternalPurchaseSuccess(orgId, {
         payment,
         duration: payload.duration,
@@ -305,8 +564,9 @@ export default class LegacyBillingService {
     }
 
     return {
-      successResponse,
+      successResponse: successResponse ?? { status: true, msg: 'Fallback payment confirmed locally.' },
       invoice,
+      fallback: isFallbackPayment,
     }
   }
 
