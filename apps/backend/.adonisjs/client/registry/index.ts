@@ -600,6 +600,12 @@ const routes = {
     tokens: [{"old":"/api/leaves","type":0,"val":"api","end":""},{"old":"/api/leaves","type":0,"val":"leaves","end":""}],
     types: placeholder as Registry['leaves.index']['types'],
   },
+  'leaves.dashboard': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/leaves/dashboard',
+    tokens: [{"old":"/api/leaves/dashboard","type":0,"val":"api","end":""},{"old":"/api/leaves/dashboard","type":0,"val":"leaves","end":""},{"old":"/api/leaves/dashboard","type":0,"val":"dashboard","end":""}],
+    types: placeholder as Registry['leaves.dashboard']['types'],
+  },
   'leaves.store': {
     methods: ["POST"],
     pattern: '/api/leaves',

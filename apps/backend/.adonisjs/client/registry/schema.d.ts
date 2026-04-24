@@ -1096,6 +1096,17 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['index']>>>
     }
   }
+  'leaves.dashboard': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/leaves/dashboard'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/LeavesController').default['dashboard']>>>
+    }
+  }
   'leaves.store': {
     methods: ["POST"]
     pattern: '/api/leaves'

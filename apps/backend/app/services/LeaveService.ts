@@ -1,5 +1,6 @@
 import Leave from '#models/leave'
 import Employee from '#models/employee'
+import Holiday from '#models/holiday'
 import LeaveType from '#models/leave_type'
 import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
@@ -171,6 +172,167 @@ export default class LeaveService {
                 remaining,
             }
         })
+    }
+
+    /**
+     * Dashboard payload for the leave workspace.
+     */
+    async dashboard(orgId: number, employeeId: number, canApprove: boolean, year?: number, fromDate?: string, toDate?: string) {
+        const targetYear = year ?? DateTime.now().year
+        const rangeEnd = toDate ? DateTime.fromISO(toDate) : DateTime.now()
+        const rangeStart = fromDate ? DateTime.fromISO(fromDate) : rangeEnd.minus({ days: 45 })
+        const safeRangeStart = rangeStart.isValid ? rangeStart : DateTime.now().minus({ days: 45 })
+        const safeRangeEnd = rangeEnd.isValid ? rangeEnd : DateTime.now()
+        const [balances, leaves, upcomingHolidays] = await Promise.all([
+            this.getLeaveTypes(orgId, employeeId, targetYear),
+            this.list(orgId, canApprove ? undefined : employeeId),
+            Holiday.query()
+                .where('org_id', orgId)
+                .where('holiday_date', '>=', DateTime.now().toISODate()!)
+                .orderBy('holiday_date', 'asc')
+                .limit(6),
+        ])
+        const totalEmployees = await Employee.query().where('org_id', orgId).where('status', 'active').count('* as total')
+        const totalEmployeesCount = Number(totalEmployees[0].$extras.total || 0)
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const monthlyUsage = months.map((month, index) => ({
+            month,
+            monthIndex: index + 1,
+            paid: 0,
+            unpaid: 0,
+            pending: 0,
+            approved: 0,
+        }))
+
+        for (const leave of leaves) {
+            if (!leave.startDate || leave.startDate.year !== targetYear) continue
+
+            const bucket = monthlyUsage[leave.startDate.month - 1]
+            if (!bucket) continue
+
+            const totalDays = Number(leave.totalDays || 0)
+            if (leave.status === 'pending') {
+                bucket.pending += totalDays
+                continue
+            }
+
+            if (leave.status !== 'approved') continue
+
+            bucket.approved += totalDays
+            if (leave.leaveType?.isPaid === false) {
+                bucket.unpaid += totalDays
+            } else {
+                bucket.paid += totalDays
+            }
+        }
+
+        const rangeLeaves = leaves.filter((leave) => {
+            if (!leave.startDate) return false
+            const startMs = leave.startDate.toMillis()
+            return startMs >= safeRangeStart.startOf('day').toMillis() && startMs <= safeRangeEnd.endOf('day').toMillis()
+        })
+
+        const leaveTypeUsage = new Map<string, { leaveName: string; leaveShortName: string; totalLeaveCount: number; color: string }>()
+        for (const leave of rangeLeaves) {
+            if (leave.status !== 'approved') continue
+            const typeName = leave.leaveType?.typeName || 'Unknown'
+            const existing = leaveTypeUsage.get(typeName) || {
+                leaveName: typeName,
+                leaveShortName: typeName.split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase(),
+                totalLeaveCount: 0,
+                color: '#0ea5e9',
+            }
+            existing.totalLeaveCount += Number(leave.totalDays || 0)
+            leaveTypeUsage.set(typeName, existing)
+        }
+
+        const paidUnpaidSummary = rangeLeaves.reduce(
+            (acc, leave) => {
+                if (leave.status !== 'approved') return acc
+                const totalDays = Number(leave.totalDays || 0)
+                if (leave.leaveType?.isPaid === false) acc.unPaidCount += totalDays
+                else acc.paidCount += totalDays
+                return acc
+            },
+            { paidCount: 0, unPaidCount: 0 }
+        )
+
+        const departmentRows = await db
+            .from('leaves')
+            .leftJoin('employees', 'employees.id', 'leaves.employee_id')
+            .leftJoin('departments', 'departments.id', 'employees.department_id')
+            .where('leaves.org_id', orgId)
+            .where('leaves.status', 'approved')
+            .whereRaw('YEAR(leaves.start_date) = ?', [targetYear])
+            .groupBy('departments.department_name')
+            .select('departments.department_name as department_name')
+            .sum('leaves.total_days as leave_count')
+
+        const departmentAnnual = (departmentRows as Array<{ department_name: string | null; leave_count: string | number }>).map((row) => ({
+            department: row.department_name || 'Unassigned',
+            leaveCount: Number(row.leave_count || 0),
+        }))
+
+        const onLeaveToday = leaves.filter((leave) => {
+            if (leave.status !== 'approved') return false
+            const today = DateTime.now().startOf('day')
+            return leave.startDate.toMillis() <= today.toMillis() && leave.endDate.toMillis() >= today.toMillis()
+        }).length
+
+        const summary = leaves.reduce(
+            (acc, leave) => {
+                acc.totalRequests += 1
+                if (leave.employeeId === employeeId) acc.ownRequests += 1
+                if (leave.status === 'pending') {
+                    acc.pending += 1
+                    if (leave.employeeId !== employeeId) acc.approvalQueue += 1
+                }
+                if (leave.status === 'approved') acc.approved += 1
+                if (leave.status === 'rejected') acc.rejected += 1
+                if (leave.status === 'cancelled') acc.cancelled += 1
+                return acc
+            },
+            {
+                totalRequests: 0,
+                ownRequests: 0,
+                approvalQueue: 0,
+                pending: 0,
+                approved: 0,
+                rejected: 0,
+                cancelled: 0,
+            }
+        )
+
+        return {
+            year: targetYear,
+            canApprove,
+            range: {
+                from: safeRangeStart.toISODate(),
+                to: safeRangeEnd.toISODate(),
+            },
+            balances,
+            leaveTypes: balances,
+            requests: leaves,
+            summary: {
+                ...summary,
+                totalEmployees: totalEmployeesCount,
+                onLeave: onLeaveToday,
+                entitlement: balances.reduce((sum: number, item: any) => sum + Number(item.total || 0), 0),
+                used: balances.reduce((sum: number, item: any) => sum + Number(item.used || 0), 0),
+                remaining: balances.reduce((sum: number, item: any) => sum + Number(item.remaining || 0), 0),
+            },
+            leaveTypeUsage: Array.from(leaveTypeUsage.values()),
+            paidUnpaidSummary,
+            monthlyUsage,
+            departmentAnnual,
+            upcomingHolidays: upcomingHolidays.map((holiday) => ({
+                id: holiday.id,
+                name: holiday.name,
+                date: holiday.holidayDate.toISODate(),
+                type: holiday.type,
+            })),
+        }
     }
 
     async createLeaveType(orgId: number, data: {
