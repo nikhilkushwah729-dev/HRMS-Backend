@@ -103,6 +103,7 @@ export type ScannedRoutes = {
     'tracking.update': { paramsTuple?: []; params?: {} }
     'tracking.history': { paramsTuple?: []; params?: {} }
     'leaves.index': { paramsTuple?: []; params?: {} }
+    'leaves.dashboard': { paramsTuple?: []; params?: {} }
     'leaves.store': { paramsTuple?: []; params?: {} }
     'leaves.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'leaves.update_status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -219,6 +220,7 @@ export type ScannedRoutes = {
     'regularizations.index': { paramsTuple?: []; params?: {} }
     'tracking.history': { paramsTuple?: []; params?: {} }
     'leaves.index': { paramsTuple?: []; params?: {} }
+    'leaves.dashboard': { paramsTuple?: []; params?: {} }
     'leave_types_alias': { paramsTuple?: []; params?: {} }
     'payrolls.index': { paramsTuple?: []; params?: {} }
     'projects.index': { paramsTuple?: []; params?: {} }
@@ -300,6 +302,7 @@ export type ScannedRoutes = {
     'regularizations.index': { paramsTuple?: []; params?: {} }
     'tracking.history': { paramsTuple?: []; params?: {} }
     'leaves.index': { paramsTuple?: []; params?: {} }
+    'leaves.dashboard': { paramsTuple?: []; params?: {} }
     'leave_types_alias': { paramsTuple?: []; params?: {} }
     'payrolls.index': { paramsTuple?: []; params?: {} }
     'projects.index': { paramsTuple?: []; params?: {} }

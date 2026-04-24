@@ -130,6 +130,7 @@ export interface ApiDefinition {
   }
   leaves: {
     index: typeof routes['leaves.index']
+    dashboard: typeof routes['leaves.dashboard']
     store: typeof routes['leaves.store']
     update: typeof routes['leaves.update']
     updateStatus: typeof routes['leaves.update_status']

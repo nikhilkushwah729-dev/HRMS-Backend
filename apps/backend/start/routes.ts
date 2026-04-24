@@ -236,6 +236,7 @@ router.group(() => {
  */
 router.group(() => {
   router.get('/', [LeavesController, 'index'])
+  router.get('/dashboard', [LeavesController, 'dashboard'])
   router.post('/', [LeavesController, 'store'])
   router.put('/:id', [LeavesController, 'update'])
   router.put('/:id/status', [LeavesController, 'updateStatus'])

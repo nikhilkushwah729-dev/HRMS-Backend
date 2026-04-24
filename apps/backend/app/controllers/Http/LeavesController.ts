@@ -143,6 +143,24 @@ export default class LeavesController {
         })
     }
 
+    /**
+     * Combined dashboard payload for leave analytics.
+     */
+    async dashboard({ auth, request, response }: HttpContext) {
+        const employee = auth.user!
+        const yearParam = Number(request.input('year'))
+        const year = Number.isInteger(yearParam) && yearParam > 0 ? yearParam : undefined
+        const fromDate = String(request.input('from') || '').trim() || undefined
+        const toDate = String(request.input('to') || '').trim() || undefined
+        const canApprove = await this.authorizationService.hasPermission(employee, 'leave_approve')
+        const data = await this.leaveService.dashboard(employee.orgId, employee.id, canApprove, year, fromDate, toDate)
+
+        return response.ok({
+            status: 'success',
+            data,
+        })
+    }
+
     async createType({ auth, request, response }: HttpContext) {
         const employee = auth.user!
         const data = await request.validateUsing(LeavesController.leaveTypeValidator)
