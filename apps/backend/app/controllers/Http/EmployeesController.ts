@@ -50,6 +50,12 @@ export default class EmployeesController {
         })
     )
 
+    static kioskPinValidator = vine.compile(
+        vine.object({
+            pin: vine.string().trim().minLength(4).maxLength(12),
+        })
+    )
+
     /**
      * List all employees
      */
@@ -536,7 +542,111 @@ export default class EmployeesController {
             message: 'Employee geofence removed successfully'
         })
     }
+    /**
+     * Set employee kiosk PIN
+     */
+    async setKioskPin({ auth, params, request, response }: HttpContext) {
+        const currentUser = auth.user!
+        const id = Number(params.id)
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return response.badRequest({
+                status: 'error',
+                message: 'Invalid employee id.',
+            })
+        }
+
+        const employee = await Employee.query()
+            .where('id', id)
+            .where('org_id', currentUser.orgId)
+            .first()
+
+        if (!employee) {
+            return response.notFound({
+                status: 'error',
+                message: 'Employee not found',
+            })
+        }
+
+        const payload = await request.validateUsing(EmployeesController.kioskPinValidator)
+        employee.kioskPinHash = payload.pin
+        employee.kioskPinAttempts = 0
+        employee.kioskPinBlockedUntil = null
+        await employee.save()
+
+        await this.auditLogService.log({
+            orgId: currentUser.orgId,
+            employeeId: currentUser.id,
+            action: 'KIOSK_PIN_SET',
+            module: 'employees',
+            entityName: 'employees',
+            entityId: employee.id,
+            newValues: { kioskPinConfigured: true },
+            ctx: { request } as any,
+        })
+
+        return response.ok({
+            status: 'success',
+            message: 'Kiosk PIN saved successfully',
+            data: {
+                id: employee.id,
+                employeeCode: employee.employeeCode,
+                kioskPinConfigured: true,
+            },
+        })
+    }
+
+    /**
+     * Reset employee kiosk PIN
+     */
+    async resetKioskPin({ auth, params, request, response }: HttpContext) {
+        const currentUser = auth.user!
+        const id = Number(params.id)
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return response.badRequest({
+                status: 'error',
+                message: 'Invalid employee id.',
+            })
+        }
+
+        const employee = await Employee.query()
+            .where('id', id)
+            .where('org_id', currentUser.orgId)
+            .first()
+
+        if (!employee) {
+            return response.notFound({
+                status: 'error',
+                message: 'Employee not found',
+            })
+        }
+
+        employee.kioskPinHash = null
+        employee.kioskPinAttempts = 0
+        employee.kioskPinBlockedUntil = null
+        await employee.save()
+
+        await this.auditLogService.log({
+            orgId: currentUser.orgId,
+            employeeId: currentUser.id,
+            action: 'KIOSK_PIN_RESET',
+            module: 'employees',
+            entityName: 'employees',
+            entityId: employee.id,
+            newValues: { kioskPinConfigured: false },
+            ctx: { request } as any,
+        })
+
+        return response.ok({
+            status: 'success',
+            message: 'Kiosk PIN reset successfully',
+            data: {
+                id: employee.id,
+                employeeCode: employee.employeeCode,
+                kioskPinConfigured: false,
+            },
+        })
+    }
 }
-
-
 

@@ -70,7 +70,7 @@ export default class Attendance extends BaseModel {
     declare netWorkHours: number
 
     @column()
-    declare source: 'manual' | 'biometric' | 'mobile' | 'web' | 'geo_fence' | 'camera' | 'face'
+    declare source: 'manual' | 'biometric' | 'mobile' | 'web' | 'geo_fence' | 'camera' | 'face' | 'kiosk'
 
     // Break tracking
     @column.dateTime()

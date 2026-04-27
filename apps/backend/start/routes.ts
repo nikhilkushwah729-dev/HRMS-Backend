@@ -1,4 +1,4 @@
-import router from '@adonisjs/core/services/router'
+﻿import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -20,6 +20,9 @@ const EmployeeSelfServiceController = () => import('#controllers/Http/EmployeeSe
 const SubscriptionsController = () => import('#controllers/Http/SubscriptionsController')
 const EmployeeInvitationsController = () => import('#controllers/Http/EmployeeInvitationsController')
 const PlatformController = () => import('#controllers/Http/PlatformController')
+const KiosksController = () => import('#controllers/Http/KiosksController')
+const KioskAttendanceController = () => import('#controllers/Http/KioskAttendanceController')
+const FaceProfilesController = () => import('#controllers/Http/FaceProfilesController')
 
 router.get('/', async () => {
   return { status: 'online', version: '1.0.0' }
@@ -128,6 +131,33 @@ router
   .get('api/employees/my-team', [EmployeesController, 'myTeam'])
   .use(middleware.auth())
 
+router.group(() => {
+  router.post('register', [KiosksController, 'register'])
+  router.post('validate', [KiosksController, 'validate'])
+}).prefix('api/kiosks')
+
+router.group(() => {
+  router.get('/', [KiosksController, 'index'])
+  router.get(':id', [KiosksController, 'show'])
+  router.patch(':id/approve', [KiosksController, 'approve'])
+  router.patch(':id/block', [KiosksController, 'block'])
+  router.patch(':id/toggle', [KiosksController, 'toggle'])
+  router.patch(':id/reset-token', [KiosksController, 'resetToken'])
+}).prefix('api/kiosks').use(middleware.auth())
+
+router.group(() => {
+  router.post('attendance/face', [KioskAttendanceController, 'markFace'])
+  router.post('attendance/pin', [KioskAttendanceController, 'markPin'])
+  router.post('attendance/qr', [KioskAttendanceController, 'markQr'])
+  router.post('offline-sync', [KioskAttendanceController, 'offlineSync'])
+}).prefix('api/kiosk').use(middleware.kioskAuth())
+
+router.get('api/kiosk/attendance/logs', [KioskAttendanceController, 'logs']).use(middleware.auth())
+router.post('api/employees/:id/face-profile', [FaceProfilesController, 'create']).use(middleware.auth())
+router.get('api/face-profiles/pending', [FaceProfilesController, 'pending']).use(middleware.auth())
+router.patch('api/face-profiles/:id/approve', [FaceProfilesController, 'approve']).use(middleware.auth())
+router.patch('api/face-profiles/:id/reject', [FaceProfilesController, 'reject']).use(middleware.auth())
+
 /**
  * Employee Management Routes
  */
@@ -147,6 +177,8 @@ router.group(() => {
   router.put(':id/geofence', [EmployeesController, 'updateGeofence'])
   router.get(':id/geofence', [EmployeesController, 'getGeofence'])
   router.delete(':id/geofence', [EmployeesController, 'removeGeofence'])
+  router.post(':id/kiosk-pin', [EmployeesController, 'setKioskPin'])
+  router.delete(':id/kiosk-pin', [EmployeesController, 'resetKioskPin'])
 }).prefix('api/employees').use(middleware.auth()).use(middleware.permission({ permission: 'employee_read' }))
 
 /**
@@ -229,6 +261,7 @@ const TrackingController = () => import('#controllers/Http/TrackingController')
 router.group(() => {
   router.post('update', [TrackingController, 'update'])
   router.get('history', [TrackingController, 'history'])
+  router.get('current', [TrackingController, 'current'])
 }).prefix('api/tracking').use(middleware.auth())
 
 /**
@@ -237,6 +270,10 @@ router.group(() => {
 router.group(() => {
   router.get('/', [LeavesController, 'index'])
   router.get('/dashboard', [LeavesController, 'dashboard'])
+  router.get('/types', [LeavesController, 'getTypes'])
+  router.post('/types', [LeavesController, 'createType'])
+  router.put('/types/:id', [LeavesController, 'updateType'])
+  router.delete('/types/:id', [LeavesController, 'destroyType'])
   router.post('/', [LeavesController, 'store'])
   router.put('/:id', [LeavesController, 'update'])
   router.put('/:id/status', [LeavesController, 'updateStatus'])
@@ -273,7 +310,9 @@ const AnnouncementsController = () => import('#controllers/Http/AnnouncementsCon
 
 router.group(() => {
   router.get('/', [AnnouncementsController, 'index'])
+  router.get('/:id', [AnnouncementsController, 'show'])
   router.post('/', [AnnouncementsController, 'store'])
+  router.put('/:id', [AnnouncementsController, 'update'])
 }).prefix('api/announcements').use(middleware.auth())
 
 const ExpensesController = () => import('#controllers/Http/ExpensesController')
@@ -291,10 +330,27 @@ router.group(() => {
   router.post('/', [TimesheetsController, 'store'])
 }).prefix('api/timesheets').use(middleware.auth())
 
-// Notifications
 router.group(() => {
+  router.get('/dashboard', [VisitManagementController, 'dashboard'])
+  router.get('/references', [VisitManagementController, 'references'])
+  router.get('/reports', [VisitManagementController, 'reports'])
+  router.get('/reports/export', [VisitManagementController, 'exportReports'])
+  router.get('/clients', [VisitManagementController, 'listClients'])
+  router.post('/clients', [VisitManagementController, 'createClient'])
+  router.put('/clients/:id', [VisitManagementController, 'updateClient'])
+  router.get('/visitors', [VisitManagementController, 'listVisitors'])
+  router.post('/visitors', [VisitManagementController, 'createVisitor'])
+  router.put('/visitors/:id', [VisitManagementController, 'updateVisitor'])
   router.get('/', [VisitManagementController, 'index'])
   router.post('/', [VisitManagementController, 'store'])
+  router.get('/:id', [VisitManagementController, 'show'])
+  router.put('/:id', [VisitManagementController, 'update'])
+  router.post('/:id/review', [VisitManagementController, 'review'])
+  router.post('/:id/check-in', [VisitManagementController, 'checkIn'])
+  router.post('/:id/check-out', [VisitManagementController, 'checkOut'])
+  router.post('/:id/notes', [VisitManagementController, 'addNote'])
+  router.post('/:id/follow-ups', [VisitManagementController, 'addFollowUp'])
+  router.put('/follow-ups/:followUpId', [VisitManagementController, 'updateFollowUp'])
 }).prefix('api/visits').use(middleware.auth()).use(middleware.subscription({ module: 'Visits' }))
 
 router.group(() => {
@@ -311,6 +367,7 @@ router.group(() => {
   router.post('requests/:id/cancel', [EmployeeSelfServiceController, 'cancelRequest'])
   router.get('profile-audit', [EmployeeSelfServiceController, 'profileAudit'])
   router.get('login-activity', [EmployeeSelfServiceController, 'loginActivity'])
+  router.get('kiosk-qr', [EmployeeSelfServiceController, 'kioskQrToken'])
   router.post('change-password', [EmployeeSelfServiceController, 'changePassword'])
 }).prefix('api/ess').use(middleware.auth()).use(middleware.subscription({ module: 'ess' }))
 
@@ -376,6 +433,7 @@ router.group(() => {
  */
 // Public invitation routes
 router.get('api/invitations/:token', [EmployeeInvitationsController, 'getByToken'])
+router.get('api/invitations/:token/validate', [EmployeeInvitationsController, 'validate'])
 router.post('api/invitations/:token/respond', [EmployeeInvitationsController, 'respond'])
 
 /**
@@ -403,6 +461,9 @@ router.group(() => {
   router.get('/export/excel', [ReportsController, 'exportExcel'])
   router.get('/export/pdf', [ReportsController, 'exportPdf'])
 }).prefix('api/reports').use(middleware.auth()).use(middleware.subscription({ module: 'Reports' }))
+
+
+
 
 
 

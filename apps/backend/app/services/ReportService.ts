@@ -5,6 +5,14 @@ import Holiday from '#models/holiday'
 import { DateTime } from 'luxon'
 
 export default class ReportService {
+  private parseIsoDate(value: string): DateTime {
+    const parsed = DateTime.fromISO(String(value || '').trim())
+    if (!parsed.isValid) {
+      throw new Error('Invalid date value')
+    }
+    return parsed.startOf('day')
+  }
+
   private toSqlDate(value: DateTime): string {
     return value.toISODate() || value.toFormat('yyyy-MM-dd')
   }
@@ -258,7 +266,8 @@ export default class ReportService {
    * Get daily attendance report
    */
   async getDailyReport(orgId: number, date: string, departmentId?: number) {
-    const targetDate = DateTime.fromISO(date)
+    const targetDate = this.parseIsoDate(date)
+    const today = DateTime.now().startOf('day')
     const dayOfWeek = targetDate.weekday // 1 = Monday, 7 = Sunday
 
     // Build employee query
@@ -271,6 +280,24 @@ export default class ReportService {
     }
 
     const employees = await employeeQuery
+
+    if (targetDate > today) {
+      const totalEmployees = employees.length
+      const isWeekend = dayOfWeek >= 6
+
+      return {
+        date: this.toSqlDate(targetDate),
+        totalEmployees,
+        present: 0,
+        absent: 0,
+        late: 0,
+        halfDay: 0,
+        onLeave: 0,
+        holidays: 0,
+        weekend: isWeekend ? totalEmployees : 0,
+        attendancePercentage: 0
+      }
+    }
 
     // Get attendance for the date
     const attendanceRecords = await Attendance.query()
@@ -502,8 +529,8 @@ export default class ReportService {
     employeeId?: number,
     status?: string
   ) {
-    const start = DateTime.fromISO(startDate)
-    const end = DateTime.fromISO(endDate)
+    const start = this.parseIsoDate(startDate)
+    const end = this.parseIsoDate(endDate)
 
     const query = Attendance.query()
       .where('org_id', orgId)
@@ -557,8 +584,8 @@ export default class ReportService {
     departmentId?: number,
     employeeId?: number
   ) {
-    const start = DateTime.fromISO(startDate)
-    const end = DateTime.fromISO(endDate)
+    const start = this.parseIsoDate(startDate)
+    const end = this.parseIsoDate(endDate)
 
     const query = Attendance.query()
       .where('org_id', orgId)
@@ -602,8 +629,8 @@ export default class ReportService {
     departmentId?: number,
     employeeId?: number
   ) {
-    const start = DateTime.fromISO(startDate)
-    const end = DateTime.fromISO(endDate)
+    const start = this.parseIsoDate(startDate)
+    const end = this.parseIsoDate(endDate)
 
     // Get all active employees
     const employeeQuery = Employee.query()

@@ -253,6 +253,27 @@ export default class EmployeeInvitationsController {
         })
     }
 
+    async validate({ params, response }: HttpContext) {
+        const { token } = params
+
+        const invitation = await EmployeeInvitation.query()
+            .where('token', token)
+            .where('status', 'pending')
+            .first()
+
+        if (!invitation) {
+            return response.ok({ valid: false, message: 'Invalid or expired invitation' })
+        }
+
+        if (invitation.expiresAt < DateTime.now()) {
+            invitation.status = 'expired'
+            await invitation.save()
+            return response.ok({ valid: false, message: 'Invitation has expired' })
+        }
+
+        return response.ok({ valid: true, message: 'Invitation is valid' })
+    }
+
     async respond({ params, request, response }: HttpContext) {
         const { token } = params
         const { action } = await request.validateUsing(EmployeeInvitationsController.respondValidator)
