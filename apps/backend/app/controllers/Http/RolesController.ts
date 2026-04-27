@@ -27,6 +27,33 @@ export default class RolesController {
         return Array.isArray(result.rows) && result.rows.length > 0
     }
 
+    private buildVisibleRoleQuery(employee: any, isPlatformSuperAdmin: boolean) {
+        return Role.query().where((q) => {
+            q.where('org_id', employee.orgId)
+            if (isPlatformSuperAdmin) {
+                q.orWhereNull('org_id')
+            } else {
+                q.orWhere((globalQuery) => {
+                    globalQuery.whereNull('org_id').whereNot('role_name', 'Super Admin')
+                })
+            }
+        })
+    }
+
+    private async findVisibleRoleById(employee: any, roleId: number | string) {
+        const isPlatformSuperAdmin = await this.isPlatformSuperAdmin(employee)
+        await this.authorizationService.ensureCatalogSeeded()
+        const hasRolePermissionsTable = await this.hasTable('role_permissions')
+
+        let roleQuery = this.buildVisibleRoleQuery(employee, isPlatformSuperAdmin).where('id', roleId)
+
+        if (hasRolePermissionsTable) {
+            roleQuery = roleQuery.preload('permissions')
+        }
+
+        return roleQuery.first()
+    }
+
     static roleValidator = vine.compile(
         vine.object({
             roleName: vine.string().maxLength(100),
@@ -44,17 +71,7 @@ export default class RolesController {
         const isPlatformSuperAdmin = await this.isPlatformSuperAdmin(employee)
         await this.authorizationService.ensureCatalogSeeded()
         const hasRolePermissionsTable = await this.hasTable('role_permissions')
-        let rolesQuery = Role.query()
-            .where((q) => {
-                q.where('org_id', employee.orgId)
-                if (isPlatformSuperAdmin) {
-                    q.orWhereNull('org_id')
-                } else {
-                    q.orWhere((globalQuery) => {
-                        globalQuery.whereNull('org_id').whereNot('role_name', 'Super Admin')
-                    })
-                }
-            })
+        let rolesQuery = this.buildVisibleRoleQuery(employee, isPlatformSuperAdmin)
 
         if (hasRolePermissionsTable) {
             rolesQuery = rolesQuery.preload('permissions')
@@ -69,31 +86,14 @@ export default class RolesController {
     }
     async show({ auth, params, response }: HttpContext) {
         const employee = auth.user!
-        const isPlatformSuperAdmin = await this.isPlatformSuperAdmin(employee)
         try {
-            await this.authorizationService.ensureCatalogSeeded()
-            const hasRolePermissionsTable = await this.hasTable('role_permissions')
-            let roleQuery = Role.query()
-                .where('id', params.id)
-                .where((q) => {
-                    q.where('org_id', employee.orgId)
-                    if (isPlatformSuperAdmin) {
-                        q.orWhereNull('org_id')
-                    } else {
-                        q.orWhere((globalQuery) => {
-                            globalQuery.whereNull('org_id').whereNot('role_name', 'Super Admin')
-                        })
-                    }
-                })
-
-            if (hasRolePermissionsTable) {
-                roleQuery = roleQuery.preload('permissions')
-            }
-
-            const role = await roleQuery.first()
+            const role = await this.findVisibleRoleById(employee, params.id)
 
             if (!role) {
-                return response.notFound({ status: 'error', message: 'Role not found' })
+                return response.ok({
+                    status: 'success',
+                    data: null,
+                })
             }
 
             return response.ok({
@@ -198,14 +198,14 @@ export default class RolesController {
     async destroy({ auth, params, response }: HttpContext) {
         const employee = auth.user!
         await this.authorizationService.ensureCatalogSeeded()
-        const role = await Role.query()
-            .where('id', params.id)
-            .where('org_id', employee.orgId)
-            .where('is_system', false)
-            .first()
+        const role = await this.findVisibleRoleById(employee, params.id)
 
         if (!role) {
             return response.notFound({ status: 'error', message: 'Role not found' })
+        }
+
+        if (role.orgId !== employee.orgId || role.isSystem) {
+            return response.forbidden({ status: 'error', message: 'This role is read-only' })
         }
 
         await role.delete()

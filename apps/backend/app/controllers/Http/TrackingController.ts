@@ -41,4 +41,17 @@ export default class TrackingController {
             data: history
         })
     }
+
+    /**
+     * Get current location snapshot
+     */
+    async current({ auth, response }: HttpContext) {
+        const employee = auth.user!
+        const current = await this.trackingService.getCurrent(employee.id, employee.orgId)
+
+        return response.ok({
+            status: 'success',
+            data: current
+        })
+    }
 }

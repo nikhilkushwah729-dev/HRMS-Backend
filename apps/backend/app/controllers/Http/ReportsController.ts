@@ -12,8 +12,13 @@ export default class ReportsController {
    */
   async getDailyReport({ auth, request, response }: HttpContext) {
     const user = auth.user!
-    const date = request.input('date', new Date().toISOString().split('T')[0])
-    const departmentId = request.input('departmentId')
+    const date = String(request.input('date', new Date().toISOString().split('T')[0])).trim()
+    const parsedDepartmentId = Number(request.input('departmentId'))
+    const departmentId = Number.isFinite(parsedDepartmentId) && parsedDepartmentId > 0 ? parsedDepartmentId : undefined
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return response.badRequest({ message: 'date must be in YYYY-MM-DD format' })
+    }
 
     try {
       const report = await this.reportService.getDailyReport(user.orgId, date, departmentId)

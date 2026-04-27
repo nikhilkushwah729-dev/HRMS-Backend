@@ -1,4 +1,4 @@
-/*
+﻿/*
 |--------------------------------------------------------------------------
 | HTTP kernel file
 |--------------------------------------------------------------------------
@@ -49,4 +49,6 @@ export const middleware = router.named({
   permission: () => import('#middleware/permission_middleware'),
   subscription: () => import('#middleware/subscription_middleware'),
   seatLimit: () => import('#middleware/seat_limit_middleware'),
+  kioskAuth: () => import('#middleware/kiosk_auth_middleware'),
 })
+

@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon'
+﻿import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { BaseModel, column, belongsTo, computed, beforeSave } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
@@ -77,6 +77,15 @@ export default class Employee extends withSoftDelete(withAuditLog(BaseModel)) {
     @column({ serializeAs: null })
     declare passwordHash: string | null
 
+    @column({ columnName: 'kiosk_pin_hash', serializeAs: null })
+    declare kioskPinHash: string | null
+
+    @column({ columnName: 'kiosk_pin_attempts' })
+    declare kioskPinAttempts: number
+
+    @column.dateTime({ columnName: 'kiosk_pin_blocked_until' })
+    declare kioskPinBlockedUntil: DateTime | null
+
     @column()
     declare mustChangePassword: boolean
 
@@ -149,12 +158,16 @@ export default class Employee extends withSoftDelete(withAuditLog(BaseModel)) {
     }
 
     @beforeSave()
-    static async hashPassword(employee: Employee) {
+    static async hashSensitiveCredentials(employee: Employee) {
         if (employee.$dirty.passwordHash && employee.passwordHash) {
-            // Only hash if it's not already hashed (manual update in DB might have hashed it)
-            // But usually we just hash what comes in dirty.
             if (!employee.passwordHash.startsWith('$')) {
                 employee.passwordHash = await hash.make(employee.passwordHash)
+            }
+        }
+
+        if (employee.$dirty.kioskPinHash && employee.kioskPinHash) {
+            if (!employee.kioskPinHash.startsWith('$')) {
+                employee.kioskPinHash = await hash.make(employee.kioskPinHash)
             }
         }
     }
@@ -176,6 +189,11 @@ export default class Employee extends withSoftDelete(withAuditLog(BaseModel)) {
     async verifyPassword(plainTextPassword: string) {
         if (!this.passwordHash) return false
         return hash.verify(this.passwordHash, plainTextPassword)
+    }
+
+    async verifyKioskPin(plainTextPin: string) {
+        if (!this.kioskPinHash) return false
+        return hash.verify(this.kioskPinHash, plainTextPin)
     }
 
     get initials() {

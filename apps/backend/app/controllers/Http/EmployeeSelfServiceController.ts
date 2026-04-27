@@ -4,6 +4,7 @@ import { inject } from '@adonisjs/core'
 import MediaUploadService from '#services/MediaUploadService'
 import EmployeeSelfServiceService from '#services/EmployeeSelfServiceService'
 import AuditLogService from '#services/AuditLogService'
+import KioskAttendanceService from '#services/KioskAttendanceService'
 
 @inject()
 export default class EmployeeSelfServiceController {
@@ -11,6 +12,7 @@ export default class EmployeeSelfServiceController {
     protected essService: EmployeeSelfServiceService,
     protected mediaUploadService: MediaUploadService,
     protected auditLogService: AuditLogService,
+    protected kioskAttendanceService: KioskAttendanceService,
   ) {}
 
   static requestValidator = vine.compile(
@@ -101,6 +103,27 @@ export default class EmployeeSelfServiceController {
     const employee = auth.user!
     const data = await this.essService.getLoginActivity(employee)
     return response.ok({ status: 'success', data })
+  }
+
+  async kioskQrToken({ auth, response }: HttpContext) {
+    const employee = auth.user!
+
+    if (!employee.employeeCode) {
+      return response.badRequest({
+        status: 'error',
+        message: 'Employee code is required before QR attendance can be generated',
+      })
+    }
+
+    const qr = this.kioskAttendanceService.generateEmployeeQrToken(employee.employeeCode, 2)
+    return response.ok({
+      status: 'success',
+      data: {
+        employeeCode: employee.employeeCode,
+        token: qr.token,
+        expiresAt: qr.expiresAt,
+      },
+    })
   }
 
   async changePassword({ auth, request, response }: HttpContext) {

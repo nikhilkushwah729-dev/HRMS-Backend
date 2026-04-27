@@ -69,6 +69,31 @@ export interface ApiDefinition {
     updateGeofence: typeof routes['employees.update_geofence']
     getGeofence: typeof routes['employees.get_geofence']
     removeGeofence: typeof routes['employees.remove_geofence']
+    setKioskPin: typeof routes['employees.set_kiosk_pin']
+    resetKioskPin: typeof routes['employees.reset_kiosk_pin']
+  }
+  kiosks: {
+    register: typeof routes['kiosks.register']
+    validate: typeof routes['kiosks.validate']
+    index: typeof routes['kiosks.index']
+    show: typeof routes['kiosks.show']
+    approve: typeof routes['kiosks.approve']
+    block: typeof routes['kiosks.block']
+    toggle: typeof routes['kiosks.toggle']
+    resetToken: typeof routes['kiosks.reset_token']
+  }
+  kioskAttendance: {
+    markFace: typeof routes['kiosk_attendance.mark_face']
+    markPin: typeof routes['kiosk_attendance.mark_pin']
+    markQr: typeof routes['kiosk_attendance.mark_qr']
+    offlineSync: typeof routes['kiosk_attendance.offline_sync']
+    logs: typeof routes['kiosk_attendance.logs']
+  }
+  faceProfiles: {
+    create: typeof routes['face_profiles.create']
+    pending: typeof routes['face_profiles.pending']
+    approve: typeof routes['face_profiles.approve']
+    reject: typeof routes['face_profiles.reject']
   }
   employeeInvitations: {
     invite: typeof routes['employee_invitations.invite']
@@ -76,6 +101,7 @@ export interface ApiDefinition {
     revoke: typeof routes['employee_invitations.revoke']
     resend: typeof routes['employee_invitations.resend']
     getByToken: typeof routes['employee_invitations.get_by_token']
+    validate: typeof routes['employee_invitations.validate']
     respond: typeof routes['employee_invitations.respond']
   }
   subscriptions: {
@@ -127,10 +153,15 @@ export interface ApiDefinition {
   tracking: {
     update: typeof routes['tracking.update']
     history: typeof routes['tracking.history']
+    current: typeof routes['tracking.current']
   }
   leaves: {
     index: typeof routes['leaves.index']
     dashboard: typeof routes['leaves.dashboard']
+    getTypes: typeof routes['leaves.get_types']
+    createType: typeof routes['leaves.create_type']
+    updateType: typeof routes['leaves.update_type']
+    destroyType: typeof routes['leaves.destroy_type']
     store: typeof routes['leaves.store']
     update: typeof routes['leaves.update']
     updateStatus: typeof routes['leaves.update_status']
@@ -151,7 +182,9 @@ export interface ApiDefinition {
   }
   announcements: {
     index: typeof routes['announcements.index']
+    show: typeof routes['announcements.show']
     store: typeof routes['announcements.store']
+    update: typeof routes['announcements.update']
   }
   expenses: {
     index: typeof routes['expenses.index']
@@ -163,8 +196,26 @@ export interface ApiDefinition {
     store: typeof routes['timesheets.store']
   }
   visitManagement: {
+    dashboard: typeof routes['visit_management.dashboard']
+    references: typeof routes['visit_management.references']
+    reports: typeof routes['visit_management.reports']
+    exportReports: typeof routes['visit_management.export_reports']
+    listClients: typeof routes['visit_management.list_clients']
+    createClient: typeof routes['visit_management.create_client']
+    updateClient: typeof routes['visit_management.update_client']
+    listVisitors: typeof routes['visit_management.list_visitors']
+    createVisitor: typeof routes['visit_management.create_visitor']
+    updateVisitor: typeof routes['visit_management.update_visitor']
     index: typeof routes['visit_management.index']
     store: typeof routes['visit_management.store']
+    show: typeof routes['visit_management.show']
+    update: typeof routes['visit_management.update']
+    review: typeof routes['visit_management.review']
+    checkIn: typeof routes['visit_management.check_in']
+    checkOut: typeof routes['visit_management.check_out']
+    addNote: typeof routes['visit_management.add_note']
+    addFollowUp: typeof routes['visit_management.add_follow_up']
+    updateFollowUp: typeof routes['visit_management.update_follow_up']
   }
   notifications: {
     index: typeof routes['notifications.index']
@@ -179,6 +230,7 @@ export interface ApiDefinition {
     cancelRequest: typeof routes['employee_self_service.cancel_request']
     profileAudit: typeof routes['employee_self_service.profile_audit']
     loginActivity: typeof routes['employee_self_service.login_activity']
+    kioskQrToken: typeof routes['employee_self_service.kiosk_qr_token']
     changePassword: typeof routes['employee_self_service.change_password']
   }
   auditLogs: {

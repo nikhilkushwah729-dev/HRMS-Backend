@@ -138,7 +138,8 @@ export default class AttendanceService {
             const diff = now.diff(attendance.checkIn, ['hours', 'minutes']).toObject()
             const totalHours = (diff.hours || 0) + (diff.minutes || 0) / 60
             attendance.workHours = parseFloat(totalHours.toFixed(2))
-            attendance.netWorkHours = attendance.workHours // Simple for now, can subtract break late
+            const breakHours = Number(attendance.totalBreakMin || 0) / 60
+            attendance.netWorkHours = Math.max(0, parseFloat((attendance.workHours - breakHours).toFixed(2)))
 
             // Logic: Half Day if < 4 hours
             if (attendance.workHours < 4) {
@@ -198,7 +199,7 @@ export default class AttendanceService {
         // Calculate work hours
         let totalWorkHours = 0
         let overtimeHours = 0
-        let breakTimeMinutes = 0
+        let breakTimeMinutes = Number(attendance.totalBreakMin || 0)
 
         if (attendance.checkIn) {
             const checkInTime = DateTime.fromISO(attendance.checkIn.toString())
@@ -221,8 +222,11 @@ export default class AttendanceService {
             is_clocked_out: !!attendance.checkOut,
             check_in: attendance.checkIn?.toISO(),
             check_out: attendance.checkOut?.toISO(),
-            current_status: attendance.checkIn && !attendance.checkOut ? 'working' : 
-                          (attendance.checkOut ? 'offline' : 'offline'),
+            current_status: attendance.breakStart && !attendance.breakEnd
+                ? 'on_break'
+                : attendance.checkIn && !attendance.checkOut
+                  ? 'working'
+                  : 'offline',
             break_time_minutes: breakTimeMinutes,
             total_work_hours: totalWorkHours,
             overtime_hours: overtimeHours,
@@ -286,8 +290,11 @@ export default class AttendanceService {
         const breakEnd = DateTime.now()
         const breakDuration = breakEnd.diff(DateTime.fromISO(attendance.breakStart.toString()), 'minutes').minutes
         
+        const roundedBreakDuration = Math.max(0, Math.round(breakDuration))
+
         attendance.breakEnd = breakEnd
-        attendance.breakDuration = Math.round(breakDuration)
+        attendance.breakDuration = roundedBreakDuration
+        attendance.totalBreakMin = Number(attendance.totalBreakMin || 0) + roundedBreakDuration
         await attendance.save()
 
         return attendance

@@ -19,4 +19,12 @@ export default class TrackingService {
             .orderBy('captured_at', 'desc')
             .limit(100)
     }
+
+    async getCurrent(employeeId: number, orgId: number) {
+        return await EmployeeLocation.query()
+            .where('employee_id', employeeId)
+            .where('org_id', orgId)
+            .orderBy('captured_at', 'desc')
+            .first()
+    }
 }
