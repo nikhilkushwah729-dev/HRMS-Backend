@@ -1,0 +1,151 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Apr 26, 2026 at 12:21 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `hrms_complete_new`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employees`
+--
+
+CREATE TABLE `employees` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `org_id` int(10) UNSIGNED NOT NULL,
+  `department_id` int(10) UNSIGNED DEFAULT NULL,
+  `designation_id` int(10) UNSIGNED DEFAULT NULL,
+  `geofence_id` int(10) UNSIGNED DEFAULT NULL,
+  `role_id` int(10) UNSIGNED DEFAULT NULL,
+  `manager_id` int(10) UNSIGNED DEFAULT NULL,
+  `employee_code` varchar(50) DEFAULT NULL,
+  `first_name` varchar(100) NOT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `password_hash` varchar(255) DEFAULT NULL COMMENT 'bcrypt/argon2id hash only',
+  `kiosk_pin_hash` varchar(255) DEFAULT NULL,
+  `kiosk_pin_attempts` int(11) NOT NULL DEFAULT 0,
+  `kiosk_pin_blocked_until` timestamp NULL DEFAULT NULL,
+  `must_change_password` tinyint(1) NOT NULL DEFAULT 1,
+  `is_locked` tinyint(1) NOT NULL DEFAULT 0,
+  `locked_until` datetime DEFAULT NULL,
+  `avatar` varchar(500) DEFAULT NULL,
+  `gender` enum('male','female','other','prefer_not_to_say') DEFAULT NULL,
+  `date_of_birth` date DEFAULT NULL,
+  `address` text DEFAULT NULL COMMENT 'ENCRYPT: AES-256 at app layer',
+  `emergency_contact` varchar(100) DEFAULT NULL,
+  `emergency_phone` varchar(20) DEFAULT NULL,
+  `salary` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT 'ENCRYPT: AES-256 at app layer',
+  `bank_account` varchar(100) DEFAULT NULL COMMENT 'ENCRYPT: AES-256 at app layer',
+  `bank_name` varchar(100) DEFAULT NULL,
+  `ifsc_code` varchar(20) DEFAULT NULL,
+  `pan_number` varchar(20) DEFAULT NULL COMMENT 'ENCRYPT: AES-256 at app layer - PII',
+  `aadhar_last4` varchar(4) DEFAULT NULL COMMENT 'Store only last 4 digits',
+  `join_date` date DEFAULT NULL,
+  `exit_date` date DEFAULT NULL,
+  `exit_reason` varchar(255) DEFAULT NULL,
+  `status` enum('active','inactive','on_leave','terminated') NOT NULL DEFAULT 'active',
+  `email_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `deleted_by` int(10) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `phone_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `phone_auth_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `login_type` enum('email','google','microsoft','phone') DEFAULT 'email',
+  `is_international` tinyint(1) NOT NULL DEFAULT 0,
+  `country_code` varchar(5) DEFAULT NULL,
+  `country_name` varchar(100) DEFAULT NULL
+) ;
+
+--
+-- Dumping data for table `employees`
+--
+
+INSERT INTO `employees` (`id`, `org_id`, `department_id`, `designation_id`, `geofence_id`, `role_id`, `manager_id`, `employee_code`, `first_name`, `last_name`, `email`, `phone`, `password_hash`, `kiosk_pin_hash`, `kiosk_pin_attempts`, `kiosk_pin_blocked_until`, `must_change_password`, `is_locked`, `locked_until`, `avatar`, `gender`, `date_of_birth`, `address`, `emergency_contact`, `emergency_phone`, `salary`, `bank_account`, `bank_name`, `ifsc_code`, `pan_number`, `aadhar_last4`, `join_date`, `exit_date`, `exit_reason`, `status`, `email_verified`, `deleted_at`, `deleted_by`, `created_at`, `updated_at`, `phone_verified`, `phone_auth_enabled`, `login_type`, `is_international`, `country_code`, `country_name`) VALUES
+(4, 2, NULL, NULL, NULL, 9, NULL, 'Nik-0027', 'Nikhil', 'Kushwah', 'nikhilkushwah729@gmail.com', '6266330976', '$scrypt$n=16384,r=8,p=1$tP0qWIJ2U9cmFWaT9iU0Wg$4bQKU1upkXuysAplCqdalrynlt6leLzH1oyKnkd+HM5umazy4YFMdaQbrN5ZTlR4Fa7PbKfNyanD6Btv6nVySw', '12345', 1, NULL, 0, 0, NULL, 'https://res.cloudinary.com/dvf0vpsxf/image/upload/v1774887786/avatars/mgt9xs4pvdzuhhccqstl.webp', 'male', '1999-06-27', 'Pritam colony line no 1 guda kampoo gwalior (M.P)', '6266330976', '8989826429', 0.00, '9598438590340', 'UCO Bank', 'UCBA83', 'MLDPK38943', NULL, '2026-03-27', NULL, NULL, 'active', 1, NULL, NULL, '2026-03-21 11:04:23', '2026-04-26 04:49:17', 1, 1, 'google', 0, 'in', 'India'),
+(7, 3, NULL, NULL, NULL, 2, NULL, NULL, 'Admin', 'Test', 'admin@test.com', '9210876543', '$scrypt$n=16384,r=8,p=1$DJ7gYIVYbD6/mdlssR44wQ$3xRwqIrPYATkoc0tM2/Ii1F9x7SRyB8EOvZeD9QoU9AP1YyqDKFqaM8tUY38uaXIkTyAn9GP89LYa8UY7U5bgQ', NULL, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', 1, NULL, NULL, '2026-03-25 01:14:39', '2026-03-25 01:14:39', 1, 1, 'phone', 0, 'in', 'India'),
+(11, 7, NULL, NULL, NULL, 10, NULL, 'HRN-7335', 'Nikhil pratap', 'Singh kushwah', 'nikhil2709ubitechsolutions@gmail.com', '6266330976', '$scrypt$n=16384,r=8,p=1$mg3hWWihXL2o0vfC5DasdQ$Fv5krg3vRfVUJcPJi93MHlyTz/4/qDX1GbDxhKYfAsmw5tez/tMl3gJEAnriynralXPzu2GQLHPeKMa4JgEJDw', NULL, 0, NULL, 0, 0, NULL, 'https://res.cloudinary.com/dvf0vpsxf/image/upload/v1776591789/avatars/insf3x6cn63owvwrc5mt.webp', NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', 1, NULL, NULL, '2026-04-19 03:28:13', '2026-04-19 04:13:10', 1, 1, 'google', 0, 'in', 'India'),
+(12, 8, NULL, NULL, NULL, 11, NULL, NULL, 'Nikhil pratap', 'Singh kushwah', 'nikhilkushwah2706@gmail.com', '6266330976', '$scrypt$n=16384,r=8,p=1$XriDwAPY/2mgzzIRGBxu0g$BWmrj1sAtNxIUoxcWD+6PV/vF8QKhVONpI0UNi39NkYQwTDCa5iPq6/BmC6U2n665996YlrowFxPoKNtTvlQJw', NULL, 0, NULL, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'active', 1, NULL, NULL, '2026-04-20 03:40:29', '2026-04-20 03:40:29', 1, 1, 'phone', 0, 'in', 'India'),
+(13, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1007', 'Ishita', 'Rao', 'ishita.rao@company.com', '+91 9876500006', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-07', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(14, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1005', 'Anika', 'Patel', 'anika.patel@company.com', '+91 9876500004', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-05', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(15, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1002', 'Aarav', 'Mehta', 'aarav.mehta@company.com', '+91 9876500001', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-02', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(16, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1001', 'Ananya', 'Sharma', 'ananya@company.com', '+91 9999999999', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-01', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(17, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1008', 'Reyansh', 'Gupta', 'reyansh.gupta@company.com', '+91 9876500007', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-08', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(18, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1006', 'Krishna', 'Yadav', 'krishna.yadav@company.com', '+91 9876500005', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-06', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(19, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1010', 'Advik', 'Nair', 'advik.nair@company.com', '+91 9876500009', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-10', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(20, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1009', 'Myra', 'Joshi', 'myra.joshi@company.com', '+91 9876500008', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-09', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(21, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1011', 'Siya', 'Kapoor', 'siya.kapoor@company.com', '+91 9876500010', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-11', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(22, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1004', 'Vivaan', 'Singh', 'vivaan.singh@company.com', '+91 9876500003', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-04', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(23, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1003', 'Diya', 'Verma', 'diya.verma@company.com', '+91 9876500002', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-03', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(24, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1012', 'Arjun', 'Chauhan', 'arjun.chauhan@company.com', '+91 9876500011', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-12', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:01', '2026-04-21 05:27:01', 0, 0, 'email', 0, NULL, NULL),
+(25, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1014', 'Laksh', 'Bansal', 'laksh.bansal@company.com', '+91 9876500013', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-14', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:02', '2026-04-21 05:27:02', 0, 0, 'email', 0, NULL, NULL),
+(26, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1013', 'Kiara', 'Mishra', 'kiara.mishra@company.com', '+91 9876500012', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-13', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:02', '2026-04-21 05:27:02', 0, 0, 'email', 0, NULL, NULL),
+(27, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1016', 'Kabir', 'Saxena', 'kabir.saxena@company.com', '+91 9876500015', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-16', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:02', '2026-04-21 05:27:02', 0, 0, 'email', 0, NULL, NULL),
+(28, 2, NULL, NULL, NULL, NULL, NULL, 'EMP-1015', 'Saanvi', 'Tiwari', 'saanvi.tiwari@company.com', '+91 9876500014', NULL, NULL, 0, NULL, 1, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, '2026-04-15', NULL, NULL, 'active', 0, NULL, NULL, '2026-04-21 05:27:02', '2026-04-21 05:27:02', 0, 0, 'email', 0, NULL, NULL);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `employees`
+--
+ALTER TABLE `employees`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `employees_email_unique` (`email`),
+  ADD UNIQUE KEY `uk_org_emp_code` (`org_id`,`employee_code`),
+  ADD KEY `employees_department_id_foreign` (`department_id`),
+  ADD KEY `employees_designation_id_foreign` (`designation_id`),
+  ADD KEY `employees_role_id_foreign` (`role_id`),
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `idx_org_id` (`org_id`),
+  ADD KEY `idx_deleted_at` (`deleted_at`),
+  ADD KEY `idx_manager_id` (`manager_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `employees`
+--
+ALTER TABLE `employees`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `employees`
+--
+ALTER TABLE `employees`
+  ADD CONSTRAINT `employees_department_id_foreign` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employees_designation_id_foreign` FOREIGN KEY (`designation_id`) REFERENCES `designations` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employees_manager_id_foreign` FOREIGN KEY (`manager_id`) REFERENCES `employees` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `employees_org_id_foreign` FOREIGN KEY (`org_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `employees_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE SET NULL;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

@@ -194,6 +194,14 @@ export interface ApiDefinition {
   timesheets: {
     index: typeof routes['timesheets.index']
     store: typeof routes['timesheets.store']
+    reports: typeof routes['timesheets.reports']
+    approvalIndex: typeof routes['timesheets.approval_index']
+    bulkApprovalAction: typeof routes['timesheets.bulk_approval_action']
+    approvalDetail: typeof routes['timesheets.approval_detail']
+    approvalAction: typeof routes['timesheets.approval_action']
+    show: typeof routes['timesheets.show']
+    update: typeof routes['timesheets.update']
+    submit: typeof routes['timesheets.submit']
   }
   visitManagement: {
     dashboard: typeof routes['visit_management.dashboard']
@@ -232,6 +240,10 @@ export interface ApiDefinition {
     loginActivity: typeof routes['employee_self_service.login_activity']
     kioskQrToken: typeof routes['employee_self_service.kiosk_qr_token']
     changePassword: typeof routes['employee_self_service.change_password']
+    approvalQueue: typeof routes['employee_self_service.approval_queue']
+    bulkApprovalAction: typeof routes['employee_self_service.bulk_approval_action']
+    approvalDetail: typeof routes['employee_self_service.approval_detail']
+    approvalAction: typeof routes['employee_self_service.approval_action']
   }
   auditLogs: {
     index: typeof routes['audit_logs.index']

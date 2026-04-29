@@ -1,0 +1,108 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Apr 27, 2026 at 09:21 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `hrms_complete_new`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendances`
+--
+
+CREATE TABLE `attendances` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `employee_id` int(10) UNSIGNED NOT NULL,
+  `org_id` int(10) UNSIGNED NOT NULL,
+  `shift_id` int(10) UNSIGNED DEFAULT NULL,
+  `attendance_date` date NOT NULL,
+  `check_in` datetime DEFAULT NULL,
+  `check_out` datetime DEFAULT NULL,
+  `check_in_lat` decimal(10,8) DEFAULT NULL,
+  `check_in_lng` decimal(11,8) DEFAULT NULL,
+  `check_out_lat` decimal(10,8) DEFAULT NULL,
+  `check_out_lng` decimal(11,8) DEFAULT NULL,
+  `device_info` varchar(500) DEFAULT NULL,
+  `selfie_url` varchar(2048) DEFAULT NULL,
+  `biometric_ref` varchar(255) DEFAULT NULL,
+  `status` enum('present','absent','half_day','late','on_leave','holiday','weekend') NOT NULL DEFAULT 'present',
+  `source` enum('manual','biometric','mobile','web','geo_fence','camera','face') NOT NULL DEFAULT 'web',
+  `notes` varchar(500) DEFAULT NULL,
+  `modified_by` int(10) UNSIGNED DEFAULT NULL,
+  `modified_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `work_hours` decimal(5,2) GENERATED ALWAYS AS (round(timestampdiff(MINUTE,`check_in`,`check_out`) / 60,2)) STORED,
+  `is_late` tinyint(1) NOT NULL DEFAULT 0,
+  `is_half_day` tinyint(1) NOT NULL DEFAULT 0,
+  `is_overtime` tinyint(1) NOT NULL DEFAULT 0,
+  `total_break_min` int(11) NOT NULL DEFAULT 0,
+  `net_work_hours` decimal(5,2) NOT NULL DEFAULT 0.00
+) ;
+
+--
+-- Dumping data for table `attendances`
+--
+
+INSERT INTO `attendances` (`id`, `employee_id`, `org_id`, `shift_id`, `attendance_date`, `check_in`, `check_out`, `check_in_lat`, `check_in_lng`, `check_out_lat`, `check_out_lng`, `device_info`, `selfie_url`, `biometric_ref`, `status`, `source`, `notes`, `modified_by`, `modified_at`, `created_at`, `is_late`, `is_half_day`, `is_overtime`, `total_break_min`, `net_work_hours`) VALUES
+(1, 4, 2, NULL, '2026-03-30', '2026-03-30 14:02:14', NULL, 26.17826978, 78.13957199, NULL, NULL, NULL, 'https://res.cloudinary.com/dvf0vpsxf/image/upload/v1774879334/attendances/wzh2wpc91pbjrzhcj2hf.jpg', NULL, 'present', 'face', NULL, NULL, NULL, '2026-03-30 08:32:15', 0, 0, 0, 0, 0.00),
+(2, 4, 2, NULL, '2026-04-21', '2026-04-21 10:22:01', NULL, 26.17832724, 78.13925047, NULL, NULL, NULL, 'https://res.cloudinary.com/dvf0vpsxf/image/upload/v1776766921/attendances/ocmgkwqaaj8hwzlwybnc.jpg', NULL, 'present', 'face', NULL, NULL, NULL, '2026-04-21 04:52:01', 0, 0, 0, 0, 0.00),
+(3, 4, 2, NULL, '2026-04-26', '2026-04-26 10:37:36', '2026-04-26 10:49:50', NULL, NULL, NULL, NULL, '{\"source\":\"kiosk\",\"kioskId\":3,\"kioskName\":\"Reception Kiosk\",\"deviceId\":\"kiosk-a2ccec94-160b-485f-8cf4-1d52aad10294\",\"method\":\"face\"}', NULL, NULL, 'half_day', 'face', NULL, NULL, NULL, '2026-04-26 05:07:36', 0, 1, 0, 0, 0.20),
+(5, 4, 2, NULL, '2026-04-27', '2026-04-27 06:27:36', '2026-04-27 06:47:05', NULL, NULL, NULL, NULL, '{\"source\":\"kiosk\",\"kioskId\":3,\"kioskName\":\"Reception Kiosk\",\"deviceId\":\"kiosk-a2ccec94-160b-485f-8cf4-1d52aad10294\",\"method\":\"qr\"}', NULL, NULL, 'half_day', 'web', NULL, NULL, NULL, '2026-04-27 00:57:36', 0, 1, 0, 0, 0.32);
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `attendances`
+--
+ALTER TABLE `attendances`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_emp_date` (`employee_id`,`attendance_date`),
+  ADD KEY `idx_date` (`attendance_date`),
+  ADD KEY `idx_org_id` (`org_id`),
+  ADD KEY `attendances_shift_id_foreign` (`shift_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `attendances`
+--
+ALTER TABLE `attendances`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `attendances`
+--
+ALTER TABLE `attendances`
+  ADD CONSTRAINT `attendances_employee_id_foreign` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `attendances_org_id_foreign` FOREIGN KEY (`org_id`) REFERENCES `organizations` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `attendances_shift_id_foreign` FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`id`) ON DELETE SET NULL;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

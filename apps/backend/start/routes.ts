@@ -328,6 +328,14 @@ const TimesheetsController = () => import('#controllers/Http/TimesheetsControlle
 router.group(() => {
   router.get('/', [TimesheetsController, 'index'])
   router.post('/', [TimesheetsController, 'store'])
+  router.get('/reports', [TimesheetsController, 'reports'])
+  router.get('/approvals', [TimesheetsController, 'approvalIndex'])
+  router.post('/approvals/bulk-action', [TimesheetsController, 'bulkApprovalAction'])
+  router.get('/approvals/:id', [TimesheetsController, 'approvalDetail'])
+  router.post('/approvals/:id/action', [TimesheetsController, 'approvalAction'])
+  router.get('/:id', [TimesheetsController, 'show'])
+  router.put('/:id', [TimesheetsController, 'update'])
+  router.post('/:id/submit', [TimesheetsController, 'submit'])
 }).prefix('api/timesheets').use(middleware.auth())
 
 router.group(() => {
@@ -370,6 +378,13 @@ router.group(() => {
   router.get('kiosk-qr', [EmployeeSelfServiceController, 'kioskQrToken'])
   router.post('change-password', [EmployeeSelfServiceController, 'changePassword'])
 }).prefix('api/ess').use(middleware.auth()).use(middleware.subscription({ module: 'ess' }))
+
+router.group(() => {
+  router.get('/', [EmployeeSelfServiceController, 'approvalQueue'])
+  router.post('/bulk-action', [EmployeeSelfServiceController, 'bulkApprovalAction'])
+  router.get('/:id', [EmployeeSelfServiceController, 'approvalDetail'])
+  router.post('/:id/action', [EmployeeSelfServiceController, 'approvalAction'])
+}).prefix('api/approval-center').use(middleware.auth()).use(middleware.subscription({ module: 'ess' }))
 
 // Audit Logs
 const AuditLogsController = () => import('#controllers/Http/AuditLogsController')
