@@ -55,11 +55,10 @@ export default class AttendanceService {
         const now = DateTime.now()
         const todayStr = now.toISODate()!
 
-        // 1. Double check-in prevention
+        // 1. Same-day attendance prevention
         const query = Attendance.query()
             .where('employee_id', employeeId)
             .where('attendance_date', todayStr)
-            .whereNull('check_out')
 
         if (data.shiftId) {
             query.where('shift_id', data.shiftId)
@@ -67,6 +66,10 @@ export default class AttendanceService {
 
         const existing = await query.first()
         if (existing) {
+            if (existing.checkOut) {
+                throw new Exception('Attendance for today is already completed', { status: 400 })
+            }
+
             throw new Exception('Already checked in for this session', { status: 400 })
         }
 
@@ -98,19 +101,27 @@ export default class AttendanceService {
 
         const { latitude, longitude, deviceInfo, shiftId, ...rest } = data
 
-        return await Attendance.create({
-            ...rest,
-            checkInLat: latitude,
-            checkInLng: longitude,
-            deviceInfo,
-            employeeId,
-            orgId,
-            shiftId: shiftIdToSave,
-            attendanceDate: now,
-            checkIn: now,
-            status: isLate ? 'late' : (holiday ? 'holiday' : 'present'),
-            isLate,
-        })
+        try {
+            return await Attendance.create({
+                ...rest,
+                checkInLat: latitude,
+                checkInLng: longitude,
+                deviceInfo,
+                employeeId,
+                orgId,
+                shiftId: shiftIdToSave,
+                attendanceDate: now,
+                checkIn: now,
+                status: isLate ? 'late' : (holiday ? 'holiday' : 'present'),
+                isLate,
+            })
+        } catch (error: any) {
+            if (String(error?.message || '').includes('uk_emp_date')) {
+                throw new Exception('Attendance for today already exists', { status: 400 })
+            }
+
+            throw error
+        }
     }
 
     /**

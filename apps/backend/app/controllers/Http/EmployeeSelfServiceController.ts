@@ -29,6 +29,21 @@ export default class EmployeeSelfServiceController {
     })
   )
 
+  static approvalActionValidator = vine.compile(
+    vine.object({
+      action: vine.enum(['approved', 'rejected', 'sent_back'] as const),
+      comment: vine.string().trim().optional(),
+    })
+  )
+
+  static bulkApprovalActionValidator = vine.compile(
+    vine.object({
+      ids: vine.array(vine.number()).minLength(1),
+      action: vine.enum(['approved', 'rejected'] as const),
+      comment: vine.string().trim().optional(),
+    })
+  )
+
   static passwordValidator = vine.compile(
     vine.object({
       currentPassword: vine.string().minLength(8),
@@ -91,6 +106,67 @@ export default class EmployeeSelfServiceController {
       ctx: { request } as any,
     })
     return response.ok({ status: 'success', message: 'Request cancelled successfully' })
+  }
+
+  async approvalQueue({ auth, request, response }: HttpContext) {
+    const employee = auth.user!
+    const data = await this.essService.listApprovalRequests(employee, {
+      type: request.input('type'),
+      status: request.input('status'),
+      employeeId: request.input('employeeId'),
+      department: request.input('department'),
+      search: request.input('search'),
+      fromDate: request.input('fromDate'),
+      toDate: request.input('toDate'),
+    })
+    return response.ok({ status: 'success', data })
+  }
+
+  async approvalDetail({ auth, params, response }: HttpContext) {
+    const employee = auth.user!
+    const data = await this.essService.getApprovalRequest(employee, Number(params.id))
+    if (!data) {
+      return response.notFound({ status: 'error', message: 'Request not found' })
+    }
+    return response.ok({ status: 'success', data })
+  }
+
+  async approvalAction({ auth, params, request, response }: HttpContext) {
+    const employee = auth.user!
+    const payload = await request.validateUsing(EmployeeSelfServiceController.approvalActionValidator)
+    const data = await this.essService.processApprovalRequest(employee, Number(params.id), payload)
+
+    await this.auditLogService.log({
+      orgId: employee.orgId,
+      employeeId: employee.id,
+      action: 'UPDATE',
+      module: 'approval_center',
+      entityName: 'ess_requests',
+      entityId: params.id,
+      newValues: { action: payload.action, comment: payload.comment ?? null },
+      ctx: { request } as any,
+    })
+
+    return response.ok({ status: 'success', data })
+  }
+
+  async bulkApprovalAction({ auth, request, response }: HttpContext) {
+    const employee = auth.user!
+    const payload = await request.validateUsing(EmployeeSelfServiceController.bulkApprovalActionValidator)
+    const data = await this.essService.bulkProcessApprovalRequests(employee, payload)
+
+    await this.auditLogService.log({
+      orgId: employee.orgId,
+      employeeId: employee.id,
+      action: 'UPDATE',
+      module: 'approval_center',
+      entityName: 'ess_requests',
+      entityId: payload.ids.join(','),
+      newValues: { action: payload.action, count: data.length, comment: payload.comment ?? null },
+      ctx: { request } as any,
+    })
+
+    return response.ok({ status: 'success', data })
   }
 
   async profileAudit({ auth, response }: HttpContext) {

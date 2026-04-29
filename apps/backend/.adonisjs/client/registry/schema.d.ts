@@ -1584,11 +1584,99 @@ export interface Registry {
     methods: ["POST"]
     pattern: '/api/timesheets'
     types: {
-      body: ExtractBody<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['timesheetValidator']>>
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['upsertValidator']>>
       paramsTuple: []
       params: {}
-      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['timesheetValidator']>>
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['upsertValidator']>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['store']>>>
+    }
+  }
+  'timesheets.reports': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/timesheets/reports'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['reports']>>>
+    }
+  }
+  'timesheets.approval_index': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/timesheets/approvals'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['approvalIndex']>>>
+    }
+  }
+  'timesheets.bulk_approval_action': {
+    methods: ["POST"]
+    pattern: '/api/timesheets/approvals/bulk-action'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['bulkApprovalActionValidator']>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['bulkApprovalActionValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['bulkApprovalAction']>>>
+    }
+  }
+  'timesheets.approval_detail': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/timesheets/approvals/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['approvalDetail']>>>
+    }
+  }
+  'timesheets.approval_action': {
+    methods: ["POST"]
+    pattern: '/api/timesheets/approvals/:id/action'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['approvalActionValidator']>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['approvalActionValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['approvalAction']>>>
+    }
+  }
+  'timesheets.show': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/timesheets/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['show']>>>
+    }
+  }
+  'timesheets.update': {
+    methods: ["PUT"]
+    pattern: '/api/timesheets/:id'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['upsertValidator']>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/TimesheetsController').default)['upsertValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['update']>>>
+    }
+  }
+  'timesheets.submit': {
+    methods: ["POST"]
+    pattern: '/api/timesheets/:id/submit'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/TimesheetsController').default['submit']>>>
     }
   }
   'visit_management.dashboard': {
@@ -1941,6 +2029,50 @@ export interface Registry {
       params: {}
       query: ExtractQuery<InferInput<(typeof import('#controllers/Http/EmployeeSelfServiceController').default)['passwordValidator']>>
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeSelfServiceController').default['changePassword']>>>
+    }
+  }
+  'employee_self_service.approval_queue': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/approval-center'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeSelfServiceController').default['approvalQueue']>>>
+    }
+  }
+  'employee_self_service.bulk_approval_action': {
+    methods: ["POST"]
+    pattern: '/api/approval-center/bulk-action'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/EmployeeSelfServiceController').default)['bulkApprovalActionValidator']>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/EmployeeSelfServiceController').default)['bulkApprovalActionValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeSelfServiceController').default['bulkApprovalAction']>>>
+    }
+  }
+  'employee_self_service.approval_detail': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/approval-center/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeSelfServiceController').default['approvalDetail']>>>
+    }
+  }
+  'employee_self_service.approval_action': {
+    methods: ["POST"]
+    pattern: '/api/approval-center/:id/action'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/EmployeeSelfServiceController').default)['approvalActionValidator']>>
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/EmployeeSelfServiceController').default)['approvalActionValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeeSelfServiceController').default['approvalAction']>>>
     }
   }
   'audit_logs.index': {

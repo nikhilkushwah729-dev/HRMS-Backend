@@ -58,31 +58,60 @@ export default class MediaUploadService {
     return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value)
   }
 
+  private isGenericDataUrl(value: string): boolean {
+    return /^data:[a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+;base64,/.test(value)
+  }
+
   private getMimeType(value: string): string {
-    const match = value.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/)
-    return (match?.[1] || 'png').replace('svg+xml', 'svg').toLowerCase()
+    const match = value.match(/^data:([a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+);base64,/)
+    return (match?.[1] || 'image/png').toLowerCase()
   }
 
   private getFileExtension(mimeType: string): string {
     const normalized = mimeType.toLowerCase()
 
-    if (normalized === 'jpeg' || normalized === 'jpg') {
+    if (normalized === 'image/jpeg' || normalized === 'jpeg' || normalized === 'jpg') {
       return 'jpg'
     }
 
-    if (normalized === 'svg+xml' || normalized === 'svg') {
+    if (normalized === 'image/svg+xml' || normalized === 'svg+xml' || normalized === 'svg') {
       return 'svg'
     }
 
-    if (normalized === 'webp') {
+    if (normalized === 'image/webp' || normalized === 'webp') {
       return 'webp'
     }
 
-    if (normalized === 'gif') {
+    if (normalized === 'image/gif' || normalized === 'gif') {
       return 'gif'
     }
 
-    return normalized || 'png'
+    if (normalized === 'application/pdf') {
+      return 'pdf'
+    }
+
+    if (normalized === 'application/msword') {
+      return 'doc'
+    }
+
+    if (normalized === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      return 'docx'
+    }
+
+    if (normalized === 'application/vnd.ms-excel') {
+      return 'xls'
+    }
+
+    if (normalized === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+      return 'xlsx'
+    }
+
+    if (normalized === 'text/plain') {
+      return 'txt'
+    }
+
+    const extension = normalized.split('/').pop()?.replace(/[^a-z0-9.+-]/gi, '') || 'bin'
+    return extension
   }
 
   private sanitizeFolder(folder: string): string {
@@ -194,7 +223,7 @@ export default class MediaUploadService {
   private async saveLocally(dataUrl: string, folder: string): Promise<UploadResult> {
     const mimeType = this.getMimeType(dataUrl)
     const extension = this.getFileExtension(mimeType)
-    const base64Data = dataUrl.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
+    const base64Data = dataUrl.replace(/^data:[a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
     const safeFolder = this.sanitizeFolder(folder)
     const fileName = `${randomUUID()}.${extension}`
@@ -220,12 +249,12 @@ export default class MediaUploadService {
       return undefined
     }
 
-    if (!this.isDataImage(trimmed)) {
+    if (!this.isGenericDataUrl(trimmed)) {
       return trimmed
     }
 
     try {
-      const result = this.hasCloudinaryConfig()
+      const result = this.isDataImage(trimmed) && this.hasCloudinaryConfig()
         ? await this.uploadToCloudinary(trimmed, folder)
         : await this.saveLocally(trimmed, folder)
 
