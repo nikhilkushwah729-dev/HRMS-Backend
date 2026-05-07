@@ -336,6 +336,8 @@ export default class EmployeesController {
             const data = employees.map((employee) => {
                 const dob = employee.dateOfBirth ? DateTime.fromJSDate(employee.dateOfBirth.toJSDate()) : null
                 const joinDate = employee.joinDate ? DateTime.fromJSDate(employee.joinDate.toJSDate()) : null
+                const anniversaryYears = joinDate ? today.diff(joinDate, 'years').years : 0
+                const hasCompletedOneYear = anniversaryYears >= 1
 
                 return {
                     id: employee.id,
@@ -343,9 +345,10 @@ export default class EmployeesController {
                     lastName: employee.lastName,
                     avatar: employee.avatar,
                     isBirthday: Boolean(dob && dob.toFormat('MM-dd') === monthDay),
-                    isAnniversary: Boolean(joinDate && joinDate.toFormat('MM-dd') === monthDay),
+                    isAnniversary: Boolean(joinDate && joinDate.toFormat('MM-dd') === monthDay && hasCompletedOneYear),
+                    anniversaryYears: hasCompletedOneYear ? Math.floor(anniversaryYears) : 0,
                 }
-            })
+            }).filter((item) => item.isBirthday || item.isAnniversary)
 
             return response.ok({
                 status: 'success',
