@@ -4,7 +4,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Organization from '#models/organization'
 
 export default class Geofence extends BaseModel {
-    static table = 'geofences'
+    static table = 'org_locations'
 
     @column({ isPrimary: true })
     declare id: number
