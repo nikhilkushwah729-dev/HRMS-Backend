@@ -24,6 +24,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+  DB_SSL: Env.schema.boolean.optional(),
+  DB_SSL_CA: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
@@ -51,6 +53,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   MICROSOFT_TENANT_ID: Env.schema.string.optional(),
   MICROSOFT_REDIRECT_URI: Env.schema.string.optional(),
   FIREBASE_API_KEY: Env.schema.string.optional(),
+  CORS_ORIGIN: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
