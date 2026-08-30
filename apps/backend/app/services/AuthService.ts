@@ -66,10 +66,7 @@ export default class AuthService {
         let emailDelivered = false
 
         try {
-            await mail.send(new OtpMailer({
-                email: employee.email!,
-                firstName: employee.firstName
-            }, code))
+            await this.sendOtpEmail(employee.email!, employee.firstName, code)
             emailDelivered = true
         } catch (err: any) {
             console.error('Failed to send OTP email:', err)
@@ -520,10 +517,7 @@ export default class AuthService {
         let deliveryError: string | null = null
 
         try {
-            await mail.send(new OtpMailer({
-                email: employee.email!,
-                firstName: employee.firstName
-            }, code))
+            await this.sendOtpEmail(employee.email!, employee.firstName, code)
             emailDelivered = true
         } catch (err: any) {
             deliveryError = err?.message || 'Failed to send OTP email'
@@ -533,6 +527,43 @@ export default class AuthService {
         console.log(`[DEV ONLY] OTP for ${employee.email}: ${code}`)
 
         return { otp, code, emailDelivered, deliveryError }
+    }
+
+    /**
+     * Uses Resend's HTTPS API when configured, avoiding outbound SMTP blocks
+     * imposed by some hosting providers. SMTP remains the local fallback.
+     */
+    protected async sendOtpEmail(email: string, firstName: string, code: string) {
+        const resendApiKey = process.env.RESEND_API_KEY
+
+        if (!resendApiKey) {
+            await mail.send(new OtpMailer({ email, firstName }, code))
+            return
+        }
+
+        const fromAddress = process.env.MAIL_FROM_ADDRESS
+        if (!fromAddress) {
+            throw new Error('MAIL_FROM_ADDRESS must be configured when using Resend')
+        }
+
+        const fromName = process.env.MAIL_FROM_NAME || 'HRMS'
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${resendApiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from: `${fromName} <${fromAddress}>`,
+                to: [email],
+                subject: 'Your Verification Code',
+                html: `<p>Hi ${firstName},</p><p>Your HRMS verification code is <strong style="font-size: 20px; letter-spacing: 3px;">${code}</strong>.</p><p>This code expires in 10 minutes. Do not share it with anyone.</p>`,
+            }),
+        })
+
+        if (!response.ok) {
+            throw new Error(`Resend email delivery failed (${response.status}): ${await response.text()}`)
+        }
     }
 
     /**
