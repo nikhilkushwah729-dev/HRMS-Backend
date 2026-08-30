@@ -5,8 +5,6 @@ import PasswordResetToken from '#models/password_reset_token'
 import { DateTime } from 'luxon'
 import stringHelpers from '@adonisjs/core/helpers/string'
 import { createHash } from 'node:crypto'
-import PasswordResetMailer from '#mailers/password_reset_mailer'
-import mail from '@adonisjs/mail/services/main'
 import AuthService from '#services/AuthService'
 import AuthorizationService from '#services/AuthorizationService'
 import { inject } from '@adonisjs/core'
@@ -272,10 +270,11 @@ export default class AuthController {
             // Send actual email (Async - no await to prevent hanging the response)
             if (employee.email) {
                 console.log('Attempting to send mail to:', employee.email)
-                mail.send(new PasswordResetMailer({
-                    email: employee.email,
-                    fullName: employee.fullName
-                }, rawToken))
+                this.authService.sendPasswordResetEmail(
+                    employee.email,
+                    employee.fullName,
+                    rawToken
+                )
                     .then(() => console.log('--- MAIL SENT SUCCESSFULLY ---'))
                     .catch(error => {
                         console.error('--- ASYNC MAIL FAILURE ---')
