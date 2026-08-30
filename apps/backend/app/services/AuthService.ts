@@ -9,6 +9,7 @@ import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
 import mail from '@adonisjs/mail/services/main'
 import OtpMailer from '#mailers/otp_mailer'
+import PasswordResetMailer from '#mailers/password_reset_mailer'
 import app from '@adonisjs/core/services/app'
 import { inject } from '@adonisjs/core'
 
@@ -558,6 +559,46 @@ export default class AuthService {
                 to: [email],
                 subject: 'Your Verification Code',
                 html: `<p>Hi ${firstName},</p><p>Your HRMS verification code is <strong style="font-size: 20px; letter-spacing: 3px;">${code}</strong>.</p><p>This code expires in 10 minutes. Do not share it with anyone.</p>`,
+            }),
+        })
+
+        if (!response.ok) {
+            throw new Error(`Resend email delivery failed (${response.status}): ${await response.text()}`)
+        }
+    }
+
+    /**
+     * Send reset links through the same delivery path as login OTPs. On Render's
+     * free instances SMTP egress is blocked, so RESEND_API_KEY uses HTTPS while
+     * SMTP remains available as the local-development fallback.
+     */
+    async sendPasswordResetEmail(email: string, fullName: string, token: string) {
+        const resendApiKey = process.env.RESEND_API_KEY
+
+        if (!resendApiKey) {
+            await mail.send(new PasswordResetMailer({ email, fullName }, token))
+            return
+        }
+
+        const fromAddress = process.env.MAIL_FROM_ADDRESS
+        if (!fromAddress) {
+            throw new Error('MAIL_FROM_ADDRESS must be configured when using Resend')
+        }
+
+        const fromName = process.env.MAIL_FROM_NAME || 'HRMS'
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200'
+        const resetUrl = `${frontendUrl}/auth/reset-password?token=${encodeURIComponent(token)}`
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${resendApiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from: `${fromName} <${fromAddress}>`,
+                to: [email],
+                subject: 'Reset your password',
+                html: `<p>Hi ${fullName},</p><p>Use the link below to reset your HRMS password. It expires in 2 hours.</p><p><a href="${resetUrl}">Reset your password</a></p><p>If you did not request this, you can safely ignore this email.</p>`,
             }),
         })
 
