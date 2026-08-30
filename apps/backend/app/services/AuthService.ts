@@ -531,23 +531,47 @@ export default class AuthService {
     }
 
     /**
-     * Uses Resend's HTTPS API when configured, avoiding outbound SMTP blocks
-     * imposed by some hosting providers. SMTP remains the local fallback.
+     * Uses an HTTPS email API when configured. This avoids the SMTP egress
+     * restriction on Render's free web services. Brevo is preferred when its
+     * key is set, then Resend; SMTP remains the local-development fallback.
      */
-    protected async sendOtpEmail(email: string, firstName: string, code: string) {
-        const resendApiKey = process.env.RESEND_API_KEY
+    private async sendHttpEmail(message: { email: string; name: string; subject: string; html: string }) {
+        const fromAddress = process.env.MAIL_FROM_ADDRESS
+        const fromName = process.env.MAIL_FROM_NAME || 'HRMS'
+        const brevoApiKey = process.env.BREVO_API_KEY
 
-        if (!resendApiKey) {
-            await mail.send(new OtpMailer({ email, firstName }, code))
-            return
+        if (brevoApiKey) {
+            if (!fromAddress) {
+                throw new Error('MAIL_FROM_ADDRESS must be configured when using Brevo')
+            }
+
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'api-key': brevoApiKey,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({
+                    sender: { name: fromName, email: fromAddress },
+                    to: [{ email: message.email, name: message.name }],
+                    subject: message.subject,
+                    htmlContent: message.html,
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error(`Brevo email delivery failed (${response.status}): ${await response.text()}`)
+            }
+            return true
         }
 
-        const fromAddress = process.env.MAIL_FROM_ADDRESS
+        const resendApiKey = process.env.RESEND_API_KEY
+        if (!resendApiKey) return false
         if (!fromAddress) {
             throw new Error('MAIL_FROM_ADDRESS must be configured when using Resend')
         }
 
-        const fromName = process.env.MAIL_FROM_NAME || 'HRMS'
         const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
@@ -556,14 +580,28 @@ export default class AuthService {
             },
             body: JSON.stringify({
                 from: `${fromName} <${fromAddress}>`,
-                to: [email],
-                subject: 'Your Verification Code',
-                html: `<p>Hi ${firstName},</p><p>Your HRMS verification code is <strong style="font-size: 20px; letter-spacing: 3px;">${code}</strong>.</p><p>This code expires in 10 minutes. Do not share it with anyone.</p>`,
+                to: [message.email],
+                subject: message.subject,
+                html: message.html,
             }),
         })
 
         if (!response.ok) {
             throw new Error(`Resend email delivery failed (${response.status}): ${await response.text()}`)
+        }
+        return true
+    }
+
+    protected async sendOtpEmail(email: string, firstName: string, code: string) {
+        const delivered = await this.sendHttpEmail({
+            email,
+            name: firstName,
+            subject: 'Your Verification Code',
+            html: `<p>Hi ${firstName},</p><p>Your HRMS verification code is <strong style="font-size: 20px; letter-spacing: 3px;">${code}</strong>.</p><p>This code expires in 10 minutes. Do not share it with anyone.</p>`,
+        })
+
+        if (!delivered) {
+            await mail.send(new OtpMailer({ email, firstName }, code))
         }
     }
 
@@ -573,37 +611,17 @@ export default class AuthService {
      * SMTP remains available as the local-development fallback.
      */
     async sendPasswordResetEmail(email: string, fullName: string, token: string) {
-        const resendApiKey = process.env.RESEND_API_KEY
-
-        if (!resendApiKey) {
-            await mail.send(new PasswordResetMailer({ email, fullName }, token))
-            return
-        }
-
-        const fromAddress = process.env.MAIL_FROM_ADDRESS
-        if (!fromAddress) {
-            throw new Error('MAIL_FROM_ADDRESS must be configured when using Resend')
-        }
-
-        const fromName = process.env.MAIL_FROM_NAME || 'HRMS'
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200'
         const resetUrl = `${frontendUrl}/auth/reset-password?token=${encodeURIComponent(token)}`
-        const response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${resendApiKey}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                from: `${fromName} <${fromAddress}>`,
-                to: [email],
-                subject: 'Reset your password',
-                html: `<p>Hi ${fullName},</p><p>Use the link below to reset your HRMS password. It expires in 2 hours.</p><p><a href="${resetUrl}">Reset your password</a></p><p>If you did not request this, you can safely ignore this email.</p>`,
-            }),
+        const delivered = await this.sendHttpEmail({
+            email,
+            name: fullName,
+            subject: 'Reset your password',
+            html: `<p>Hi ${fullName},</p><p>Use the link below to reset your HRMS password. It expires in 2 hours.</p><p><a href="${resetUrl}">Reset your password</a></p><p>If you did not request this, you can safely ignore this email.</p>`,
         })
 
-        if (!response.ok) {
-            throw new Error(`Resend email delivery failed (${response.status}): ${await response.text()}`)
+        if (!delivered) {
+            await mail.send(new PasswordResetMailer({ email, fullName }, token))
         }
     }
 
