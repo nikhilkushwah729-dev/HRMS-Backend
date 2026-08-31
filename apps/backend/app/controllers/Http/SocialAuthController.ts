@@ -45,6 +45,12 @@ export default class SocialAuthController {
     return `${this.frontendUrl}/auth/signup?${params.toString()}`
   }
 
+  private isAccountMissingError(error: unknown): boolean {
+    return String(error instanceof Error ? error.message : error)
+      .toLowerCase()
+      .includes('no account found with this email')
+  }
+
   private buildFrontendSuccessPayload(employee: Employee) {
     return encodeURIComponent(
       JSON.stringify({
@@ -108,7 +114,7 @@ export default class SocialAuthController {
           name
         )
       } catch (error) {
-        if (error instanceof Error && error.message.startsWith('No account found with this email')) {
+        if (this.isAccountMissingError(error)) {
           return response.redirect(this.buildFrontendSignupRedirect('google', googleUser.email, name))
         }
         throw error
@@ -167,7 +173,7 @@ export default class SocialAuthController {
           name
         )
       } catch (error) {
-        if (error instanceof Error && error.message.startsWith('No account found with this email')) {
+        if (this.isAccountMissingError(error)) {
           return response.redirect(this.buildFrontendSignupRedirect('microsoft', email, name))
         }
         throw error
