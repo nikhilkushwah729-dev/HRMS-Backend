@@ -24,6 +24,33 @@ export default class SocialAuthController {
     return `${this.frontendUrl}/auth/callback?success=false&message=${encodeURIComponent(message)}`
   }
 
+  /**
+   * OAuth proves ownership of the provider account, but a brand-new HRMS user
+   * still needs to create an organization. Send that user to the normal
+   * organization signup screen with the provider profile pre-filled.
+   */
+  private buildFrontendSignupRedirect(
+    provider: 'google' | 'microsoft',
+    email: string,
+    name: string
+  ): string {
+    const [firstName = '', ...lastName] = name.trim().split(/\s+/)
+    const params = new URLSearchParams({
+      provider,
+      email: email.trim().toLowerCase(),
+      firstName,
+      lastName: lastName.join(' '),
+    })
+
+    return `${this.frontendUrl}/auth/signup?${params.toString()}`
+  }
+
+  private isAccountMissingError(error: unknown): boolean {
+    return String(error instanceof Error ? error.message : error)
+      .toLowerCase()
+      .includes('no account found with this email')
+  }
+
   private buildFrontendSuccessPayload(employee: Employee) {
     return encodeURIComponent(
       JSON.stringify({
@@ -77,21 +104,29 @@ export default class SocialAuthController {
       const tokens = await this.oauthService.exchangeGoogleCode(code)
       const googleUser = await this.oauthService.getGoogleUserInfo(tokens.access_token)
       
-      const employee = await this.oauthService.findOrCreateFromOAuth(
-        'google',
-        googleUser.id,
-        googleUser.email,
-        `${googleUser.given_name || googleUser.name?.split(' ')[0] || 'User'} ${googleUser.family_name || googleUser.name?.split(' ').slice(1).join(' ') || ''}`.trim()
-      )
+      const name = `${googleUser.given_name || googleUser.name?.split(' ')[0] || 'User'} ${googleUser.family_name || googleUser.name?.split(' ').slice(1).join(' ') || ''}`.trim()
+      let employee: Employee
+      try {
+        employee = await this.oauthService.findOrCreateFromOAuth(
+          'google',
+          googleUser.id,
+          googleUser.email,
+          name
+        )
+      } catch (error) {
+        if (this.isAccountMissingError(error)) {
+          return response.redirect(this.buildFrontendSignupRedirect('google', googleUser.email, name))
+        }
+        throw error
+      }
       await this.authorizationService.normalizeLegacyOrganizationRole(employee)
 
-      const isNew = !(employee.loginType === 'google' || employee.loginType === 'microsoft')
       const accessToken = await this.generateAccessToken(employee)
       const employeeData = this.buildFrontendSuccessPayload(employee)
-      const message = encodeURIComponent(isNew ? 'Account created via Google' : 'Logged in with Google')
+      const message = encodeURIComponent('Logged in with Google')
       
       return response.redirect(
-        `${this.frontendUrl}/auth/callback?success=true&token=${accessToken}&employee=${employeeData}&isNewAccount=${isNew}&message=${message}`
+        `${this.frontendUrl}/auth/callback?success=true&token=${accessToken}&employee=${employeeData}&isNewAccount=false&message=${message}`
       )
     } catch (error) {
       console.error('Google OAuth error:', error)
@@ -128,21 +163,29 @@ export default class SocialAuthController {
       const microsoftUser = await this.oauthService.getMicrosoftUserInfo(tokens.access_token)
       
       const name = `${microsoftUser.givenName || microsoftUser.displayName?.split(' ')[0] || 'User'} ${microsoftUser.surname || microsoftUser.displayName?.split(' ').slice(1).join(' ') || ''}`.trim()
-      const employee = await this.oauthService.findOrCreateFromOAuth(
-        'microsoft',
-        microsoftUser.id,
-        microsoftUser.mail || microsoftUser.userPrincipalName,
-        name
-      )
+      const email = microsoftUser.mail || microsoftUser.userPrincipalName
+      let employee: Employee
+      try {
+        employee = await this.oauthService.findOrCreateFromOAuth(
+          'microsoft',
+          microsoftUser.id,
+          email,
+          name
+        )
+      } catch (error) {
+        if (this.isAccountMissingError(error)) {
+          return response.redirect(this.buildFrontendSignupRedirect('microsoft', email, name))
+        }
+        throw error
+      }
       await this.authorizationService.normalizeLegacyOrganizationRole(employee)
 
-      const isNew = !(employee.loginType === 'google' || employee.loginType === 'microsoft')
       const accessToken = await this.generateAccessToken(employee)
       const employeeData = this.buildFrontendSuccessPayload(employee)
-      const message = encodeURIComponent(isNew ? 'Account created via Microsoft' : 'Logged in with Microsoft')
+      const message = encodeURIComponent('Logged in with Microsoft')
       
       return response.redirect(
-        `${this.frontendUrl}/auth/callback?success=true&token=${accessToken}&employee=${employeeData}&isNewAccount=${isNew}&message=${message}`
+        `${this.frontendUrl}/auth/callback?success=true&token=${accessToken}&employee=${employeeData}&isNewAccount=false&message=${message}`
       )
     } catch (error) {
       console.error('Microsoft OAuth error:', error)
