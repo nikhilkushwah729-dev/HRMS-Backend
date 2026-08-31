@@ -18,12 +18,6 @@ export default class SocialLogin extends BaseModel {
     @column()
     declare providerUserId: string
 
-    @column()
-    declare phone: string | null
-
-    @column()
-    declare isPrimary: boolean
-
     @column.dateTime()
     declare lastLoginAt: DateTime | null
 
