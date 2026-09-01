@@ -255,7 +255,6 @@ export default class OAuthService {
 
         if (existingProviderLink) {
             existingProviderLink.employeeId = employee.id
-            existingProviderLink.isPrimary = true
             existingProviderLink.lastLoginAt = DateTime.now()
             await existingProviderLink.save()
         } else {
@@ -263,7 +262,6 @@ export default class OAuthService {
                 employeeId: employee.id,
                 provider,
                 providerUserId,
-                isPrimary: true,
                 lastLoginAt: DateTime.now(),
             })
         }
@@ -300,9 +298,7 @@ export default class OAuthService {
 
         if (existingProviderLink) {
             existingProviderLink.employeeId = employee.id
-            existingProviderLink.isPrimary = existingProviderLink.isPrimary ?? false
             existingProviderLink.lastLoginAt = DateTime.now()
-            if (email) existingProviderLink.phone = email
             await existingProviderLink.save()
 
             if (!employee.loginType || employee.loginType === 'email') {
@@ -323,7 +319,6 @@ export default class OAuthService {
             // Update existing link
             existingLink.providerUserId = providerUserId
             existingLink.lastLoginAt = DateTime.now()
-            if (email) existingLink.phone = email
             await existingLink.save()
         } else {
             // Create new link
@@ -331,8 +326,6 @@ export default class OAuthService {
                 employeeId: employee.id,
                 provider,
                 providerUserId,
-                phone: email || null,
-                isPrimary: false,
                 lastLoginAt: DateTime.now(),
             })
         }
