@@ -428,8 +428,7 @@ export default class SocialAuthController {
       await this.oauthService.linkSocialAccount(
         user,
         provider,
-        providerUser.id,
-        provider === 'google' ? providerUser.email : providerUser.mail || providerUser.userPrincipalName
+        providerUser.id
       )
 
       return response.ok({
