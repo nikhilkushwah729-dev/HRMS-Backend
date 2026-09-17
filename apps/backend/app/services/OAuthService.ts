@@ -288,7 +288,8 @@ export default class OAuthService {
     async linkSocialAccount(
         employee: Employee,
         provider: 'google' | 'microsoft',
-        providerUserId: string
+        providerUserId: string,
+        _email?: string | null
     ): Promise<void> {
         const existingProviderLink = await SocialLogin.query()
             .where('provider', provider)

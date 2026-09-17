@@ -6,6 +6,7 @@
 export const controllers = {
   AccessToken: () => import('#controllers/access_token_controller'),
   http: {
+    AiAssistant: () => import('#controllers/Http/AiAssistantController'),
     Announcements: () => import('#controllers/Http/AnnouncementsController'),
     Attendances: () => import('#controllers/Http/AttendancesController'),
     AuditLogs: () => import('#controllers/Http/AuditLogsController'),

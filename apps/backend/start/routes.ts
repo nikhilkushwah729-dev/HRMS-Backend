@@ -1,4 +1,4 @@
-﻿import router from '@adonisjs/core/services/router'
+import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -452,6 +452,8 @@ router.get('api/invitations/:token/validate', [EmployeeInvitationsController, 'v
 router.post('api/invitations/:token/respond', [EmployeeInvitationsController, 'respond'])
 
 /**
+
+/**
  * Leave Balances Routes
  */
 router.group(() => {
@@ -477,8 +479,15 @@ router.group(() => {
   router.get('/export/pdf', [ReportsController, 'exportPdf'])
 }).prefix('api/reports').use(middleware.auth()).use(middleware.subscription({ module: 'Reports' }))
 
-
-
-
-
-
+/**
+ * AI Assistant Routes
+ */
+const AiAssistantController = () => import('#controllers/Http/AiAssistantController')
+router.group(() => {
+  router.post('employee-summary', [AiAssistantController, 'generateEmployeeSummary'])
+  router.post('parse-resume', [AiAssistantController, 'parseResume'])
+  router.post('query', [AiAssistantController, 'chatQuery'])
+  router.post('attendance-anomalies', [AiAssistantController, 'detectAttendanceAnomalies'])
+  router.post('leave-recommendation', [AiAssistantController, 'recommendLeaveApproval'])
+  router.post('expense-audit', [AiAssistantController, 'auditExpenseClaim'])
+}).prefix('api/ai').use(middleware.auth())
