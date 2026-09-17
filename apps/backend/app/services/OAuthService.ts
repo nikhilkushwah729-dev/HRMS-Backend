@@ -289,7 +289,7 @@ export default class OAuthService {
         employee: Employee,
         provider: 'google' | 'microsoft',
         providerUserId: string,
-        email?: string | null
+        _email?: string | null
     ): Promise<void> {
         const existingProviderLink = await SocialLogin.query()
             .where('provider', provider)
