@@ -218,7 +218,7 @@ export default class AuthService {
         // Create User Session
         await UserSession.create({
             employeeId: employee.id,
-            orgId: employee.orgId,
+            orgId: employee.orgId ?? 1,
             sessionToken: token.identifier.toString(),
             ipAddress,
             userAgent,
@@ -228,7 +228,7 @@ export default class AuthService {
 
         // Audit log
         await this.auditLogService.log({
-            orgId: employee.orgId,
+            orgId: employee.orgId ?? 1,
             employeeId: employee.id,
             action: 'LOGIN',
             module: 'auth',
