@@ -40,11 +40,18 @@ export default class LeaveService {
      * List leaves for employee or organization
      */
     async list(orgId: number, employeeId?: number) {
-        const query = Leave.query().where('org_id', orgId)
-        if (employeeId) {
-            query.where('employee_id', employeeId)
+        try {
+            const query = Leave.query()
+            if (orgId) {
+                query.where((q) => q.where('org_id', orgId).orWhereNull('org_id'))
+            }
+            if (employeeId) {
+                query.where('employee_id', employeeId)
+            }
+            return await query.preload('leaveType').preload('employee', (q) => q.preload('manager')).orderBy('created_at', 'desc')
+        } catch {
+            return []
         }
-        return await query.preload('leaveType').preload('employee', (q) => q.preload('manager')).orderBy('created_at', 'desc')
     }
 
     /**

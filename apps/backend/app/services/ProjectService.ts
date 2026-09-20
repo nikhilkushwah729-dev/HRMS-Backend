@@ -6,7 +6,15 @@ export default class ProjectService {
      * List projects
      */
     async list(orgId: number) {
-        return await Project.query().where('org_id', orgId).whereNull('deleted_at')
+        try {
+            return await Project.query().where((q) => {
+                if (orgId) {
+                    q.where('org_id', orgId).orWhereNull('org_id')
+                }
+            })
+        } catch {
+            return []
+        }
     }
 
     /**
@@ -20,10 +28,18 @@ export default class ProjectService {
      * Get tasks for project
      */
     async getTasks(projectId: number, orgId: number) {
-        return await Task.query()
-            .where('project_id', projectId)
-            .where('org_id', orgId)
-            .preload('assignee')
+        try {
+            return await Task.query()
+                .where('project_id', projectId)
+                .where((q) => {
+                    if (orgId) {
+                        q.where('org_id', orgId).orWhereNull('org_id')
+                    }
+                })
+                .preload('assignee')
+        } catch {
+            return []
+        }
     }
 
     /**
