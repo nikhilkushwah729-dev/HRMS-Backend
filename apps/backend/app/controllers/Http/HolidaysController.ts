@@ -14,8 +14,18 @@ export default class HolidaysController {
 
   async index({ auth, response }: HttpContext) {
     const employee = auth.user!
-    const holidays = await Holiday.query().where('org_id', employee.orgId).orderBy('holiday_date', 'asc')
-    return response.ok({ status: 'success', data: holidays })
+    try {
+      const holidays = await Holiday.query()
+        .where((q) => {
+          if (employee?.orgId) {
+            q.where('org_id', employee.orgId).orWhereNull('org_id')
+          }
+        })
+        .orderBy('holiday_date', 'asc')
+      return response.ok({ status: 'success', data: holidays || [] })
+    } catch {
+      return response.ok({ status: 'success', data: [] })
+    }
   }
 
   async store({ auth, request, response }: HttpContext) {

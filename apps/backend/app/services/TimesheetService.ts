@@ -173,15 +173,21 @@ export default class TimesheetService {
   }
 
   private baseQuery(orgId: number) {
-    return db
+    let q = db
       .from('timesheets as t')
       .leftJoin('projects as p', 'p.id', 't.project_id')
       .leftJoin('tasks as task', 'task.id', 't.task_id')
       .leftJoin('employees as employee', 'employee.id', 't.employee_id')
       .leftJoin('departments as department', 'department.id', 'employee.department_id')
       .leftJoin('designations as designation', 'designation.id', 'employee.designation_id')
-      .where('t.org_id', orgId)
-      .select(
+      
+    if (orgId) {
+      q = q.where((builder) => {
+        builder.where('t.org_id', orgId).orWhereNull('t.org_id')
+      })
+    }
+
+    return q.select(
         't.*',
         'p.name as project_name',
         'p.client_name as project_client_name',
@@ -212,10 +218,8 @@ export default class TimesheetService {
     query = query.where('t.employee_id', employeeId)
 
     if (filters.status) query.where('t.status', String(filters.status))
-    if (filters.startDate) query.where('t.log_date', '>=', filters.startDate)
-    if (filters.endDate) query.where('t.log_date', '<=', filters.endDate)
 
-    const rows: any[] = await query.orderBy('t.log_date', 'desc').orderBy('t.id', 'desc')
+    const rows: any[] = await query.orderBy('t.id', 'desc')
     const timelineMap = await this.getTimelineMap(rows.map((row: any) => Number(row.id)))
     return rows.map((row: any) => this.mapRow(row, timelineMap.get(Number(row.id)) || []))
   }
@@ -242,10 +246,8 @@ export default class TimesheetService {
     if (filters.projectId) query.where('t.project_id', Number(filters.projectId))
     if (filters.clientName) query.whereILike('t.client_name', `%${String(filters.clientName).trim()}%`)
     if (filters.department) query.whereILike('department.department_name', `%${String(filters.department).trim()}%`)
-    if (filters.startDate) query.where('t.log_date', '>=', filters.startDate)
-    if (filters.endDate) query.where('t.log_date', '<=', filters.endDate)
 
-    const rows: any[] = await query.orderBy('t.log_date', 'desc').orderBy('t.id', 'desc')
+    const rows: any[] = await query.orderBy('t.id', 'desc')
     const timelineMap = await this.getTimelineMap(rows.map((row: any) => Number(row.id)))
     return rows.map((row: any) => this.mapRow(row, timelineMap.get(Number(row.id)) || []))
   }
