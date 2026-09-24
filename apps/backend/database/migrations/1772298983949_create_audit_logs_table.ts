@@ -20,7 +20,7 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
 
       table.index(['org_id', 'created_at'], 'idx_org_date')
-      table.index(['employee_id', 'created_at'], 'idx_emp_date')
+      table.index(['employee_id', 'created_at'], 'idx_audit_emp_date')
       table.index(['module', 'action'], 'idx_mod_act')
     })
   }

@@ -11,7 +11,7 @@ export default class extends BaseSchema {
       table.dateTime('expires_at').notNullable()
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['token'], 'idx_token')
+      table.index(['token'], 'idx_evt_token')
     })
   }
 

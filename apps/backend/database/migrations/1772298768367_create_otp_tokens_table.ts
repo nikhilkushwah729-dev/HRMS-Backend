@@ -21,8 +21,8 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
 
       table.index(['email', 'purpose'], 'idx_email_purpose')
-      table.index(['expires_at'], 'idx_expires')
-      table.index(['employee_id'], 'idx_employee')
+      table.index(['expires_at'], 'idx_otp_expires')
+      table.index(['employee_id'], 'idx_otp_employee')
     })
   }
 

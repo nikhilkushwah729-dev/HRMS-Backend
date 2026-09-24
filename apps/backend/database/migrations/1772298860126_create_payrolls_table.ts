@@ -33,19 +33,24 @@ export default class extends BaseSchema {
       table.boolean('is_locked').notNullable().defaultTo(false).comment('Locked after payment')
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.unique(['employee_id', 'month', 'year'], { indexName: 'uk_emp_month' })
-      table.index(['month', 'year'], 'idx_month_year')
-      table.index(['org_id'], 'idx_org_id')
+      table.index(['org_id'], 'idx_payrolls_org_id')
+      if (this.db.dialect.name === 'sqlite') {
+        table.decimal('gross_salary', 12, 2).notNullable().defaultTo(0.00)
+        table.decimal('total_deductions', 12, 2).notNullable().defaultTo(0.00)
+        table.decimal('net_salary', 12, 2).notNullable().defaultTo(0.00)
+      }
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN gross_salary DECIMAL(12,2) GENERATED ALWAYS AS (basic_salary + hra + allowances + bonus) STORED`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN total_deductions DECIMAL(12,2) GENERATED ALWAYS AS (pf_deduction + esi_deduction + tds_deduction + other_deductions) STORED`)
-    this.schema.raw(
-      `ALTER TABLE ${this.tableName} ADD COLUMN net_salary DECIMAL(12,2) GENERATED ALWAYS AS (basic_salary + hra + allowances + bonus - pf_deduction - esi_deduction - tds_deduction - other_deductions) STORED`
-    )
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_payroll_month CHECK (month BETWEEN 1 AND 12)`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_payroll_year CHECK (year BETWEEN 2000 AND 2100)`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_salary_positive CHECK (basic_salary >= 0)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN gross_salary DECIMAL(12,2) GENERATED ALWAYS AS (basic_salary + hra + allowances + bonus) STORED`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN total_deductions DECIMAL(12,2) GENERATED ALWAYS AS (pf_deduction + esi_deduction + tds_deduction + other_deductions) STORED`)
+      this.schema.raw(
+        `ALTER TABLE ${this.tableName} ADD COLUMN net_salary DECIMAL(12,2) GENERATED ALWAYS AS (basic_salary + hra + allowances + bonus - pf_deduction - esi_deduction - tds_deduction - other_deductions) STORED`
+      )
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_payroll_month CHECK (month BETWEEN 1 AND 12)`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_payroll_year CHECK (year BETWEEN 2000 AND 2100)`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_salary_positive CHECK (basic_salary >= 0)`)
+    }
   }
 
   async down() {

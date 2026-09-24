@@ -16,7 +16,7 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
       table.timestamp('updated_at').defaultTo(this.now())
 
-      table.index(['token'], 'idx_token')
+      table.index(['token'], 'idx_emp_inv_token')
       table.index(['email', 'org_id'], 'idx_email_org')
     })
   }

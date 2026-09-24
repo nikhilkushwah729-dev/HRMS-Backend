@@ -22,12 +22,14 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
       table.timestamp('updated_at').defaultTo(this.now())
 
-      table.index(['status'], 'idx_status')
+      table.index(['status'], 'idx_task_status')
       table.index(['assigned_to'], 'idx_assigned_to')
-      table.index(['deleted_at'], 'idx_deleted_at')
+      table.index(['deleted_at'], 'idx_task_deleted_at')
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_task_hours CHECK (estimated_hours IS NULL OR estimated_hours >= 0)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_task_hours CHECK (estimated_hours IS NULL OR estimated_hours >= 0)`)
+    }
   }
 
   async down() {

@@ -1,4 +1,4 @@
-﻿import { HttpContext } from '@adonisjs/core/http'
+import { HttpContext } from '@adonisjs/core/http'
 import EmployeeService from '#services/EmployeeService'
 import AuditLogService from '#services/AuditLogService'
 import MediaUploadService from '#services/MediaUploadService'
@@ -648,6 +648,47 @@ export default class EmployeesController {
                 id: employee.id,
                 employeeCode: employee.employeeCode,
                 kioskPinConfigured: false,
+            },
+        })
+    }
+
+    async unlock({ params, request, response, auth }: HttpContext) {
+        const currentUser = auth.getUserOrFail()
+        const employee = await Employee.query()
+            .where('id', params.id)
+            .where('org_id', currentUser.orgId)
+            .whereNull('deleted_at')
+            .first()
+
+        if (!employee) {
+            return response.notFound({
+                status: 'error',
+                message: 'Employee not found',
+            })
+        }
+
+        employee.isLocked = false
+        employee.lockedUntil = null
+        await employee.save()
+
+        await this.auditLogService.log({
+            orgId: currentUser.orgId,
+            employeeId: currentUser.id,
+            action: 'ACCOUNT_UNLOCKED',
+            module: 'employees',
+            entityName: 'employees',
+            entityId: employee.id,
+            newValues: { isLocked: false, lockedUntil: null },
+            ctx: { request } as any,
+        })
+
+        return response.ok({
+            status: 'success',
+            message: 'Account unlocked successfully',
+            data: {
+                id: employee.id,
+                email: employee.email,
+                isLocked: false,
             },
         })
     }

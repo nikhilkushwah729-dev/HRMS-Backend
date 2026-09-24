@@ -12,39 +12,51 @@ export function withAuditLog<T extends LucidModel>(Base: T) {
 
       if (self.after) {
         self.after('create', async (model: any) => {
-          await AuditLog.create({
-            orgId: model.orgId || null,
-            employeeId: model.$extras.userId || null,
-            action: 'CREATE',
-            module: model.constructor.name,
-            entityId: String(model.id),
-            newValues: model.toJSON(),
-            oldValues: null,
-          })
+          try {
+            await AuditLog.create({
+              orgId: model.orgId || null,
+              employeeId: model.$extras?.userId || null,
+              action: 'CREATE',
+              module: model.constructor.name,
+              entityId: String(model.id),
+              newValues: model.toJSON(),
+              oldValues: null,
+            }, { client: model.$options.client })
+          } catch (e) {
+            // Silence audit log failures to prevent transaction deadlock
+          }
         })
 
         self.after('update', async (model: any) => {
-          await AuditLog.create({
-            orgId: model.orgId || null,
-            employeeId: model.$extras.userId || null,
-            action: 'UPDATE',
-            module: model.constructor.name,
-            entityId: String(model.id),
-            newValues: model.$dirty,
-            oldValues: model.$original,
-          })
+          try {
+            await AuditLog.create({
+              orgId: model.orgId || null,
+              employeeId: model.$extras?.userId || null,
+              action: 'UPDATE',
+              module: model.constructor.name,
+              entityId: String(model.id),
+              newValues: model.$dirty,
+              oldValues: model.$original,
+            }, { client: model.$options.client })
+          } catch (e) {
+            // Silence audit log failures to prevent transaction deadlock
+          }
         })
 
         self.after('delete', async (model: any) => {
-          await AuditLog.create({
-            orgId: model.orgId || null,
-            employeeId: model.$extras.userId || null,
-            action: 'DELETE',
-            module: model.constructor.name,
-            entityId: String(model.id),
-            newValues: null,
-            oldValues: model.toJSON(),
-          })
+          try {
+            await AuditLog.create({
+              orgId: model.orgId || null,
+              employeeId: model.$extras?.userId || null,
+              action: 'DELETE',
+              module: model.constructor.name,
+              entityId: String(model.id),
+              newValues: null,
+              oldValues: model.toJSON(),
+            }, { client: model.$options.client })
+          } catch (e) {
+            // Silence audit log failures to prevent transaction deadlock
+          }
         })
       }
     }

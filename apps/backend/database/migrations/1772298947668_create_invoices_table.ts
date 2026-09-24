@@ -18,13 +18,18 @@ export default class extends BaseSchema {
       table.text('notes').nullable()
       table.boolean('is_void').notNullable().defaultTo(false)
       table.string('void_reason', 255).nullable()
-      table.timestamp('created_at').defaultTo(this.now())
+      if (this.db.dialect.name.includes('sqlite') || process.env.DB_CONNECTION === 'sqlite') {
+        table.decimal('tax_amount', 12, 2).notNullable().defaultTo(0.00)
+        table.decimal('total', 12, 2).notNullable().defaultTo(0.00)
+      }
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN tax_amount DECIMAL(12,2) GENERATED ALWAYS AS (ROUND(subtotal * tax_percent / 100, 2)) STORED`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN total DECIMAL(12,2) GENERATED ALWAYS AS (subtotal + ROUND(subtotal * tax_percent / 100, 2)) STORED`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_invoice_subtotal CHECK (subtotal >= 0)`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_invoice_tax CHECK (tax_percent BETWEEN 0 AND 100)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN tax_amount DECIMAL(12,2) GENERATED ALWAYS AS (ROUND(subtotal * tax_percent / 100, 2)) STORED`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN total DECIMAL(12,2) GENERATED ALWAYS AS (subtotal + ROUND(subtotal * tax_percent / 100, 2)) STORED`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_invoice_subtotal CHECK (subtotal >= 0)`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_invoice_tax CHECK (tax_percent BETWEEN 0 AND 100)`)
+    }
   }
 
   async down() {

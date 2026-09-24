@@ -14,8 +14,8 @@ export default class extends BaseSchema {
       table.json('onboarding_data').nullable()
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['admin_email'], 'idx_email')
-      table.index(['verification_token'], 'idx_token')
+      table.index(['admin_email'], 'idx_org_reg_email')
+      table.index(['verification_token'], 'idx_org_reg_token')
     })
   }
 

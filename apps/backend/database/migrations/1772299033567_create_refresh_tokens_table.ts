@@ -12,8 +12,8 @@ export default class extends BaseSchema {
       table.boolean('is_revoked').notNullable().defaultTo(false)
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['token'], 'idx_token')
-      table.index(['employee_id'], 'idx_employee')
+      table.index(['token'], 'idx_rt_token')
+      table.index(['employee_id'], 'idx_rt_employee_id')
     })
   }
 

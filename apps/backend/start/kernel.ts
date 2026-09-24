@@ -1,4 +1,4 @@
-﻿/*
+/*
 |--------------------------------------------------------------------------
 | HTTP kernel file
 |--------------------------------------------------------------------------
@@ -24,6 +24,7 @@ server.errorHandler(() => import('#exceptions/handler'))
  */
 server.use([
   () => import('#middleware/force_json_response_middleware'),
+  () => import('#middleware/security_headers_middleware'),
   () => import('#middleware/container_bindings_middleware'),
   () => import('@adonisjs/cors/cors_middleware'),
 ])
@@ -38,6 +39,7 @@ router.use([
   () => import('@adonisjs/shield/shield_middleware'),
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('#middleware/silent_auth_middleware'),
+  () => import('#middleware/rate_limiter_middleware'),
 ])
 
 /**
@@ -50,5 +52,6 @@ export const middleware = router.named({
   subscription: () => import('#middleware/subscription_middleware'),
   seatLimit: () => import('#middleware/seat_limit_middleware'),
   kioskAuth: () => import('#middleware/kiosk_auth_middleware'),
+  rateLimiter: () => import('#middleware/rate_limiter_middleware'),
 })
 

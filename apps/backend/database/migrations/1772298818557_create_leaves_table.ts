@@ -24,13 +24,17 @@ export default class extends BaseSchema {
       table.dateTime('cancelled_at').nullable()
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['status'], 'idx_status')
-      table.index(['org_id'], 'idx_org_id')
-      table.index(['employee_id', 'start_date'], 'idx_employee_date')
+      table.index(['status'], 'idx_leave_status')
+      table.index(['org_id'], 'idx_leaves_org_id')
+      if (this.db.dialect.name.includes('sqlite') || process.env.DB_CONNECTION === 'sqlite') {
+        table.decimal('total_days', 4, 1).nullable()
+      }
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN total_days DECIMAL(4,1) GENERATED ALWAYS AS (DATEDIFF(end_date, start_date) + 1) STORED`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_leave_dates CHECK (end_date >= start_date)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN total_days DECIMAL(4,1) GENERATED ALWAYS AS (DATEDIFF(end_date, start_date) + 1) STORED`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_leave_dates CHECK (end_date >= start_date)`)
+    }
   }
 
   async down() {

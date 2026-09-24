@@ -15,8 +15,8 @@ export default class extends BaseSchema {
             table.timestamp('created_at').defaultTo(this.now())
             table.timestamp('updated_at').defaultTo(this.now())
 
-            table.index(['flag'], 'idx_flag')
-            table.index(['is_active'], 'idx_is_active')
+            table.index(['flag'], 'idx_cnt_flag')
+            table.index(['is_active'], 'idx_cnt_is_active')
         })
     }
 

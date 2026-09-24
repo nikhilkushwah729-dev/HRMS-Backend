@@ -51,13 +51,15 @@ export default class extends BaseSchema {
       table.unique(['org_id', 'employee_code'], { indexName: 'uk_org_emp_code' })
       table.index(['status'], 'idx_status')
       table.index(['org_id'], 'idx_org_id')
-      table.index(['deleted_at'], 'idx_deleted_at')
+      table.index(['deleted_at'], 'idx_emp_deleted_at')
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_emp_salary CHECK (salary >= 0)`)
-    this.schema.raw(
-      `ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_emp_aadhar CHECK (aadhar_last4 REGEXP '^[0-9]{4}$' OR aadhar_last4 IS NULL)`
-    )
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_emp_salary CHECK (salary >= 0)`)
+      this.schema.raw(
+        `ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_emp_aadhar CHECK (aadhar_last4 REGEXP '^[0-9]{4}$' OR aadhar_last4 IS NULL)`
+      )
+    }
   }
 
   async down() {

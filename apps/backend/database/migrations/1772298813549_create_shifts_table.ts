@@ -14,7 +14,9 @@ export default class extends BaseSchema {
       table.boolean('is_active').notNullable().defaultTo(true)
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_grace CHECK (grace_minutes >= 0 AND grace_minutes <= 60)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_grace CHECK (grace_minutes >= 0 AND grace_minutes <= 60)`)
+    }
   }
 
   async down() {
