@@ -34,7 +34,7 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
 
       table.index(['org_id'], 'idx_payrolls_org_id')
-      if (this.db.dialect.name === 'sqlite') {
+      if (String(this.db.dialect.name).includes('sqlite')) {
         table.decimal('gross_salary', 12, 2).notNullable().defaultTo(0.00)
         table.decimal('total_deductions', 12, 2).notNullable().defaultTo(0.00)
         table.decimal('net_salary', 12, 2).notNullable().defaultTo(0.00)
