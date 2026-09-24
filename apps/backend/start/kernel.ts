@@ -1,4 +1,4 @@
-﻿/*
+/*
 |--------------------------------------------------------------------------
 | HTTP kernel file
 |--------------------------------------------------------------------------
@@ -24,6 +24,7 @@ server.errorHandler(() => import('#exceptions/handler'))
  */
 server.use([
   () => import('#middleware/force_json_response_middleware'),
+  () => import('#middleware/security_headers_middleware'),
   () => import('#middleware/container_bindings_middleware'),
   () => import('@adonisjs/cors/cors_middleware'),
 ])
