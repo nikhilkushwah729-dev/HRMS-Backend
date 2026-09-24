@@ -27,7 +27,7 @@ export default class AuthService {
     /**
      * Lockout duration in minutes
      */
-    protected readonly lockoutMinutes = 30
+    protected readonly lockoutMinutes = 15
 
 
 
@@ -282,16 +282,14 @@ export default class AuthService {
             throw new Exception('Invalid credentials', { status: 401 })
         }
 
-        // Check if account is locked
-        if (employee.isLocked) {
-            if (employee.lockedUntil && employee.lockedUntil > DateTime.now()) {
-                throw new Exception(`Account is locked until ${employee.lockedUntil.toFormat('ff')}`, { status: 403 })
-            } else if (employee.lockedUntil) {
-                // Unlock account if lockout period passed
-                employee.isLocked = false
-                employee.lockedUntil = null
-                await employee.save()
-            }
+        // Check if account is locked strictly derived from lockedUntil
+        if (employee.lockedUntil && employee.lockedUntil > DateTime.now()) {
+            throw new Exception('Account is temporarily locked due to multiple failed login attempts. Please try again later or contact your administrator.', { status: 403 })
+        } else if (employee.lockedUntil) {
+            // Unlock account if lockout period passed
+            employee.isLocked = false
+            employee.lockedUntil = null
+            await employee.save()
         }
 
         const isPasswordValid = await hash.verify(employee.passwordHash || '', password)
@@ -464,14 +462,17 @@ export default class AuthService {
             failureReason: 'Invalid password'
         })
 
-        // Count recent failed attempts
+        // Count recent failed attempts for account + IP key
         const failedCount = await LoginAttempt.query()
-            .where('employee_id', employee.id)
+            .where('email', employee.email!)
+            .where('ip_address', ipAddress)
             .where('status', 'failed')
-            .where('created_at', '>', DateTime.now().minus({ minutes: 60 }).toFormat('yyyy-MM-dd HH:mm:ss'))
+            .where('created_at', '>', DateTime.now().minus({ minutes: 15 }).toFormat('yyyy-MM-dd HH:mm:ss'))
             .count('* as total')
 
-        if (Number(failedCount[0].$extras.total) >= this.maxAttempts) {
+        const count = Number(failedCount[0]?.$extras?.total || 0)
+
+        if (count >= this.maxAttempts) {
             employee.isLocked = true
             employee.lockedUntil = DateTime.now().plus({ minutes: this.lockoutMinutes })
             await employee.save()
@@ -486,11 +487,25 @@ export default class AuthService {
                 entityId: employee.id,
                 ipAddress,
                 userAgent,
-                newValues: { reason: 'Too many failed login attempts' }
+                newValues: { reason: '5 failed attempts on IP ' + ipAddress, lockedUntil: employee.lockedUntil }
             })
 
-            // Optional: Send security alert email
+            // Send security alert email
+            if (employee.email) {
+                this.sendAccountLockoutEmail(employee.email, employee.firstName, this.lockoutMinutes).catch((err) => {
+                    console.error('Failed to send lockout notification email:', err)
+                })
+            }
         }
+    }
+
+    protected async sendAccountLockoutEmail(email: string, firstName: string, lockoutMinutes: number) {
+        await this.sendHttpEmail({
+            email,
+            name: firstName,
+            subject: 'Security Alert: HRMS Account Temporarily Locked',
+            html: `<p>Hi ${firstName},</p><p>Your HRMS account has been temporarily locked for <strong>${lockoutMinutes} minutes</strong> due to 5 consecutive failed login attempts.</p><p>If this was not you, please contact your administrator immediately.</p>`,
+        })
     }
 
     /**

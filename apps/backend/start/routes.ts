@@ -179,6 +179,7 @@ router.group(() => {
   router.delete(':id/geofence', [EmployeesController, 'removeGeofence'])
   router.post(':id/kiosk-pin', [EmployeesController, 'setKioskPin'])
   router.delete(':id/kiosk-pin', [EmployeesController, 'resetKioskPin'])
+  router.post(':id/unlock', [EmployeesController, 'unlock'])
 }).prefix('api/employees').use(middleware.auth()).use(middleware.permission({ permission: 'employee_read' }))
 
 /**
