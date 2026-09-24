@@ -246,15 +246,16 @@ export default class AuthorizationService {
   async ensureCatalogSeeded(): Promise<void> {
     await this.ensureSystemRolesSeeded()
 
-    if (this.permissionCatalogReady === false) return
-
     const hasPermissionsTable = await this.hasTable('permissions')
     const hasRolePermissionsTable = await this.hasTable('role_permissions')
     const hasPermissionKey = hasPermissionsTable
       ? await this.hasColumn('permissions', 'permission_key')
       : false
+    const hasActionColumn = hasPermissionsTable
+      ? await this.hasColumn('permissions', 'action')
+      : false
 
-    if (!hasPermissionsTable || !hasRolePermissionsTable || !hasPermissionKey) {
+    if (!hasPermissionsTable || !hasRolePermissionsTable || !hasPermissionKey || !hasActionColumn) {
       this.permissionCatalogReady = false
       return
     }
