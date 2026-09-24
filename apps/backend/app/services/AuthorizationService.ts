@@ -120,19 +120,11 @@ export default class AuthorizationService {
   }
 
   private async hasTable(tableName: string): Promise<boolean> {
-    const result = await db.rawQuery(
-      'select 1 as present from information_schema.tables where table_schema = database() and table_name = ? limit 1',
-      [tableName]
-    )
-    return Array.isArray(result.rows) && result.rows.length > 0
+    return db.connection().schema.hasTable(tableName)
   }
 
   private async hasColumn(tableName: string, columnName: string): Promise<boolean> {
-    const result = await db.rawQuery(
-      'select 1 as present from information_schema.columns where table_schema = database() and table_name = ? and column_name = ? limit 1',
-      [tableName, columnName]
-    )
-    return Array.isArray(result.rows) && result.rows.length > 0
+    return db.connection().schema.hasColumn(tableName, columnName)
   }
 
   private readonly canonicalPermissionCatalog: Array<{
@@ -169,6 +161,11 @@ export default class AuthorizationService {
     { key: 'settings_update', module: 'settings', resource: 'setting', action: 'update', description: 'Update settings and configuration' },
     { key: 'rbac_manage', module: 'settings', resource: 'rbac', action: 'manage', description: 'Manage roles and permissions' },
     { key: 'impersonation_use', module: 'settings', resource: 'impersonation', action: 'use', description: 'Use supervised impersonation' },
+    { key: 'ai_query', module: 'ai', resource: 'ai_assistant', action: 'query', description: 'Execute AI assistant queries' },
+    { key: 'face_profile_manage', module: 'face_profiles', resource: 'face_profile', action: 'manage', description: 'Manage employee face profiles' },
+    { key: 'kiosk_manage', module: 'kiosks', resource: 'kiosk', action: 'manage', description: 'Manage organization attendance kiosks' },
+    { key: 'documents_read', module: 'documents', resource: 'document', action: 'read', description: 'View organization documents' },
+    { key: 'documents_manage', module: 'documents', resource: 'document', action: 'manage', description: 'Manage organization documents' },
   ]
 
   private readonly legacyAliases: Record<string, string[]> = {

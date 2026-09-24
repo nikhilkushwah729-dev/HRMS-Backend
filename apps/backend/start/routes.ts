@@ -143,7 +143,7 @@ router.group(() => {
   router.patch(':id/block', [KiosksController, 'block'])
   router.patch(':id/toggle', [KiosksController, 'toggle'])
   router.patch(':id/reset-token', [KiosksController, 'resetToken'])
-}).prefix('api/kiosks').use(middleware.auth())
+}).prefix('api/kiosks').use(middleware.auth()).use(middleware.permission({ permission: 'kiosk_manage' }))
 
 router.group(() => {
   router.post('attendance/face', [KioskAttendanceController, 'markFace'])
@@ -242,9 +242,9 @@ router.group(() => {
 
   // Shifts
   router.get('shifts', [AttendancesController, 'getShifts'])
-  router.post('shifts', [AttendancesController, 'createShift'])
-  router.put('shifts/:id', [AttendancesController, 'updateShift'])
-  router.delete('shifts/:id', [AttendancesController, 'deleteShift'])
+  router.post('shifts', [AttendancesController, 'createShift']).use(middleware.permission({ permission: 'attendance_update' }))
+  router.put('shifts/:id', [AttendancesController, 'updateShift']).use(middleware.permission({ permission: 'attendance_update' }))
+  router.delete('shifts/:id', [AttendancesController, 'deleteShift']).use(middleware.permission({ permission: 'attendance_update' }))
 }).prefix('api/attendance').use(middleware.auth()).use(middleware.subscription({ module: 'Attendance' }))
 
 const RegularizationsController = () => import('#controllers/Http/RegularizationsController')
@@ -404,7 +404,7 @@ router.group(() => {
   router.post('/', [DocumentsController, 'store'])
   router.get('/:id/download', [DocumentsController, 'download'])
   router.delete('/:id', [DocumentsController, 'destroy'])
-}).prefix('api/documents').use(middleware.auth())
+}).prefix('api/documents').use(middleware.auth()).use(middleware.permission({ anyOf: ['documents_read', 'employee_read'] }))
 
 // Roles & Permissions
 router.group(() => {
@@ -442,7 +442,7 @@ router.group(() => {
   router.post('/verify', [FaceRecognitionController, 'verify'])
   router.get('/status/:id', [FaceRecognitionController, 'status'])
   router.delete('/:id', [FaceRecognitionController, 'delete'])
-}).prefix('api/face').use(middleware.auth())
+}).prefix('api/face').use(middleware.auth()).use(middleware.permission({ permission: 'face_profile_manage' }))
 
 /**
  * Employee Invitations Routes
@@ -478,7 +478,7 @@ router.group(() => {
   router.get('/by-department', [ReportsController, 'getDepartmentWiseAttendance'])
   router.get('/export/excel', [ReportsController, 'exportExcel'])
   router.get('/export/pdf', [ReportsController, 'exportPdf'])
-}).prefix('api/reports').use(middleware.auth()).use(middleware.subscription({ module: 'Reports' }))
+}).prefix('api/reports').use(middleware.auth()).use(middleware.subscription({ module: 'Reports' })).use(middleware.permission({ permission: 'reports_read' }))
 
 /**
  * AI Assistant Routes
@@ -491,4 +491,4 @@ router.group(() => {
   router.post('attendance-anomalies', [AiAssistantController, 'detectAttendanceAnomalies'])
   router.post('leave-recommendation', [AiAssistantController, 'recommendLeaveApproval'])
   router.post('expense-audit', [AiAssistantController, 'auditExpenseClaim'])
-}).prefix('api/ai').use(middleware.auth())
+}).prefix('api/ai').use(middleware.auth()).use(middleware.permission({ anyOf: ['ai_query', 'employee_read'] }))

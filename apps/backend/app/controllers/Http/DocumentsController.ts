@@ -153,6 +153,16 @@ export default class DocumentsController {
             })
         }
 
+        // Ownership rule: Private documents are only accessible to uploader, target employee, or Admin/HR
+        const isOwnerOrTarget = document.employeeId === employee.id || document.uploadedBy === employee.id
+        const isAdminOrHr = [1, 2, 3].includes(Number(employee.roleId ?? 0))
+        if (document.isPrivate && !isOwnerOrTarget && !isAdminOrHr) {
+            return response.forbidden({
+                status: 'error',
+                message: 'Access Denied: You do not have permission to access this private document.'
+            })
+        }
+
         const fileUrl = document.filePath
         if (!fileUrl) {
             return response.notFound({
@@ -191,9 +201,15 @@ export default class DocumentsController {
             return response.notFound({ status: 'error', message: 'Document not found' })
         }
 
-        // Only uploader or admin can delete (simplified check here)
-        if (document.uploadedBy !== employee.id) {
-            // Check for admin role could be added here
+        // Only uploader, target employee, or Admin/HR can delete
+        const isOwnerOrUploader = document.uploadedBy === employee.id || document.employeeId === employee.id
+        const isAdminOrHr = [1, 2, 3].includes(Number(employee.roleId ?? 0))
+
+        if (!isOwnerOrUploader && !isAdminOrHr) {
+            return response.forbidden({
+                status: 'error',
+                message: 'Access Denied: You do not have permission to delete this document.'
+            })
         }
 
         document.deletedAt = DateTime.now()
