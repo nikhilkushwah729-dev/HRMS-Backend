@@ -1,4 +1,4 @@
-﻿import { DateTime } from 'luxon'
+import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { BaseModel, column, belongsTo, computed, beforeSave } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
@@ -8,6 +8,7 @@ import Department from '#models/department'
 import Designation from '#models/designation'
 import Role from '#models/role'
 import Geofence from '#models/geofence'
+import EncryptionService from '#services/EncryptionService'
 
 import { withSoftDelete } from '#models/Mixins/SoftDelete'
 import { withAuditLog } from '#models/Mixins/AuditLog'
@@ -113,20 +114,35 @@ export default class Employee extends withSoftDelete(withAuditLog(BaseModel)) {
     @column()
     declare emergencyPhone: string | null
 
-    @column()
-    declare salary: number // ENCRYPT at app layer
+    @column({
+      prepare: (value) => (value !== null && value !== undefined ? EncryptionService.encryptText(value) : null),
+      consume: (value) => {
+        const decrypted = EncryptionService.decryptText(value)
+        return decrypted !== null && decrypted !== undefined && decrypted !== '' ? Number(decrypted) : 0
+      },
+    })
+    declare salary: number
 
-    @column()
-    declare bankAccount: string | null // ENCRYPT at app layer
+    @column({
+      prepare: (value) => EncryptionService.encryptText(value),
+      consume: (value) => EncryptionService.decryptText(value),
+    })
+    declare bankAccount: string | null
 
     @column()
     declare bankName: string | null
 
-    @column()
+    @column({
+      prepare: (value) => EncryptionService.encryptText(value),
+      consume: (value) => EncryptionService.decryptText(value),
+    })
     declare ifscCode: string | null
 
-    @column()
-    declare panNumber: string | null // ENCRYPT at app layer
+    @column({
+      prepare: (value) => EncryptionService.encryptText(value),
+      consume: (value) => EncryptionService.decryptText(value),
+    })
+    declare panNumber: string | null
 
     @column()
     declare aadharLast4: string | null
