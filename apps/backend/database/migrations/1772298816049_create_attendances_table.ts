@@ -28,7 +28,7 @@ export default class extends BaseSchema {
 
       table.unique(['employee_id', 'attendance_date'], { indexName: 'uk_emp_date' })
       table.index(['attendance_date'], 'idx_date')
-      if (this.db.dialect.name === 'sqlite') {
+      if (String(this.db.dialect.name).includes('sqlite')) {
         table.decimal('work_hours', 5, 2).nullable()
       }
     })

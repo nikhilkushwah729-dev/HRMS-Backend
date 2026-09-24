@@ -33,7 +33,6 @@ const dbConfig = defineConfig({
       client: 'better-sqlite3',
       connection: {
         filename: app.tmpPath('db.sqlite3'),
-        timeout: 5000,
       },
       pool: {
         afterCreate: (conn: any, done: any) => {
