@@ -28,11 +28,15 @@ export default class extends BaseSchema {
 
       table.unique(['employee_id', 'attendance_date'], { indexName: 'uk_emp_date' })
       table.index(['attendance_date'], 'idx_date')
-      table.index(['org_id'], 'idx_org_id')
+      if (this.db.dialect.name === 'sqlite') {
+        table.decimal('work_hours', 5, 2).nullable()
+      }
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN work_hours DECIMAL(5,2) GENERATED ALWAYS AS (ROUND(TIMESTAMPDIFF(MINUTE, check_in, check_out) / 60, 2)) STORED`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_checkout_after_checkin CHECK (check_out IS NULL OR check_out > check_in)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD COLUMN work_hours DECIMAL(5,2) GENERATED ALWAYS AS (ROUND(TIMESTAMPDIFF(MINUTE, check_in, check_out) / 60, 2)) STORED`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_checkout_after_checkin CHECK (check_out IS NULL OR check_out > check_in)`)
+    }
   }
 
   async down() {

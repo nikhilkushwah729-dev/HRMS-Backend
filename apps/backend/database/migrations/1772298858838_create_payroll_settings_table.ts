@@ -14,9 +14,11 @@ export default class extends BaseSchema {
       table.timestamp('updated_at').defaultTo(this.now())
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_pf CHECK (pf_percent BETWEEN 0 AND 100)`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_esi CHECK (esi_percent BETWEEN 0 AND 100)`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_tds CHECK (tds_percent BETWEEN 0 AND 100)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_pf CHECK (pf_percent BETWEEN 0 AND 100)`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_esi CHECK (esi_percent BETWEEN 0 AND 100)`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_tds CHECK (tds_percent BETWEEN 0 AND 100)`)
+    }
   }
 
   async down() {

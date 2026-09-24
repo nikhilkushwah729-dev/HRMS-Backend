@@ -15,10 +15,12 @@ export default class extends BaseSchema {
       table.text('description').nullable()
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['employee_id', 'log_date'], 'idx_employee_date')
+      table.index(['employee_id', 'log_date'], 'idx_timesheet_employee_date')
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_hours_logged CHECK (hours_logged > 0 AND hours_logged <= 24)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_hours_logged CHECK (hours_logged > 0 AND hours_logged <= 24)`)
+    }
   }
 
   async down() {

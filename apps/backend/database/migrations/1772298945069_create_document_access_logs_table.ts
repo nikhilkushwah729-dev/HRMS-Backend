@@ -14,9 +14,9 @@ export default class extends BaseSchema {
       table.string('user_agent', 500).nullable()
       table.timestamp('accessed_at').defaultTo(this.now())
 
-      table.index(['document_id'], 'idx_document')
-      table.index(['employee_id'], 'idx_employee')
-      table.index(['accessed_at'], 'idx_accessed')
+      table.index(['document_id'], 'idx_doc_log_doc_id')
+      table.index(['employee_id'], 'idx_doc_log_employee')
+      table.index(['accessed_at'], 'idx_doc_log_accessed')
     })
   }
 

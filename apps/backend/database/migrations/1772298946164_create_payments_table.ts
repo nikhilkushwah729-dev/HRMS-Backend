@@ -21,13 +21,15 @@ export default class extends BaseSchema {
       table.string('refund_ref', 255).nullable()
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['status'], 'idx_status')
-      table.index(['org_id'], 'idx_org_id')
+      table.index(['status'], 'idx_pymt_status')
+      table.index(['org_id'], 'idx_pymt_org_id')
       table.index(['transaction_id'], 'idx_gateway_tx')
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_payment_amount CHECK (amount > 0)`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_refund_amount CHECK (refund_amount IS NULL OR (refund_amount > 0 AND refund_amount <= amount))`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_payment_amount CHECK (amount > 0)`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_refund_amount CHECK (refund_amount IS NULL OR (refund_amount > 0 AND refund_amount <= amount))`)
+    }
   }
 
   async down() {

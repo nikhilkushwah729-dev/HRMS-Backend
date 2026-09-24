@@ -20,11 +20,13 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
       table.timestamp('updated_at').defaultTo(this.now())
 
-      table.index(['status'], 'idx_status')
-      table.index(['deleted_at'], 'idx_deleted_at')
+      table.index(['status'], 'idx_proj_status')
+      table.index(['deleted_at'], 'idx_proj_deleted_at')
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_project_budget CHECK (budget IS NULL OR budget >= 0)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_project_budget CHECK (budget IS NULL OR budget >= 0)`)
+    }
   }
 
   async down() {

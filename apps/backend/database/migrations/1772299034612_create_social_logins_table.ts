@@ -13,7 +13,7 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
 
       table.unique(['provider', 'provider_user_id'], { indexName: 'uk_provider_user' })
-      table.index(['employee_id'], 'idx_employee')
+      table.index(['employee_id'], 'idx_soc_emp')
     })
   }
 

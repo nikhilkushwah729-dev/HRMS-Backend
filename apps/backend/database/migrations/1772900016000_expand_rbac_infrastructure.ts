@@ -15,9 +15,14 @@ export default class extends BaseSchema {
         .inTable('roles')
         .onDelete('SET NULL')
       table.integer('priority').notNullable().defaultTo(100).after('is_system')
-      table.boolean('is_active').notNullable().defaultTo(true).after('priority')
-      table.timestamp('created_at').defaultTo(this.now())
-      table.timestamp('updated_at').defaultTo(this.now())
+      table.boolean('is_active').notNullable().defaultTo(true)
+      if (this.db.dialect.name.includes('sqlite') || process.env.DB_CONNECTION === 'sqlite') {
+        table.timestamp('created_at').nullable()
+        table.timestamp('updated_at').nullable()
+      } else {
+        table.timestamp('created_at').defaultTo(this.now())
+        table.timestamp('updated_at').defaultTo(this.now())
+      }
       table.index(['org_id', 'is_active'], 'roles_org_active_idx')
     })
 
@@ -25,8 +30,13 @@ export default class extends BaseSchema {
       table.string('resource', 100).nullable().after('module')
       table.string('action', 100).nullable().after('resource')
       table.boolean('is_system').notNullable().defaultTo(true).after('action')
-      table.timestamp('created_at').defaultTo(this.now())
-      table.timestamp('updated_at').defaultTo(this.now())
+      if (this.db.dialect.name.includes('sqlite') || process.env.DB_CONNECTION === 'sqlite') {
+        table.timestamp('created_at').nullable()
+        table.timestamp('updated_at').nullable()
+      } else {
+        table.timestamp('created_at').defaultTo(this.now())
+        table.timestamp('updated_at').defaultTo(this.now())
+      }
       table.index(['module', 'action'], 'permissions_module_action_idx')
     })
 

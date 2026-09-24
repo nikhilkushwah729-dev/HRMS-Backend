@@ -10,7 +10,7 @@ export default class extends BaseSchema {
       table.string('password_hash', 255).notNullable()
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['employee_id'], 'idx_employee')
+      table.index(['employee_id'], 'idx_pwd_employee')
     })
   }
 

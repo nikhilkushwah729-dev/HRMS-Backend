@@ -20,11 +20,13 @@ export default class extends BaseSchema {
       // We'll add them via raw SQL in the migration.
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_plan_price CHECK (price >= 0)`)
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_plan_users CHECK (user_limit > 0)`)
-    this.schema.raw(
-      `ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_plan_duration CHECK (duration_days > 0)`
-    )
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_plan_price CHECK (price >= 0)`)
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_plan_users CHECK (user_limit > 0)`)
+      this.schema.raw(
+        `ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_plan_duration CHECK (duration_days > 0)`
+      )
+    }
   }
 
   async down() {

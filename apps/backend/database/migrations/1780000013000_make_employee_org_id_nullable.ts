@@ -11,6 +11,9 @@ export default class extends BaseSchema {
   }
 
   public async down() {
+    if (this.db.dialect.name.includes('sqlite') || process.env.DB_CONNECTION === 'sqlite') {
+      return
+    }
     this.schema.alterTable('employees', (table) => {
       table.integer('org_id').unsigned().notNullable().alter()
     })

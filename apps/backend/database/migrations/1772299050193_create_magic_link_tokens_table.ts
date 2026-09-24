@@ -12,7 +12,7 @@ export default class extends BaseSchema {
       table.boolean('is_used').notNullable().defaultTo(false)
       table.timestamp('created_at').defaultTo(this.now())
 
-      table.index(['token'], 'idx_token')
+      table.index(['token'], 'idx_mlt_token')
     })
   }
 

@@ -38,7 +38,9 @@ export default class extends BaseSchema {
       table.index(['deleted_at'], 'idx_deleted_at')
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_org_email CHECK (email LIKE '%@%.%')`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_org_email CHECK (email LIKE '%@%.%')`)
+    }
   }
 
   async down() {

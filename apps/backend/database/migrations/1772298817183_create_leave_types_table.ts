@@ -17,7 +17,9 @@ export default class extends BaseSchema {
       table.unique(['org_id', 'type_name'], { indexName: 'uk_org_type' })
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_days CHECK (days_allowed >= 0)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_days CHECK (days_allowed >= 0)`)
+    }
   }
 
   async down() {

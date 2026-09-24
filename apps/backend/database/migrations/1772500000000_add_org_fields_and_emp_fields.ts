@@ -50,6 +50,9 @@ export default class extends BaseSchema {
   }
 
   async down() {
+    if (this.db.dialect.name.includes('sqlite') || process.env.DB_CONNECTION === 'sqlite') {
+      return
+    }
     // Remove from employees
     this.schema.alterTable('employees', (table) => {
       table.dropIndex('idx_manager_id')
@@ -63,7 +66,6 @@ export default class extends BaseSchema {
 
     // Remove from organizations
     this.schema.alterTable(this.tableName, (table) => {
-      table.dropForeign('default_geofence_id')
       table.dropColumn('allowed_login_methods')
       table.dropColumn('default_language')
       table.dropColumn('org_type')
@@ -74,4 +76,3 @@ export default class extends BaseSchema {
     })
   }
 }
-

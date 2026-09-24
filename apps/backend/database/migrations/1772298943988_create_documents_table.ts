@@ -22,7 +22,7 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
 
       table.index(['file_uuid'], 'idx_file_uuid')
-      table.index(['deleted_at'], 'idx_deleted_at')
+      table.index(['deleted_at'], 'idx_doc_deleted_at')
     })
   }
 

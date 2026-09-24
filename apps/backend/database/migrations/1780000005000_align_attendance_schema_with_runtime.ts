@@ -10,15 +10,19 @@ export default class extends BaseSchema {
       table.integer('break_duration').nullable().after('break_end')
     })
 
-    this.schema.raw(
-      `ALTER TABLE ${this.tableName} MODIFY source ENUM('manual', 'biometric', 'mobile', 'web', 'geo_fence', 'camera', 'face', 'kiosk') NOT NULL DEFAULT 'web'`
-    )
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(
+        `ALTER TABLE ${this.tableName} MODIFY source ENUM('manual', 'biometric', 'mobile', 'web', 'geo_fence', 'camera', 'face', 'kiosk') NOT NULL DEFAULT 'web'`
+      )
+    }
   }
 
   async down() {
-    this.schema.raw(
-      `ALTER TABLE ${this.tableName} MODIFY source ENUM('manual', 'biometric', 'mobile', 'web', 'geo_fence', 'camera', 'face') NOT NULL DEFAULT 'web'`
-    )
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(
+        `ALTER TABLE ${this.tableName} MODIFY source ENUM('manual', 'biometric', 'mobile', 'web', 'geo_fence', 'camera', 'face') NOT NULL DEFAULT 'web'`
+      )
+    }
 
     this.schema.alterTable(this.tableName, (table) => {
       table.dropColumn('break_start')

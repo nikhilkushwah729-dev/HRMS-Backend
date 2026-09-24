@@ -20,7 +20,9 @@ export default class extends BaseSchema {
       table.timestamp('created_at').defaultTo(this.now())
     })
 
-    this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_expense_amount CHECK (amount > 0)`)
+    if (!this.db.dialect.name.includes('sqlite') && process.env.DB_CONNECTION !== 'sqlite') {
+      this.schema.raw(`ALTER TABLE ${this.tableName} ADD CONSTRAINT chk_expense_amount CHECK (amount > 0)`)
+    }
   }
 
   async down() {
