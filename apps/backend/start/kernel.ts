@@ -39,6 +39,7 @@ router.use([
   () => import('@adonisjs/shield/shield_middleware'),
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('#middleware/silent_auth_middleware'),
+  () => import('#middleware/rate_limiter_middleware'),
 ])
 
 /**
@@ -51,5 +52,6 @@ export const middleware = router.named({
   subscription: () => import('#middleware/subscription_middleware'),
   seatLimit: () => import('#middleware/seat_limit_middleware'),
   kioskAuth: () => import('#middleware/kiosk_auth_middleware'),
+  rateLimiter: () => import('#middleware/rate_limiter_middleware'),
 })
 
