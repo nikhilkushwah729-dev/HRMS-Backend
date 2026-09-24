@@ -40,6 +40,51 @@ export default class AttendanceService {
         return Math.max(0, Math.round((minutes / 60) * 10) / 10)
     }
 
+    static calculateRosterMetrics(
+        checkIn: DateTime,
+        checkOut: DateTime | null,
+        shiftStart: string = '09:00',
+        shiftEnd: string = '18:00',
+        graceMinutes: number = 15
+    ): {
+        lateMinutes: number
+        earlyExitMinutes: number
+        workHours: number
+        isHalfDay: boolean
+        status: 'present' | 'half_day' | 'late' | 'absent'
+    } {
+        const [startH, startM] = shiftStart.split(':').map(Number)
+        const [endH, endM] = shiftEnd.split(':').map(Number)
+
+        const expectedStartMins = startH * 60 + startM
+        const expectedEndMins = endH * 60 + endM
+        const totalExpectedMins = Math.max(60, expectedEndMins - expectedStartMins)
+
+        const checkInMins = checkIn.hour * 60 + checkIn.minute
+        const lateMinutes = Math.max(0, checkInMins - (expectedStartMins + graceMinutes))
+
+        let earlyExitMinutes = 0
+        let workHours = 0
+
+        if (checkOut) {
+            const checkOutMins = checkOut.hour * 60 + checkOut.minute
+            earlyExitMinutes = Math.max(0, expectedEndMins - checkOutMins)
+            const diffMins = checkOut.diff(checkIn, 'minutes').minutes
+            workHours = Math.max(0, Math.round((diffMins / 60) * 100) / 100)
+        }
+
+        const isHalfDay = workHours > 0 && workHours < (totalExpectedMins / 60) * 0.5
+        const status = isHalfDay ? 'half_day' : lateMinutes > 0 ? 'late' : 'present'
+
+        return {
+            lateMinutes,
+            earlyExitMinutes,
+            workHours,
+            isHalfDay,
+            status,
+        }
+    }
+
     private async hasOrgLocationsTable(): Promise<boolean> {
         try {
             await db.rawQuery('SELECT 1 FROM org_locations LIMIT 1')
