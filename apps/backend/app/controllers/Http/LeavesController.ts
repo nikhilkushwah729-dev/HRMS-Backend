@@ -29,7 +29,7 @@ export default class LeavesController {
     static statusValidator = vine.compile(
         vine.object({
             status: vine.enum(['approved', 'rejected'] as const),
-            rejectionNote: vine.string().trim().optional()
+            rejectionNote: vine.string().trim().nullable().optional()
         })
     )
 
@@ -207,7 +207,7 @@ export default class LeavesController {
         const oldLeaves = await this.leaveService.list(employee.orgId)
         const oldLeave = oldLeaves.find((l: any) => l.id === id)
         
-        const leave = await this.leaveService.updateStatus(id, employee.orgId, status, employee.id, rejectionNote)
+        const leave = await this.leaveService.updateStatus(id, employee.orgId, status, employee.id, rejectionNote || undefined)
         
         // Audit log for status change
         await this.auditLogService.log({
