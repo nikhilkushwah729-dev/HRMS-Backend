@@ -71,6 +71,7 @@ export interface ApiDefinition {
     removeGeofence: typeof routes['employees.remove_geofence']
     setKioskPin: typeof routes['employees.set_kiosk_pin']
     resetKioskPin: typeof routes['employees.reset_kiosk_pin']
+    unlock: typeof routes['employees.unlock']
   }
   kiosks: {
     register: typeof routes['kiosks.register']
@@ -297,5 +298,13 @@ export interface ApiDefinition {
     getDepartmentWiseAttendance: typeof routes['reports.get_department_wise_attendance']
     exportExcel: typeof routes['reports.export_excel']
     exportPdf: typeof routes['reports.export_pdf']
+  }
+  aiAssistant: {
+    generateEmployeeSummary: typeof routes['ai_assistant.generate_employee_summary']
+    parseResume: typeof routes['ai_assistant.parse_resume']
+    chatQuery: typeof routes['ai_assistant.chat_query']
+    detectAttendanceAnomalies: typeof routes['ai_assistant.detect_attendance_anomalies']
+    recommendLeaveApproval: typeof routes['ai_assistant.recommend_leave_approval']
+    auditExpenseClaim: typeof routes['ai_assistant.audit_expense_claim']
   }
 }

@@ -20,6 +20,9 @@ export default class LeavesController {
             startDate: vine.date(),
             endDate: vine.date(),
             reason: vine.string().trim().optional(),
+            durationType: vine.enum(['full_day', 'half_day'] as const).optional(),
+            halfDaySession: vine.enum(['first_half', 'second_half'] as const).optional(),
+            requestKind: vine.enum(['leave', 'short-day', 'under-time', 'wfh', 'outdoor-duty'] as const).optional(),
         })
     )
 

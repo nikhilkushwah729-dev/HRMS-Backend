@@ -456,6 +456,12 @@ const routes = {
     tokens: [{"old":"/api/employees/:id/kiosk-pin","type":0,"val":"api","end":""},{"old":"/api/employees/:id/kiosk-pin","type":0,"val":"employees","end":""},{"old":"/api/employees/:id/kiosk-pin","type":1,"val":"id","end":""},{"old":"/api/employees/:id/kiosk-pin","type":0,"val":"kiosk-pin","end":""}],
     types: placeholder as Registry['employees.reset_kiosk_pin']['types'],
   },
+  'employees.unlock': {
+    methods: ["POST"],
+    pattern: '/api/employees/:id/unlock',
+    tokens: [{"old":"/api/employees/:id/unlock","type":0,"val":"api","end":""},{"old":"/api/employees/:id/unlock","type":0,"val":"employees","end":""},{"old":"/api/employees/:id/unlock","type":1,"val":"id","end":""},{"old":"/api/employees/:id/unlock","type":0,"val":"unlock","end":""}],
+    types: placeholder as Registry['employees.unlock']['types'],
+  },
   'subscriptions.list_plans': {
     methods: ["GET","HEAD"],
     pattern: '/api/billing/plans',
@@ -1397,6 +1403,42 @@ const routes = {
     pattern: '/api/reports/export/pdf',
     tokens: [{"old":"/api/reports/export/pdf","type":0,"val":"api","end":""},{"old":"/api/reports/export/pdf","type":0,"val":"reports","end":""},{"old":"/api/reports/export/pdf","type":0,"val":"export","end":""},{"old":"/api/reports/export/pdf","type":0,"val":"pdf","end":""}],
     types: placeholder as Registry['reports.export_pdf']['types'],
+  },
+  'ai_assistant.generate_employee_summary': {
+    methods: ["POST"],
+    pattern: '/api/ai/employee-summary',
+    tokens: [{"old":"/api/ai/employee-summary","type":0,"val":"api","end":""},{"old":"/api/ai/employee-summary","type":0,"val":"ai","end":""},{"old":"/api/ai/employee-summary","type":0,"val":"employee-summary","end":""}],
+    types: placeholder as Registry['ai_assistant.generate_employee_summary']['types'],
+  },
+  'ai_assistant.parse_resume': {
+    methods: ["POST"],
+    pattern: '/api/ai/parse-resume',
+    tokens: [{"old":"/api/ai/parse-resume","type":0,"val":"api","end":""},{"old":"/api/ai/parse-resume","type":0,"val":"ai","end":""},{"old":"/api/ai/parse-resume","type":0,"val":"parse-resume","end":""}],
+    types: placeholder as Registry['ai_assistant.parse_resume']['types'],
+  },
+  'ai_assistant.chat_query': {
+    methods: ["POST"],
+    pattern: '/api/ai/query',
+    tokens: [{"old":"/api/ai/query","type":0,"val":"api","end":""},{"old":"/api/ai/query","type":0,"val":"ai","end":""},{"old":"/api/ai/query","type":0,"val":"query","end":""}],
+    types: placeholder as Registry['ai_assistant.chat_query']['types'],
+  },
+  'ai_assistant.detect_attendance_anomalies': {
+    methods: ["POST"],
+    pattern: '/api/ai/attendance-anomalies',
+    tokens: [{"old":"/api/ai/attendance-anomalies","type":0,"val":"api","end":""},{"old":"/api/ai/attendance-anomalies","type":0,"val":"ai","end":""},{"old":"/api/ai/attendance-anomalies","type":0,"val":"attendance-anomalies","end":""}],
+    types: placeholder as Registry['ai_assistant.detect_attendance_anomalies']['types'],
+  },
+  'ai_assistant.recommend_leave_approval': {
+    methods: ["POST"],
+    pattern: '/api/ai/leave-recommendation',
+    tokens: [{"old":"/api/ai/leave-recommendation","type":0,"val":"api","end":""},{"old":"/api/ai/leave-recommendation","type":0,"val":"ai","end":""},{"old":"/api/ai/leave-recommendation","type":0,"val":"leave-recommendation","end":""}],
+    types: placeholder as Registry['ai_assistant.recommend_leave_approval']['types'],
+  },
+  'ai_assistant.audit_expense_claim': {
+    methods: ["POST"],
+    pattern: '/api/ai/expense-audit',
+    tokens: [{"old":"/api/ai/expense-audit","type":0,"val":"api","end":""},{"old":"/api/ai/expense-audit","type":0,"val":"ai","end":""},{"old":"/api/ai/expense-audit","type":0,"val":"expense-audit","end":""}],
+    types: placeholder as Registry['ai_assistant.audit_expense_claim']['types'],
   },
 } as const satisfies Record<string, AdonisEndpoint>
 
