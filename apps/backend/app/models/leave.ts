@@ -24,6 +24,12 @@ export default class Leave extends BaseModel {
     @column.date()
     declare endDate: DateTime
 
+    @column({ columnName: 'duration_type' })
+    declare durationType: 'full_day' | 'half_day'
+
+    @column({ columnName: 'half_day_session' })
+    declare halfDaySession: 'first_half' | 'second_half' | null
+
     @column()
     declare totalDays: number // GENERATED ALWAYS AS STORED in SQL
 
