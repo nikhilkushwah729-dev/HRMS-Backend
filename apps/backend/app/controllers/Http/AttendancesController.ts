@@ -21,6 +21,7 @@ export default class AttendancesController {
             source: vine.enum(['manual', 'biometric', 'mobile', 'web', 'geo_fence', 'camera', 'face']).optional(),
             selfieUrl: vine.string().optional(),
             biometricRef: vine.string().optional(),
+            notes: vine.string().trim().optional(),
         })
     )
 
@@ -32,6 +33,7 @@ export default class AttendancesController {
             source: vine.enum(['manual', 'biometric', 'mobile', 'web', 'geo_fence', 'camera', 'face']).optional(),
             selfieUrl: vine.string().optional(),
             biometricRef: vine.string().optional(),
+            notes: vine.string().trim().optional(),
         })
     )
 
