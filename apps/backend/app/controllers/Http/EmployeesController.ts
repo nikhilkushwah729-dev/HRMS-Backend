@@ -132,7 +132,9 @@ export default class EmployeesController {
             .preload('role')
             .orderBy('first_name', 'asc')
 
-        const serialized = people.map((person) => person.serialize())
+        const serialized = people.map((person) =>
+            this.authorizationService.sanitizeEmployeeData(person.serialize(), currentUser)
+        )
         const current = serialized.find((person) => Number(person.id) === Number(currentUser.id)) ?? null
         const manager = currentUser.managerId
             ? serialized.find((person) => Number(person.id) === Number(currentUser.managerId)) ?? null
