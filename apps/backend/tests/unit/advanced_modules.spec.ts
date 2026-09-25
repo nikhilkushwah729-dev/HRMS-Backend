@@ -3,7 +3,7 @@ import { DateTime } from 'luxon'
 import AttendanceService from '#services/AttendanceService'
 import LeaveAccrualService from '#services/LeaveAccrualService'
 import PdfService from '#services/PdfService'
-import EmployeeImportService from '#services/EmployeeImportService'
+import FullFinalSettlementService from '#services/FullFinalSettlementService'
 
 test.group('Advanced Modules Spec', () => {
   test('evaluates attendance roster late minutes and half day correctly', async ({ assert }) => {
@@ -66,7 +66,7 @@ test.group('Advanced Modules Spec', () => {
   })
 
   test('calculates Full & Final (F&F) settlement with Gratuity and Notice recovery', async ({ assert }) => {
-    const settlement = EmployeeImportService.calculateFnFSettlement({
+    const settlement = FullFinalSettlementService.calculateFnFSettlement({
       basicSalary: 30000,
       unpaidWorkDays: 10,
       totalWorkingDaysInMonth: 30,
