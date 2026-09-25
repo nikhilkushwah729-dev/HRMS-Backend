@@ -151,6 +151,7 @@ test.group('Half Day Leave & HTTP Endpoint Verification', () => {
     assert.equal(targetLeave.durationType, 'half_day')
     assert.equal(targetLeave.halfDaySession, 'second_half')
     assert.equal(targetLeave.startDate, '2026-10-15')
+    assert.equal(targetLeave.totalDays, 0.5)
     // Confirm camelCase key structure
     assert.isUndefined(targetLeave.duration_type)
     assert.isUndefined(targetLeave.half_day_session)
@@ -163,7 +164,9 @@ test.group('Half Day Leave & HTTP Endpoint Verification', () => {
     const targetPayroll = payrollData.find((p: any) => p.id === payroll.id)
     assert.exists(targetPayroll)
     assert.equal(targetPayroll.basicSalary, 45000)
-    assert.isDefined(targetPayroll.netSalary)
+    assert.equal(targetPayroll.grossSalary, 72000)
+    assert.equal(targetPayroll.totalDeductions, 4800)
+    assert.equal(targetPayroll.netSalary, 67200)
     // Confirm camelCase key structure
     assert.isUndefined(targetPayroll.basic_salary)
     assert.isUndefined(targetPayroll.net_salary)

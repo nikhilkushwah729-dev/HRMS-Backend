@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import { BaseModel, column, belongsTo, beforeSave } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Employee from '#models/employee'
 import Organization from '#models/organization'
@@ -30,8 +30,8 @@ export default class Leave extends BaseModel {
     @column({ columnName: 'half_day_session' })
     declare halfDaySession: 'first_half' | 'second_half' | null
 
-    @column()
-    declare totalDays: number // GENERATED ALWAYS AS STORED in SQL
+    @column({ columnName: 'total_days' })
+    declare totalDays: number
 
     @column()
     declare reason: string | null
@@ -59,6 +59,24 @@ export default class Leave extends BaseModel {
 
     @column.dateTime({ autoCreate: true })
     declare createdAt: DateTime
+
+    @beforeSave()
+    public static calculateTotalDays(leave: Leave) {
+        if (leave.durationType === 'half_day') {
+            leave.totalDays = 0.5
+        } else if (leave.startDate && leave.endDate) {
+            const start = typeof leave.startDate === 'string' ? DateTime.fromISO(leave.startDate) : leave.startDate
+            const end = typeof leave.endDate === 'string' ? DateTime.fromISO(leave.endDate) : leave.endDate
+            if (start && start.isValid && end && end.isValid) {
+                const diffInDays = end.diff(start, 'days').days
+                leave.totalDays = Math.max(1, Math.round(diffInDays + 1))
+            } else {
+                leave.totalDays = 1
+            }
+        } else {
+            leave.totalDays = 1
+        }
+    }
 
     // Relationships
     @belongsTo(() => Employee, { foreignKey: 'employeeId' })
