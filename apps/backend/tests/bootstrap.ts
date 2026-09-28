@@ -32,7 +32,7 @@ export const runnerHooks: Required<Pick<Config, 'setup' | 'teardown'>> = {
 
 export const configureSuite: Config['configureSuite'] = (suite) => {
   suite.setup(() => testUtils.db().withGlobalTransaction())
-  if (['browser', 'functional', 'e2e'].includes(suite.name)) {
+  if (['browser', 'functional', 'e2e', 'unit'].includes(suite.name)) {
     return suite.setup(() => testUtils.httpServer().start())
   }
 }

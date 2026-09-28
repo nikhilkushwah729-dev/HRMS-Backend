@@ -415,7 +415,9 @@ export default class AuthorizationService {
   }
 
   async canAccessEmployee(actor: Employee, subject: Employee): Promise<boolean> {
-    await actor.load('role')
+    if (actor.$isPersisted && !actor.role) {
+      await actor.load('role')
+    }
     if (this.isPlatformSuperAdmin(actor, actor.role)) return true
     if (actor.orgId !== subject.orgId) return false
     const scope = this.scopeFor(actor)
@@ -447,20 +449,44 @@ export default class AuthorizationService {
   }
 
   sanitizeEmployeeData(record: Record<string, any>, actor: Employee) {
-    const scope = this.scopeFor(actor)
+    if (!record || typeof record !== 'object') return record
     const clone = { ...record }
 
-    if (scope === 'finance') {
-      clone.dateOfBirth = null
-      clone.address = null
-      clone.emergencyContact = null
-      clone.emergencyPhone = null
-      clone.bankAccount = clone.bankAccount ? `****${String(clone.bankAccount).slice(-4)}` : null
-      clone.panNumber = clone.panNumber ? `******${String(clone.panNumber).slice(-4)}` : null
+    const isSelf = record.id != null && actor.id != null && Number(record.id) === Number(actor.id)
+    const isFullAccess = this.isOrgFullAccessRole(actor)
+
+    const hasPayrollPermission = Boolean(
+      actor.role?.permissions?.some((p) => p.permissionKey === 'payroll_read' || p.permissionKey === 'payroll_process')
+    )
+
+    const canViewUnmaskedPii = isSelf || isFullAccess || hasPayrollPermission
+
+    if (!canViewUnmaskedPii) {
+      if (clone.salary !== undefined && clone.salary !== null) {
+        clone.salary = '₹•••••'
+      }
+      if (clone.panNumber !== undefined && clone.panNumber !== null) {
+        const panStr = String(clone.panNumber).trim()
+        clone.panNumber = panStr.length >= 4
+          ? `${panStr.slice(0, 2)}••••••${panStr.slice(-2)}`
+          : '••••••••••'
+      }
+      if (clone.bankAccount !== undefined && clone.bankAccount !== null) {
+        const bankStr = String(clone.bankAccount).trim()
+        clone.bankAccount = bankStr.length >= 4
+          ? `••••••••${bankStr.slice(-4)}`
+          : '••••••••••••'
+      }
+      if (clone.ifscCode !== undefined && clone.ifscCode !== null) {
+        const ifscStr = String(clone.ifscCode).trim()
+        clone.ifscCode = ifscStr.length >= 4
+          ? `${ifscStr.slice(0, 4)}••••${ifscStr.slice(-3)}`
+          : '•••••••••••'
+      }
     }
 
-    if (scope === 'self') {
-      return clone
+    if (clone.employee && typeof clone.employee === 'object') {
+      clone.employee = this.sanitizeEmployeeData(clone.employee, actor)
     }
 
     return clone

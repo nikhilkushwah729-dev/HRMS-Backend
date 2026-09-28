@@ -17,15 +17,15 @@ export class AddonPriceSchema extends BaseModel {
   @column()
   declare slug: string
   @column()
-  declare price: number
+  declare price: string
   @column()
   declare planType: boolean | null
   @column()
   declare isActive: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class AnnouncementSchema extends BaseModel {
@@ -52,14 +52,14 @@ export class AnnouncementSchema extends BaseModel {
   @column.dateTime()
   declare deletedAt: DateTime | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class ApiRateLimitSchema extends BaseModel {
   static $columns = ['id', 'identifier', 'endpoint', 'requestCount', 'windowStart', 'windowEnd', 'isBlocked', 'createdAt', 'updatedAt'] as const
   $columns = ApiRateLimitSchema.$columns
   @column({ isPrimary: true })
-  declare id: number
+  declare id: bigint | number
   @column()
   declare identifier: string
   @column()
@@ -73,9 +73,72 @@ export class ApiRateLimitSchema extends BaseModel {
   @column()
   declare isBlocked: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
+}
+
+export class AttendanceSchema extends BaseModel {
+  static $columns = ['id', 'employeeId', 'orgId', 'shiftId', 'attendanceDate', 'checkIn', 'checkOut', 'checkInLat', 'checkInLng', 'checkOutLat', 'checkOutLng', 'deviceInfo', 'selfieUrl', 'biometricRef', 'status', 'source', 'notes', 'modifiedBy', 'modifiedAt', 'createdAt', 'workHours', 'isLate', 'isHalfDay', 'isOvertime', 'totalBreakMin', 'netWorkHours', 'breakStart', 'breakEnd', 'breakDuration'] as const
+  $columns = AttendanceSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare employeeId: number
+  @column()
+  declare orgId: number
+  @column()
+  declare shiftId: number | null
+  @column.date()
+  declare attendanceDate: DateTime
+  @column.dateTime()
+  declare checkIn: DateTime | null
+  @column.dateTime()
+  declare checkOut: DateTime | null
+  @column()
+  declare checkInLat: string | null
+  @column()
+  declare checkInLng: string | null
+  @column()
+  declare checkOutLat: string | null
+  @column()
+  declare checkOutLng: string | null
+  @column()
+  declare deviceInfo: string | null
+  @column()
+  declare selfieUrl: string | null
+  @column()
+  declare biometricRef: string | null
+  @column()
+  declare status: string
+  @column()
+  declare source: string
+  @column()
+  declare notes: string | null
+  @column()
+  declare modifiedBy: number | null
+  @column.dateTime()
+  declare modifiedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare workHours: string | null
+  @column()
+  declare isLate: boolean
+  @column()
+  declare isHalfDay: boolean
+  @column()
+  declare isOvertime: boolean
+  @column()
+  declare totalBreakMin: number
+  @column()
+  declare netWorkHours: string
+  @column.dateTime()
+  declare breakStart: DateTime | null
+  @column.dateTime()
+  declare breakEnd: DateTime | null
+  @column()
+  declare breakDuration: number | null
 }
 
 export class AttendanceLogSchema extends BaseModel {
@@ -118,9 +181,9 @@ export class AttendanceLogSchema extends BaseModel {
   @column()
   declare failureReason: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class AttendanceRegularizationSchema extends BaseModel {
@@ -160,72 +223,11 @@ export class AttendanceRegularizationSchema extends BaseModel {
   declare updatedAt: DateTime | null
 }
 
-export class AttendanceSchema extends BaseModel {
-  static $columns = ['id', 'employeeId', 'orgId', 'attendanceDate', 'checkIn', 'checkOut', 'checkInLat', 'checkInLng', 'checkOutLat', 'checkOutLng', 'status', 'source', 'notes', 'modifiedBy', 'modifiedAt', 'createdAt', 'deviceInfo', 'isLate', 'isHalfDay', 'isOvertime', 'totalBreakMin', 'netWorkHours', 'selfieUrl', 'biometricRef', 'shiftId', 'breakStart', 'breakEnd', 'breakDuration'] as const
-  $columns = AttendanceSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare employeeId: number
-  @column()
-  declare orgId: number
-  @column.date()
-  declare attendanceDate: DateTime
-  @column.dateTime()
-  declare checkIn: DateTime | null
-  @column.dateTime()
-  declare checkOut: DateTime | null
-  @column()
-  declare checkInLat: number | null
-  @column()
-  declare checkInLng: number | null
-  @column()
-  declare checkOutLat: number | null
-  @column()
-  declare checkOutLng: number | null
-  @column()
-  declare status: string
-  @column()
-  declare source: string
-  @column()
-  declare notes: string | null
-  @column()
-  declare modifiedBy: number | null
-  @column.dateTime()
-  declare modifiedAt: DateTime | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column()
-  declare deviceInfo: string | null
-  @column()
-  declare isLate: boolean
-  @column()
-  declare isHalfDay: boolean
-  @column()
-  declare isOvertime: boolean
-  @column()
-  declare totalBreakMin: number
-  @column()
-  declare netWorkHours: number
-  @column()
-  declare selfieUrl: string | null
-  @column()
-  declare biometricRef: string | null
-  @column()
-  declare shiftId: number | null
-  @column.dateTime()
-  declare breakStart: DateTime | null
-  @column.dateTime()
-  declare breakEnd: DateTime | null
-  @column()
-  declare breakDuration: number | null
-}
-
 export class AuditLogSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'employeeId', 'action', 'module', 'entityName', 'entityId', 'oldValues', 'newValues', 'ipAddress', 'userAgent', 'isImmutable', 'createdAt', 'countryCode', 'countryName', 'cityName', 'regionName', 'latitude', 'longitude'] as const
+  static $columns = ['id', 'orgId', 'employeeId', 'action', 'module', 'entityName', 'entityId', 'oldValues', 'newValues', 'ipAddress', 'countryCode', 'countryName', 'userAgent', 'isImmutable', 'createdAt', 'cityName', 'regionName', 'latitude', 'longitude'] as const
   $columns = AuditLogSchema.$columns
   @column({ isPrimary: true })
-  declare id: number
+  declare id: bigint | number
   @column()
   declare orgId: number | null
   @column()
@@ -239,29 +241,29 @@ export class AuditLogSchema extends BaseModel {
   @column()
   declare entityId: string | null
   @column()
-  declare oldValues: any | null
+  declare oldValues: string | null
   @column()
-  declare newValues: any | null
+  declare newValues: string | null
   @column()
   declare ipAddress: string | null
-  @column()
-  declare userAgent: string | null
-  @column()
-  declare isImmutable: boolean
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
   @column()
   declare countryCode: string | null
   @column()
   declare countryName: string | null
   @column()
+  declare userAgent: string | null
+  @column()
+  declare isImmutable: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
   declare cityName: string | null
   @column()
   declare regionName: string | null
   @column()
-  declare latitude: number | null
+  declare latitude: string | null
   @column()
-  declare longitude: number | null
+  declare longitude: string | null
 }
 
 export class AuthAccessTokenSchema extends BaseModel {
@@ -280,7 +282,7 @@ export class AuthAccessTokenSchema extends BaseModel {
   @column()
   declare abilities: string
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
   @column.dateTime()
@@ -305,9 +307,9 @@ export class CountrySchema extends BaseModel {
   @column()
   declare isActive: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class DataErasureRequestSchema extends BaseModel {
@@ -367,11 +369,52 @@ export class DesignationSchema extends BaseModel {
   declare designationName: string
 }
 
+export class DocumentSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'employeeId', 'title', 'fileName', 'filePath', 'fileUuid', 'fileType', 'fileSizeKb', 'mimeType', 'category', 'description', 'isPrivate', 'isEncrypted', 'checksum', 'uploadedBy', 'deletedAt', 'createdAt'] as const
+  $columns = DocumentSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare employeeId: number | null
+  @column()
+  declare title: string
+  @column()
+  declare fileName: string | null
+  @column()
+  declare filePath: string | null
+  @column()
+  declare fileUuid: string
+  @column()
+  declare fileType: string | null
+  @column()
+  declare fileSizeKb: number | null
+  @column()
+  declare mimeType: string | null
+  @column()
+  declare category: string | null
+  @column()
+  declare description: string | null
+  @column()
+  declare isPrivate: boolean
+  @column()
+  declare isEncrypted: boolean
+  @column()
+  declare checksum: string | null
+  @column()
+  declare uploadedBy: number | null
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+}
+
 export class DocumentAccessLogSchema extends BaseModel {
   static $columns = ['id', 'documentId', 'employeeId', 'orgId', 'action', 'ipAddress', 'userAgent', 'accessedAt'] as const
   $columns = DocumentAccessLogSchema.$columns
   @column({ isPrimary: true })
-  declare id: number
+  declare id: bigint | number
   @column()
   declare documentId: number
   @column()
@@ -385,48 +428,7 @@ export class DocumentAccessLogSchema extends BaseModel {
   @column()
   declare userAgent: string | null
   @column.dateTime()
-  declare accessedAt: DateTime | null
-}
-
-export class DocumentSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'employeeId', 'title', 'fileUuid', 'fileType', 'fileSizeKb', 'mimeType', 'category', 'isPrivate', 'isEncrypted', 'checksum', 'uploadedBy', 'deletedAt', 'createdAt', 'fileName', 'filePath', 'description'] as const
-  $columns = DocumentSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare employeeId: number | null
-  @column()
-  declare title: string
-  @column()
-  declare fileUuid: string
-  @column()
-  declare fileType: string | null
-  @column()
-  declare fileSizeKb: number | null
-  @column()
-  declare mimeType: string | null
-  @column()
-  declare category: string | null
-  @column()
-  declare isPrivate: boolean
-  @column()
-  declare isEncrypted: boolean
-  @column()
-  declare checksum: string | null
-  @column()
-  declare uploadedBy: number | null
-  @column.dateTime()
-  declare deletedAt: DateTime | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column()
-  declare fileName: string | null
-  @column()
-  declare filePath: string | null
-  @column()
-  declare description: string | null
+  declare accessedAt: DateTime
 }
 
 export class EmailVerificationTokenSchema extends BaseModel {
@@ -441,78 +443,11 @@ export class EmailVerificationTokenSchema extends BaseModel {
   @column.dateTime()
   declare expiresAt: DateTime
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-}
-
-export class EmployeeFaceProfileSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'employeeId', 'faceEmbedding', 'referenceImageUrl', 'status', 'createdBy', 'approvedBy', 'approvedAt', 'createdAt', 'updatedAt'] as const
-  $columns = EmployeeFaceProfileSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare employeeId: number
-  @column()
-  declare faceEmbedding: string
-  @column()
-  declare referenceImageUrl: string | null
-  @column()
-  declare status: string
-  @column()
-  declare createdBy: number | null
-  @column()
-  declare approvedBy: number | null
-  @column.dateTime()
-  declare approvedAt: DateTime | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class EmployeeInvitationSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'email', 'roleId', 'token', 'status', 'expiresAt', 'invitedBy', 'createdAt', 'updatedAt'] as const
-  $columns = EmployeeInvitationSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare email: string
-  @column()
-  declare roleId: number | null
-  @column()
-  declare token: string
-  @column()
-  declare status: string
-  @column.dateTime()
-  declare expiresAt: DateTime
-  @column()
-  declare invitedBy: number | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class EmployeeShiftSchema extends BaseModel {
-  static $columns = ['id', 'employeeId', 'shiftId', 'effectiveFrom', 'effectiveTo'] as const
-  $columns = EmployeeShiftSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare employeeId: number
-  @column()
-  declare shiftId: number
-  @column.date()
-  declare effectiveFrom: DateTime
-  @column.date()
-  declare effectiveTo: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class EmployeeSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'departmentId', 'designationId', 'roleId', 'employeeCode', 'firstName', 'lastName', 'email', 'phone', 'passwordHash', 'mustChangePassword', 'isLocked', 'lockedUntil', 'avatar', 'gender', 'dateOfBirth', 'address', 'emergencyContact', 'emergencyPhone', 'salary', 'bankAccount', 'bankName', 'ifscCode', 'panNumber', 'aadharLast4', 'joinDate', 'exitDate', 'exitReason', 'status', 'emailVerified', 'deletedAt', 'deletedBy', 'createdAt', 'updatedAt', 'managerId', 'geofenceId', 'phoneVerified', 'phoneAuthEnabled', 'loginType', 'isInternational', 'countryCode', 'countryName', 'kioskPinHash', 'kioskPinAttempts', 'kioskPinBlockedUntil'] as const
+  static $columns = ['id', 'orgId', 'departmentId', 'designationId', 'geofenceId', 'roleId', 'managerId', 'employeeCode', 'firstName', 'lastName', 'email', 'phone', 'passwordHash', 'kioskPinHash', 'kioskPinAttempts', 'kioskPinBlockedUntil', 'mustChangePassword', 'isLocked', 'lockedUntil', 'avatar', 'gender', 'dateOfBirth', 'address', 'emergencyContact', 'emergencyPhone', 'salary', 'bankAccount', 'bankName', 'ifscCode', 'panNumber', 'aadharLast4', 'joinDate', 'exitDate', 'exitReason', 'status', 'emailVerified', 'deletedAt', 'deletedBy', 'createdAt', 'updatedAt', 'phoneVerified', 'phoneAuthEnabled', 'loginType', 'isInternational', 'countryCode', 'countryName'] as const
   $columns = EmployeeSchema.$columns
   @column({ isPrimary: true })
   declare id: number
@@ -523,7 +458,11 @@ export class EmployeeSchema extends BaseModel {
   @column()
   declare designationId: number | null
   @column()
+  declare geofenceId: number | null
+  @column()
   declare roleId: number | null
+  @column()
+  declare managerId: number | null
   @column()
   declare employeeCode: string | null
   @column()
@@ -536,6 +475,12 @@ export class EmployeeSchema extends BaseModel {
   declare phone: string | null
   @column()
   declare passwordHash: string | null
+  @column()
+  declare kioskPinHash: string | null
+  @column()
+  declare kioskPinAttempts: number
+  @column.dateTime()
+  declare kioskPinBlockedUntil: DateTime | null
   @column()
   declare mustChangePassword: boolean
   @column()
@@ -555,7 +500,7 @@ export class EmployeeSchema extends BaseModel {
   @column()
   declare emergencyPhone: string | null
   @column()
-  declare salary: number
+  declare salary: string
   @column()
   declare bankAccount: string | null
   @column()
@@ -581,13 +526,9 @@ export class EmployeeSchema extends BaseModel {
   @column()
   declare deletedBy: number | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-  @column()
-  declare managerId: number | null
-  @column()
-  declare geofenceId: number | null
+  declare updatedAt: DateTime
   @column()
   declare phoneVerified: boolean
   @column()
@@ -600,12 +541,73 @@ export class EmployeeSchema extends BaseModel {
   declare countryCode: string | null
   @column()
   declare countryName: string | null
+}
+
+export class EmployeeFaceProfileSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'employeeId', 'faceEmbedding', 'referenceImageUrl', 'status', 'createdBy', 'approvedBy', 'approvedAt', 'createdAt', 'updatedAt'] as const
+  $columns = EmployeeFaceProfileSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
   @column()
-  declare kioskPinHash: string | null
+  declare orgId: number
   @column()
-  declare kioskPinAttempts: number
+  declare employeeId: number
+  @column()
+  declare faceEmbedding: string
+  @column()
+  declare referenceImageUrl: string | null
+  @column()
+  declare status: string
+  @column()
+  declare createdBy: number | null
+  @column()
+  declare approvedBy: number | null
   @column.dateTime()
-  declare kioskPinBlockedUntil: DateTime | null
+  declare approvedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class EmployeeInvitationSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'email', 'roleId', 'token', 'status', 'expiresAt', 'invitedBy', 'createdAt', 'updatedAt'] as const
+  $columns = EmployeeInvitationSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare email: string
+  @column()
+  declare roleId: number | null
+  @column()
+  declare token: string
+  @column()
+  declare status: string
+  @column.dateTime()
+  declare expiresAt: DateTime
+  @column()
+  declare invitedBy: number | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class EmployeeShiftSchema extends BaseModel {
+  static $columns = ['id', 'employeeId', 'shiftId', 'effectiveFrom', 'effectiveTo'] as const
+  $columns = EmployeeShiftSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare employeeId: number
+  @column()
+  declare shiftId: number
+  @column.date()
+  declare effectiveFrom: DateTime
+  @column.date()
+  declare effectiveTo: DateTime | null
 }
 
 export class EssRequestSchema extends BaseModel {
@@ -632,7 +634,7 @@ export class EssRequestSchema extends BaseModel {
   @column.date()
   declare endDate: DateTime | null
   @column()
-  declare amount: number | null
+  declare amount: string | null
   @column()
   declare status: string
   @column()
@@ -650,7 +652,7 @@ export class EssRequestSchema extends BaseModel {
 }
 
 export class ExpenseSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'employeeId', 'projectId', 'category', 'amount', 'expenseDate', 'description', 'receiptUrl', 'status', 'approvedBy', 'approvedAt', 'createdAt', 'rejectionNote', 'deletedAt', 'updatedAt'] as const
+  static $columns = ['id', 'orgId', 'employeeId', 'projectId', 'category', 'amount', 'expenseDate', 'description', 'receiptUrl', 'status', 'approvedBy', 'approvedAt', 'rejectionNote', 'deletedAt', 'createdAt', 'updatedAt'] as const
   $columns = ExpenseSchema.$columns
   @column({ isPrimary: true })
   declare id: number
@@ -663,7 +665,7 @@ export class ExpenseSchema extends BaseModel {
   @column()
   declare category: string | null
   @column()
-  declare amount: number
+  declare amount: string
   @column.date()
   declare expenseDate: DateTime
   @column()
@@ -676,12 +678,12 @@ export class ExpenseSchema extends BaseModel {
   declare approvedBy: number | null
   @column.dateTime()
   declare approvedAt: DateTime | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
   @column()
   declare rejectionNote: string | null
   @column.dateTime()
   declare deletedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -702,9 +704,9 @@ export class FaceEmbeddingSchema extends BaseModel {
   @column()
   declare isActive: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class FeatureLimitSchema extends BaseModel {
@@ -725,11 +727,11 @@ export class FeatureLimitSchema extends BaseModel {
   @column()
   declare limitValue: string | null
   @column()
-  declare metadata: any | null
+  declare metadata: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class HolidaySchema extends BaseModel {
@@ -752,7 +754,7 @@ export class HolidaySchema extends BaseModel {
 }
 
 export class InvoiceSchema extends BaseModel {
-  static $columns = ['id', 'paymentId', 'orgId', 'invoiceNumber', 'subtotal', 'taxPercent', 'notes', 'isVoid', 'voidReason'] as const
+  static $columns = ['id', 'paymentId', 'orgId', 'invoiceNumber', 'subtotal', 'taxPercent', 'notes', 'isVoid', 'voidReason', 'taxAmount', 'total'] as const
   $columns = InvoiceSchema.$columns
   @column({ isPrimary: true })
   declare id: number
@@ -763,15 +765,19 @@ export class InvoiceSchema extends BaseModel {
   @column()
   declare invoiceNumber: string
   @column()
-  declare subtotal: number
+  declare subtotal: string
   @column()
-  declare taxPercent: number
+  declare taxPercent: string
   @column()
   declare notes: string | null
   @column()
   declare isVoid: boolean
   @column()
   declare voidReason: string | null
+  @column()
+  declare taxAmount: string | null
+  @column()
+  declare total: string | null
 }
 
 export class KioskSchema extends BaseModel {
@@ -802,34 +808,13 @@ export class KioskSchema extends BaseModel {
   @column.dateTime()
   declare approvedAt: DateTime | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class LeaveTypeSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'typeName', 'daysAllowed', 'carryForward', 'maxCarryDays', 'isPaid', 'requiresDoc'] as const
-  $columns = LeaveTypeSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare typeName: string
-  @column()
-  declare daysAllowed: number
-  @column()
-  declare carryForward: boolean
-  @column()
-  declare maxCarryDays: number
-  @column()
-  declare isPaid: boolean
-  @column()
-  declare requiresDoc: boolean
+  declare updatedAt: DateTime
 }
 
 export class LeafSchema extends BaseModel {
-  static $columns = ['id', 'employeeId', 'orgId', 'leaveTypeId', 'startDate', 'endDate', 'reason', 'supportingDoc', 'status', 'approvedBy', 'approvedAt', 'rejectionNote', 'cancelledBy', 'cancelledAt', 'createdAt', 'deletedAt', 'updatedAt'] as const
+  static $columns = ['id', 'employeeId', 'orgId', 'leaveTypeId', 'startDate', 'endDate', 'reason', 'supportingDoc', 'status', 'approvedBy', 'approvedAt', 'rejectionNote', 'deletedAt', 'cancelledBy', 'cancelledAt', 'createdAt', 'updatedAt', 'totalDays'] as const
   $columns = LeafSchema.$columns
   @column({ isPrimary: true })
   declare id: number
@@ -855,23 +840,46 @@ export class LeafSchema extends BaseModel {
   declare approvedAt: DateTime | null
   @column()
   declare rejectionNote: string | null
+  @column.dateTime()
+  declare deletedAt: DateTime | null
   @column()
   declare cancelledBy: number | null
   @column.dateTime()
   declare cancelledAt: DateTime | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column.dateTime()
-  declare deletedAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
+  @column()
+  declare totalDays: string | null
+}
+
+export class LeaveTypeSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'typeName', 'daysAllowed', 'carryForward', 'maxCarryDays', 'isPaid', 'requiresDoc'] as const
+  $columns = LeaveTypeSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare typeName: string
+  @column()
+  declare daysAllowed: number
+  @column()
+  declare carryForward: boolean
+  @column()
+  declare maxCarryDays: number
+  @column()
+  declare isPaid: boolean
+  @column()
+  declare requiresDoc: boolean
 }
 
 export class LoginAttemptSchema extends BaseModel {
   static $columns = ['id', 'employeeId', 'orgId', 'email', 'ipAddress', 'userAgent', 'attemptType', 'status', 'failureReason', 'createdAt'] as const
   $columns = LoginAttemptSchema.$columns
   @column({ isPrimary: true })
-  declare id: number
+  declare id: bigint | number
   @column()
   declare employeeId: number | null
   @column()
@@ -889,7 +897,7 @@ export class LoginAttemptSchema extends BaseModel {
   @column()
   declare failureReason: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class MagicLinkTokenSchema extends BaseModel {
@@ -906,14 +914,14 @@ export class MagicLinkTokenSchema extends BaseModel {
   @column()
   declare isUsed: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class NotificationSchema extends BaseModel {
   static $columns = ['id', 'employeeId', 'orgId', 'title', 'message', 'type', 'link', 'isRead', 'readAt', 'createdAt'] as const
   $columns = NotificationSchema.$columns
   @column({ isPrimary: true })
-  declare id: number
+  declare id: bigint | number
   @column()
   declare employeeId: number
   @column()
@@ -931,119 +939,18 @@ export class NotificationSchema extends BaseModel {
   @column.dateTime()
   declare readAt: DateTime | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-}
-
-export class OrgIpWhitelistSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'ipCidr', 'label', 'isActive', 'createdBy', 'createdAt'] as const
-  $columns = OrgIpWhitelistSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare ipCidr: string
-  @column()
-  declare label: string | null
-  @column()
-  declare isActive: boolean
-  @column()
-  declare createdBy: number | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-}
-
-export class OrgLocationSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'name', 'latitude', 'longitude', 'radiusMeters', 'address', 'isActive', 'createdAt', 'updatedAt'] as const
-  $columns = OrgLocationSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare name: string
-  @column()
-  declare latitude: number
-  @column()
-  declare longitude: number
-  @column()
-  declare radiusMeters: number
-  @column()
-  declare address: string | null
-  @column()
-  declare isActive: boolean
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class OrgRegistrationSchema extends BaseModel {
-  static $columns = ['id', 'orgName', 'adminEmail', 'adminPhone', 'verificationToken', 'status', 'onboardingData', 'createdAt'] as const
-  $columns = OrgRegistrationSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgName: string
-  @column()
-  declare adminEmail: string
-  @column()
-  declare adminPhone: string | null
-  @column()
-  declare verificationToken: string
-  @column()
-  declare status: string
-  @column()
-  declare onboardingData: any | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-}
-
-export class OrganizationAddonSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'addonId', 'startDate', 'endDate', 'isActive', 'createdAt', 'updatedAt'] as const
-  $columns = OrganizationAddonSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare addonId: number
-  @column.date()
-  declare startDate: DateTime
-  @column.date()
-  declare endDate: DateTime | null
-  @column()
-  declare isActive: boolean
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class OrganizationSettingSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'settingKey', 'settingValue', 'createdAt', 'updatedAt'] as const
-  $columns = OrganizationSettingSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare settingKey: string
-  @column()
-  declare settingValue: string
-  @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime
 }
 
 export class OrganizationSchema extends BaseModel {
-  static $columns = ['id', 'companyName', 'email', 'phone', 'address', 'city', 'state', 'country', 'postalCode', 'gstin', 'logo', 'planId', 'planStatus', 'planEndDate', 'userLimit', 'isActive', 'isVerified', 'verificationToken', 'timezone', 'deletedAt', 'deletedBy', 'createdAt', 'updatedAt', 'slug', 'geofenceEnabled', 'requireGeofenceForAll', 'defaultGeofenceId', 'orgType', 'defaultLanguage', 'allowedLoginMethods', 'trialStartDate', 'trialEndDate', 'isTrialActive', 'subscriptionStatus', 'gracePeriodEndDate', 'readOnlyMode', 'subscriptionLastNotifiedAt'] as const
+  static $columns = ['id', 'companyName', 'slug', 'email', 'phone', 'address', 'city', 'state', 'country', 'postalCode', 'gstin', 'logo', 'planId', 'planStatus', 'planEndDate', 'userLimit', 'isActive', 'isVerified', 'verificationToken', 'timezone', 'deletedAt', 'deletedBy', 'createdAt', 'updatedAt', 'geofenceEnabled', 'requireGeofenceForAll', 'defaultGeofenceId', 'orgType', 'defaultLanguage', 'allowedLoginMethods', 'trialStartDate', 'trialEndDate', 'isTrialActive', 'subscriptionStatus', 'gracePeriodEndDate', 'readOnlyMode', 'subscriptionLastNotifiedAt'] as const
   $columns = OrganizationSchema.$columns
   @column({ isPrimary: true })
   declare id: number
   @column()
   declare companyName: string
+  @column()
+  declare slug: string
   @column()
   declare email: string
   @column()
@@ -1083,11 +990,9 @@ export class OrganizationSchema extends BaseModel {
   @column()
   declare deletedBy: number | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-  @column()
-  declare slug: string
+  declare updatedAt: DateTime
   @column()
   declare geofenceEnabled: boolean | null
   @column()
@@ -1114,6 +1019,109 @@ export class OrganizationSchema extends BaseModel {
   declare readOnlyMode: boolean
   @column.dateTime()
   declare subscriptionLastNotifiedAt: DateTime | null
+}
+
+export class OrganizationAddonSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'addonId', 'startDate', 'endDate', 'isActive', 'createdAt', 'updatedAt'] as const
+  $columns = OrganizationAddonSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare addonId: number
+  @column.date()
+  declare startDate: DateTime
+  @column.date()
+  declare endDate: DateTime | null
+  @column()
+  declare isActive: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class OrganizationSettingSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'settingKey', 'settingValue', 'createdAt', 'updatedAt'] as const
+  $columns = OrganizationSettingSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare settingKey: string
+  @column()
+  declare settingValue: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class OrgIpWhitelistSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'ipCidr', 'label', 'isActive', 'createdBy', 'createdAt'] as const
+  $columns = OrgIpWhitelistSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare ipCidr: string
+  @column()
+  declare label: string | null
+  @column()
+  declare isActive: boolean
+  @column()
+  declare createdBy: number | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+}
+
+export class OrgLocationSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'name', 'latitude', 'longitude', 'radiusMeters', 'address', 'isActive', 'createdAt', 'updatedAt'] as const
+  $columns = OrgLocationSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare name: string
+  @column()
+  declare latitude: string
+  @column()
+  declare longitude: string
+  @column()
+  declare radiusMeters: number
+  @column()
+  declare address: string | null
+  @column()
+  declare isActive: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class OrgRegistrationSchema extends BaseModel {
+  static $columns = ['id', 'orgName', 'adminEmail', 'adminPhone', 'verificationToken', 'status', 'onboardingData', 'createdAt'] as const
+  $columns = OrgRegistrationSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgName: string
+  @column()
+  declare adminEmail: string
+  @column()
+  declare adminPhone: string | null
+  @column()
+  declare verificationToken: string
+  @column()
+  declare status: string
+  @column()
+  declare onboardingData: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
 }
 
 export class OtpTokenSchema extends BaseModel {
@@ -1146,7 +1154,7 @@ export class OtpTokenSchema extends BaseModel {
   @column()
   declare ipAddress: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class OvertimeRequestSchema extends BaseModel {
@@ -1161,7 +1169,7 @@ export class OvertimeRequestSchema extends BaseModel {
   @column.date()
   declare date: DateTime
   @column()
-  declare hours: number
+  declare hours: string
   @column()
   declare reason: string
   @column()
@@ -1188,7 +1196,7 @@ export class PasswordHistorySchema extends BaseModel {
   @column()
   declare passwordHash: string
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class PasswordResetTokenSchema extends BaseModel {
@@ -1203,11 +1211,11 @@ export class PasswordResetTokenSchema extends BaseModel {
   @column.dateTime()
   declare expiresAt: DateTime
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class PaymentSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'planId', 'amount', 'currency', 'paymentMethod', 'transactionId', 'gatewayResponse', 'idempotencyKey', 'status', 'paidAt', 'refundedAt', 'refundAmount', 'refundRef', 'createdAt', 'provider', 'providerOrderId', 'providerPaymentId', 'providerSignature', 'billingCycle', 'failureReason', 'invoiceUrl', 'webhookEventId', 'metadata', 'paymentGateway'] as const
+  static $columns = ['id', 'orgId', 'planId', 'amount', 'currency', 'paymentMethod', 'paymentGateway', 'transactionId', 'gatewayResponse', 'idempotencyKey', 'status', 'paidAt', 'refundedAt', 'refundAmount', 'refundRef', 'createdAt', 'provider', 'providerOrderId', 'providerPaymentId', 'providerSignature', 'billingCycle', 'failureReason', 'invoiceUrl', 'webhookEventId', 'metadata'] as const
   $columns = PaymentSchema.$columns
   @column({ isPrimary: true })
   declare id: number
@@ -1216,15 +1224,17 @@ export class PaymentSchema extends BaseModel {
   @column()
   declare planId: number | null
   @column()
-  declare amount: number
+  declare amount: string
   @column()
   declare currency: string
   @column()
   declare paymentMethod: string | null
   @column()
+  declare paymentGateway: string | null
+  @column()
   declare transactionId: string | null
   @column()
-  declare gatewayResponse: any | null
+  declare gatewayResponse: string | null
   @column()
   declare idempotencyKey: string | null
   @column()
@@ -1234,11 +1244,11 @@ export class PaymentSchema extends BaseModel {
   @column.dateTime()
   declare refundedAt: DateTime | null
   @column()
-  declare refundAmount: number | null
+  declare refundAmount: string | null
   @column()
   declare refundRef: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column()
   declare provider: string | null
   @column()
@@ -1256,32 +1266,11 @@ export class PaymentSchema extends BaseModel {
   @column()
   declare webhookEventId: string | null
   @column()
-  declare metadata: any | null
-  @column()
-  declare paymentGateway: string | null
-}
-
-export class PayrollSettingSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'pfPercent', 'esiPercent', 'tdsPercent', 'createdAt', 'updatedAt'] as const
-  $columns = PayrollSettingSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare pfPercent: number
-  @column()
-  declare esiPercent: number
-  @column()
-  declare tdsPercent: number
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare metadata: string | null
 }
 
 export class PayrollSchema extends BaseModel {
-  static $columns = ['id', 'employeeId', 'orgId', 'month', 'year', 'basicSalary', 'hra', 'allowances', 'bonus', 'pfDeduction', 'esiDeduction', 'tdsDeduction', 'otherDeductions', 'paymentDate', 'paymentMode', 'paymentRef', 'status', 'processedBy', 'isLocked', 'createdAt'] as const
+  static $columns = ['id', 'employeeId', 'orgId', 'month', 'year', 'basicSalary', 'hra', 'allowances', 'bonus', 'pfDeduction', 'esiDeduction', 'tdsDeduction', 'otherDeductions', 'paymentDate', 'paymentMode', 'paymentRef', 'status', 'processedBy', 'isLocked', 'createdAt', 'grossSalary', 'totalDeductions', 'netSalary'] as const
   $columns = PayrollSchema.$columns
   @column({ isPrimary: true })
   declare id: number
@@ -1294,21 +1283,21 @@ export class PayrollSchema extends BaseModel {
   @column()
   declare year: number
   @column()
-  declare basicSalary: number
+  declare basicSalary: string
   @column()
-  declare hra: number
+  declare hra: string
   @column()
-  declare allowances: number
+  declare allowances: string
   @column()
-  declare bonus: number
+  declare bonus: string
   @column()
-  declare pfDeduction: number
+  declare pfDeduction: string
   @column()
-  declare esiDeduction: number
+  declare esiDeduction: string
   @column()
-  declare tdsDeduction: number
+  declare tdsDeduction: string
   @column()
-  declare otherDeductions: number
+  declare otherDeductions: string
   @column.date()
   declare paymentDate: DateTime | null
   @column()
@@ -1322,7 +1311,32 @@ export class PayrollSchema extends BaseModel {
   @column()
   declare isLocked: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
+  @column()
+  declare grossSalary: string | null
+  @column()
+  declare totalDeductions: string | null
+  @column()
+  declare netSalary: string | null
+}
+
+export class PayrollSettingSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'pfPercent', 'esiPercent', 'tdsPercent', 'createdAt', 'updatedAt'] as const
+  $columns = PayrollSettingSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number
+  @column()
+  declare pfPercent: string
+  @column()
+  declare esiPercent: string
+  @column()
+  declare tdsPercent: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class PermissionSchema extends BaseModel {
@@ -1343,9 +1357,9 @@ export class PermissionSchema extends BaseModel {
   @column()
   declare isSystem: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class PlanSchema extends BaseModel {
@@ -1356,25 +1370,25 @@ export class PlanSchema extends BaseModel {
   @column()
   declare name: string
   @column()
-  declare price: number
+  declare price: string
   @column()
   declare userLimit: number
   @column()
   declare durationDays: number
   @column()
-  declare features: any | null
+  declare features: string | null
   @column()
   declare isActive: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
   @column()
   declare slug: string | null
   @column()
-  declare monthlyPrice: number
+  declare monthlyPrice: string
   @column()
-  declare yearlyPrice: number
+  declare yearlyPrice: string
   @column()
   declare currency: string
   @column()
@@ -1386,22 +1400,7 @@ export class PlanSchema extends BaseModel {
   @column()
   declare isTrialPlan: boolean
   @column()
-  declare modules: any | null
-}
-
-export class ProjectMemberSchema extends BaseModel {
-  static $columns = ['projectId', 'employeeId', 'role', 'addedBy', 'addedAt'] as const
-  $columns = ProjectMemberSchema.$columns
-  @column()
-  declare projectId: number
-  @column()
-  declare employeeId: number
-  @column()
-  declare role: string
-  @column()
-  declare addedBy: number | null
-  @column.dateTime()
-  declare addedAt: DateTime | null
+  declare modules: string | null
 }
 
 export class ProjectSchema extends BaseModel {
@@ -1422,7 +1421,7 @@ export class ProjectSchema extends BaseModel {
   @column.date()
   declare endDate: DateTime | null
   @column()
-  declare budget: number | null
+  declare budget: string | null
   @column()
   declare status: string
   @column()
@@ -1432,9 +1431,24 @@ export class ProjectSchema extends BaseModel {
   @column.dateTime()
   declare deletedAt: DateTime | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
+}
+
+export class ProjectMemberSchema extends BaseModel {
+  static $columns = ['projectId', 'employeeId', 'role', 'addedBy', 'addedAt'] as const
+  $columns = ProjectMemberSchema.$columns
+  @column()
+  declare projectId: number
+  @column()
+  declare employeeId: number
+  @column()
+  declare role: string
+  @column()
+  declare addedBy: number | null
+  @column.dateTime()
+  declare addedAt: DateTime
 }
 
 export class RefreshTokenSchema extends BaseModel {
@@ -1451,7 +1465,32 @@ export class RefreshTokenSchema extends BaseModel {
   @column()
   declare isRevoked: boolean
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
+}
+
+export class RoleSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'roleName', 'description', 'parentRoleId', 'isSystem', 'priority', 'isActive', 'createdAt', 'updatedAt'] as const
+  $columns = RoleSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare orgId: number | null
+  @column()
+  declare roleName: string
+  @column()
+  declare description: string | null
+  @column()
+  declare parentRoleId: number | null
+  @column()
+  declare isSystem: boolean
+  @column()
+  declare priority: number
+  @column()
+  declare isActive: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class RolePermissionSchema extends BaseModel {
@@ -1464,32 +1503,7 @@ export class RolePermissionSchema extends BaseModel {
   @column()
   declare grantedBy: number | null
   @column.dateTime()
-  declare grantedAt: DateTime | null
-}
-
-export class RoleSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'roleName', 'isSystem', 'description', 'parentRoleId', 'priority', 'isActive', 'createdAt', 'updatedAt'] as const
-  $columns = RoleSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number | null
-  @column()
-  declare roleName: string
-  @column()
-  declare isSystem: boolean
-  @column()
-  declare description: string | null
-  @column()
-  declare parentRoleId: number | null
-  @column()
-  declare priority: number
-  @column()
-  declare isActive: boolean
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare grantedAt: DateTime
 }
 
 export class ShiftSchema extends BaseModel {
@@ -1523,9 +1537,9 @@ export class SocialLoginSchema extends BaseModel {
   @column()
   declare providerUserId: string
   @column()
-  declare profileData: any | null
+  declare profileData: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime()
   declare lastLoginAt: DateTime | null
 }
@@ -1560,11 +1574,11 @@ export class SubscriptionSchema extends BaseModel {
   @column()
   declare externalSubscriptionId: string | null
   @column()
-  declare metadata: any | null
+  declare metadata: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class TaskSchema extends BaseModel {
@@ -1593,13 +1607,62 @@ export class TaskSchema extends BaseModel {
   @column.date()
   declare dueDate: DateTime | null
   @column()
-  declare estimatedHours: number | null
+  declare estimatedHours: string | null
   @column()
-  declare actualHours: number | null
+  declare actualHours: string | null
   @column.dateTime()
   declare deletedAt: DateTime | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class TimesheetSchema extends BaseModel {
+  static $columns = ['id', 'employeeId', 'orgId', 'taskId', 'projectId', 'entryMode', 'clientName', 'logDate', 'startTime', 'endTime', 'hoursLogged', 'isBillable', 'status', 'weekStart', 'submittedAt', 'reviewedAt', 'approvedBy', 'reviewNote', 'lockedAt', 'description', 'createdAt', 'updatedAt'] as const
+  $columns = TimesheetSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare employeeId: number
+  @column()
+  declare orgId: number
+  @column()
+  declare taskId: number | null
+  @column()
+  declare projectId: number | null
+  @column()
+  declare entryMode: string
+  @column()
+  declare clientName: string | null
+  @column.date()
+  declare logDate: DateTime
+  @column()
+  declare startTime: string | null
+  @column()
+  declare endTime: string | null
+  @column()
+  declare hoursLogged: string
+  @column()
+  declare isBillable: boolean
+  @column()
+  declare status: string
+  @column.date()
+  declare weekStart: DateTime | null
+  @column.dateTime()
+  declare submittedAt: DateTime | null
+  @column.dateTime()
+  declare reviewedAt: DateTime | null
+  @column()
+  declare approvedBy: number | null
+  @column()
+  declare reviewNote: string | null
+  @column.dateTime()
+  declare lockedAt: DateTime | null
+  @column()
+  declare description: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 }
@@ -1622,56 +1685,7 @@ export class TimesheetApprovalLogSchema extends BaseModel {
   @column()
   declare note: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-}
-
-export class TimesheetSchema extends BaseModel {
-  static $columns = ['id', 'employeeId', 'orgId', 'taskId', 'projectId', 'logDate', 'hoursLogged', 'description', 'createdAt', 'entryMode', 'clientName', 'startTime', 'endTime', 'isBillable', 'status', 'weekStart', 'submittedAt', 'reviewedAt', 'approvedBy', 'reviewNote', 'lockedAt', 'updatedAt'] as const
-  $columns = TimesheetSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare employeeId: number
-  @column()
-  declare orgId: number
-  @column()
-  declare taskId: number | null
-  @column()
-  declare projectId: number | null
-  @column.date()
-  declare logDate: DateTime
-  @column()
-  declare hoursLogged: number
-  @column()
-  declare description: string | null
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
-  @column()
-  declare entryMode: string
-  @column()
-  declare clientName: string | null
-  @column()
-  declare startTime: string | null
-  @column()
-  declare endTime: string | null
-  @column()
-  declare isBillable: boolean
-  @column()
-  declare status: string
-  @column.date()
-  declare weekStart: DateTime | null
-  @column.dateTime()
-  declare submittedAt: DateTime | null
-  @column.dateTime()
-  declare reviewedAt: DateTime | null
-  @column()
-  declare approvedBy: number | null
-  @column()
-  declare reviewNote: string | null
-  @column.dateTime()
-  declare lockedAt: DateTime | null
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare createdAt: DateTime
 }
 
 export class TrustedDeviceSchema extends BaseModel {
@@ -1686,9 +1700,26 @@ export class TrustedDeviceSchema extends BaseModel {
   @column()
   declare deviceName: string | null
   @column.dateTime()
-  declare trustedAt: DateTime | null
+  declare trustedAt: DateTime
   @column.dateTime()
   declare lastUsedAt: DateTime | null
+}
+
+export class UserSchema extends BaseModel {
+  static $columns = ['id', 'fullName', 'email', 'password', 'createdAt', 'updatedAt'] as const
+  $columns = UserSchema.$columns
+  @column({ isPrimary: true })
+  declare id: number
+  @column()
+  declare fullName: string | null
+  @column()
+  declare email: string
+  @column({ serializeAs: null })
+  declare password: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime | null
 }
 
 export class UserPermissionSchema extends BaseModel {
@@ -1709,18 +1740,18 @@ export class UserPermissionSchema extends BaseModel {
   @column()
   declare grantedBy: number | null
   @column.dateTime()
-  declare grantedAt: DateTime | null
+  declare grantedAt: DateTime
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
+  declare updatedAt: DateTime
 }
 
 export class UserSessionSchema extends BaseModel {
   static $columns = ['id', 'employeeId', 'orgId', 'sessionToken', 'refreshToken', 'deviceInfo', 'ipAddress', 'userAgent', 'lastActivity', 'expiresAt', 'isRevoked', 'revokedAt', 'revokedReason', 'createdAt'] as const
   $columns = UserSessionSchema.$columns
   @column({ isPrimary: true })
-  declare id: number
+  declare id: bigint | number
   @column()
   declare employeeId: number
   @column()
@@ -1736,7 +1767,7 @@ export class UserSessionSchema extends BaseModel {
   @column()
   declare userAgent: string | null
   @column.dateTime()
-  declare lastActivity: DateTime | null
+  declare lastActivity: DateTime
   @column.dateTime()
   declare expiresAt: DateTime
   @column()
@@ -1746,20 +1777,74 @@ export class UserSessionSchema extends BaseModel {
   @column()
   declare revokedReason: string | null
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime | null
+  declare createdAt: DateTime
 }
 
-export class UserSchema extends BaseModel {
-  static $columns = ['id', 'fullName', 'email', 'password', 'createdAt', 'updatedAt'] as const
-  $columns = UserSchema.$columns
+export class VisitSchema extends BaseModel {
+  static $columns = ['id', 'orgId', 'clientId', 'visitorId', 'hostEmployeeId', 'createdBy', 'approverEmployeeId', 'approvedBy', 'title', 'purpose', 'locationName', 'visitType', 'priority', 'status', 'requiresApproval', 'scheduledStart', 'scheduledEnd', 'reminderAt', 'approvedAt', 'actualCheckInAt', 'actualCheckOutAt', 'checkInLatitude', 'checkInLongitude', 'checkOutLatitude', 'checkOutLongitude', 'checkInAddress', 'checkOutAddress', 'photoProofUrl', 'attachmentUrls', 'approvalNotes', 'completionNotes', 'createdAt', 'updatedAt'] as const
+  $columns = VisitSchema.$columns
   @column({ isPrimary: true })
   declare id: number
   @column()
-  declare fullName: string | null
+  declare orgId: number
   @column()
-  declare email: string
-  @column({ serializeAs: null })
-  declare password: string
+  declare clientId: number | null
+  @column()
+  declare visitorId: number | null
+  @column()
+  declare hostEmployeeId: number | null
+  @column()
+  declare createdBy: number
+  @column()
+  declare approverEmployeeId: number | null
+  @column()
+  declare approvedBy: number | null
+  @column()
+  declare title: string
+  @column()
+  declare purpose: string
+  @column()
+  declare locationName: string | null
+  @column()
+  declare visitType: string
+  @column()
+  declare priority: string
+  @column()
+  declare status: string
+  @column()
+  declare requiresApproval: boolean
+  @column.dateTime()
+  declare scheduledStart: DateTime
+  @column.dateTime()
+  declare scheduledEnd: DateTime | null
+  @column.dateTime()
+  declare reminderAt: DateTime | null
+  @column.dateTime()
+  declare approvedAt: DateTime | null
+  @column.dateTime()
+  declare actualCheckInAt: DateTime | null
+  @column.dateTime()
+  declare actualCheckOutAt: DateTime | null
+  @column()
+  declare checkInLatitude: string | null
+  @column()
+  declare checkInLongitude: string | null
+  @column()
+  declare checkOutLatitude: string | null
+  @column()
+  declare checkOutLongitude: string | null
+  @column()
+  declare checkInAddress: string | null
+  @column()
+  declare checkOutAddress: string | null
+  @column()
+  declare photoProofUrl: string | null
+  @column()
+  declare attachmentUrls: string | null
+  @column()
+  declare approvalNotes: string | null
+  @column()
+  declare completionNotes: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -1870,77 +1955,6 @@ export class VisitVisitorSchema extends BaseModel {
   declare notes: string | null
   @column()
   declare isActive: boolean
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime | null
-}
-
-export class VisitSchema extends BaseModel {
-  static $columns = ['id', 'orgId', 'clientId', 'visitorId', 'hostEmployeeId', 'createdBy', 'approverEmployeeId', 'approvedBy', 'title', 'purpose', 'locationName', 'visitType', 'priority', 'status', 'requiresApproval', 'scheduledStart', 'scheduledEnd', 'reminderAt', 'approvedAt', 'actualCheckInAt', 'actualCheckOutAt', 'checkInLatitude', 'checkInLongitude', 'checkOutLatitude', 'checkOutLongitude', 'checkInAddress', 'checkOutAddress', 'photoProofUrl', 'attachmentUrls', 'approvalNotes', 'completionNotes', 'createdAt', 'updatedAt'] as const
-  $columns = VisitSchema.$columns
-  @column({ isPrimary: true })
-  declare id: number
-  @column()
-  declare orgId: number
-  @column()
-  declare clientId: number | null
-  @column()
-  declare visitorId: number | null
-  @column()
-  declare hostEmployeeId: number | null
-  @column()
-  declare createdBy: number
-  @column()
-  declare approverEmployeeId: number | null
-  @column()
-  declare approvedBy: number | null
-  @column()
-  declare title: string
-  @column()
-  declare purpose: string
-  @column()
-  declare locationName: string | null
-  @column()
-  declare visitType: string
-  @column()
-  declare priority: string
-  @column()
-  declare status: string
-  @column()
-  declare requiresApproval: boolean
-  @column.dateTime()
-  declare scheduledStart: DateTime
-  @column.dateTime()
-  declare scheduledEnd: DateTime | null
-  @column.dateTime()
-  declare reminderAt: DateTime | null
-  @column.dateTime()
-  declare approvedAt: DateTime | null
-  @column.dateTime()
-  declare actualCheckInAt: DateTime | null
-  @column.dateTime()
-  declare actualCheckOutAt: DateTime | null
-  @column()
-  declare checkInLatitude: number | null
-  @column()
-  declare checkInLongitude: number | null
-  @column()
-  declare checkOutLatitude: number | null
-  @column()
-  declare checkOutLongitude: number | null
-  @column()
-  declare checkInAddress: string | null
-  @column()
-  declare checkOutAddress: string | null
-  @column()
-  declare photoProofUrl: string | null
-  @column()
-  declare attachmentUrls: string | null
-  @column()
-  declare approvalNotes: string | null
-  @column()
-  declare completionNotes: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })

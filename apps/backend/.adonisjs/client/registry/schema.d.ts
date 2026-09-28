@@ -832,6 +832,17 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeesController').default['resetKioskPin']>>>
     }
   }
+  'employees.unlock': {
+    methods: ["POST"]
+    pattern: '/api/employees/:id/unlock'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/EmployeesController').default['unlock']>>>
+    }
+  }
   'subscriptions.list_plans': {
     methods: ["GET","HEAD"]
     pattern: '/api/billing/plans'
@@ -2557,6 +2568,72 @@ export interface Registry {
       params: {}
       query: {}
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/ReportsController').default['exportPdf']>>>
+    }
+  }
+  'ai_assistant.generate_employee_summary': {
+    methods: ["POST"]
+    pattern: '/api/ai/employee-summary'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/AiAssistantController').default)['summaryValidator']>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/AiAssistantController').default)['summaryValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/AiAssistantController').default['generateEmployeeSummary']>>>
+    }
+  }
+  'ai_assistant.parse_resume': {
+    methods: ["POST"]
+    pattern: '/api/ai/parse-resume'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/AiAssistantController').default['parseResume']>>>
+    }
+  }
+  'ai_assistant.chat_query': {
+    methods: ["POST"]
+    pattern: '/api/ai/query'
+    types: {
+      body: ExtractBody<InferInput<(typeof import('#controllers/Http/AiAssistantController').default)['queryValidator']>>
+      paramsTuple: []
+      params: {}
+      query: ExtractQuery<InferInput<(typeof import('#controllers/Http/AiAssistantController').default)['queryValidator']>>
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/AiAssistantController').default['chatQuery']>>>
+    }
+  }
+  'ai_assistant.detect_attendance_anomalies': {
+    methods: ["POST"]
+    pattern: '/api/ai/attendance-anomalies'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/AiAssistantController').default['detectAttendanceAnomalies']>>>
+    }
+  }
+  'ai_assistant.recommend_leave_approval': {
+    methods: ["POST"]
+    pattern: '/api/ai/leave-recommendation'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/AiAssistantController').default['recommendLeaveApproval']>>>
+    }
+  }
+  'ai_assistant.audit_expense_claim': {
+    methods: ["POST"]
+    pattern: '/api/ai/expense-audit'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/AiAssistantController').default['auditExpenseClaim']>>>
     }
   }
 }

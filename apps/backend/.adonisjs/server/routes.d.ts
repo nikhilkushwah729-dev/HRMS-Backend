@@ -79,6 +79,7 @@ export type ScannedRoutes = {
     'employees.remove_geofence': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.set_kiosk_pin': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.reset_kiosk_pin': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'employees.unlock': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.list_plans': { paramsTuple?: []; params?: {} }
     'subscriptions.razorpay_webhook': { paramsTuple?: []; params?: {} }
     'subscriptions.stripe_webhook': { paramsTuple?: []; params?: {} }
@@ -236,6 +237,12 @@ export type ScannedRoutes = {
     'reports.get_department_wise_attendance': { paramsTuple?: []; params?: {} }
     'reports.export_excel': { paramsTuple?: []; params?: {} }
     'reports.export_pdf': { paramsTuple?: []; params?: {} }
+    'ai_assistant.generate_employee_summary': { paramsTuple?: []; params?: {} }
+    'ai_assistant.parse_resume': { paramsTuple?: []; params?: {} }
+    'ai_assistant.chat_query': { paramsTuple?: []; params?: {} }
+    'ai_assistant.detect_attendance_anomalies': { paramsTuple?: []; params?: {} }
+    'ai_assistant.recommend_leave_approval': { paramsTuple?: []; params?: {} }
+    'ai_assistant.audit_expense_claim': { paramsTuple?: []; params?: {} }
   }
   GET: {
     'countries.index': { paramsTuple?: []; params?: {} }
@@ -478,6 +485,7 @@ export type ScannedRoutes = {
     'employee_invitations.revoke': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employee_invitations.resend': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.set_kiosk_pin': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'employees.unlock': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'subscriptions.razorpay_webhook': { paramsTuple?: []; params?: {} }
     'subscriptions.stripe_webhook': { paramsTuple?: []; params?: {} }
     'subscriptions.create_upgrade_intent': { paramsTuple?: []; params?: {} }
@@ -530,6 +538,12 @@ export type ScannedRoutes = {
     'face_recognition.verify': { paramsTuple?: []; params?: {} }
     'employee_invitations.respond': { paramsTuple: [ParamValue]; params: {'token': ParamValue} }
     'leaves.adjust_balance': { paramsTuple?: []; params?: {} }
+    'ai_assistant.generate_employee_summary': { paramsTuple?: []; params?: {} }
+    'ai_assistant.parse_resume': { paramsTuple?: []; params?: {} }
+    'ai_assistant.chat_query': { paramsTuple?: []; params?: {} }
+    'ai_assistant.detect_attendance_anomalies': { paramsTuple?: []; params?: {} }
+    'ai_assistant.recommend_leave_approval': { paramsTuple?: []; params?: {} }
+    'ai_assistant.audit_expense_claim': { paramsTuple?: []; params?: {} }
   }
   PUT: {
     'organizations.update': { paramsTuple?: []; params?: {} }
