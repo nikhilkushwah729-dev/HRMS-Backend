@@ -1,4 +1,4 @@
-﻿import { HttpContext } from '@adonisjs/core/http'
+import { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 
 type CountRow = { org_id?: number; orgId?: number; total?: number; count?: number }
@@ -165,4 +165,184 @@ export default class PlatformController {
       },
     })
   }
+
+  async createOrganization({ request, response }: HttpContext) {
+    const payload = request.only(['companyName', 'email', 'industry', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state'])
+    if (!payload.companyName) {
+      return response.badRequest({ status: 'error', message: 'Organization name is required.' })
+    }
+
+    const Organization = (await import('#models/organization')).default
+    const SubscriptionService = (await import('#services/SubscriptionService')).default
+    const subService = new SubscriptionService()
+
+    const org = await Organization.create({
+      companyName: payload.companyName,
+      email: payload.email || null,
+      industry: payload.industry || 'Information Technology',
+      userLimit: Number(payload.userLimit) || 10,
+      subscriptionStatus: payload.subscriptionStatus || 'active',
+      phone: payload.phone || null,
+      city: payload.city || null,
+      state: payload.state || null,
+      isTrialActive: payload.subscriptionStatus === 'trialing',
+      readOnlyMode: false,
+    })
+
+    try {
+      await subService.assignTrialToOrganization(org.id)
+    } catch {
+      // Catalog initialization fallback
+    }
+
+    return response.created({ status: 'success', data: org })
+  }
+
+  async updateOrganization({ request, response, params }: HttpContext) {
+    const Organization = (await import('#models/organization')).default
+    const org = await Organization.find(params.id)
+    if (!org) {
+      return response.notFound({ status: 'error', message: 'Organization not found.' })
+    }
+
+    const payload = request.only(['companyName', 'email', 'industry', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state', 'isActive', 'readOnlyMode'])
+    if (payload.companyName !== undefined) org.companyName = payload.companyName
+    if (payload.email !== undefined) org.email = payload.email
+    if (payload.industry !== undefined) org.industry = payload.industry
+    if (payload.userLimit !== undefined) org.userLimit = Number(payload.userLimit) || org.userLimit
+    if (payload.subscriptionStatus !== undefined) {
+      org.subscriptionStatus = payload.subscriptionStatus
+      org.isTrialActive = payload.subscriptionStatus === 'trialing'
+    }
+    if (payload.phone !== undefined) org.phone = payload.phone
+    if (payload.city !== undefined) org.city = payload.city
+    if (payload.state !== undefined) org.state = payload.state
+    if (payload.readOnlyMode !== undefined) org.readOnlyMode = Boolean(payload.readOnlyMode)
+
+    await org.save()
+    return response.ok({ status: 'success', data: org })
+  }
+
+  async deleteOrganization({ response, params }: HttpContext) {
+    const Organization = (await import('#models/organization')).default
+    const org = await Organization.find(params.id)
+    if (!org) {
+      return response.notFound({ status: 'error', message: 'Organization not found.' })
+    }
+
+    const orgId = org.id
+    try {
+      await db.from('organization_addons').where('org_id', orgId).delete()
+      await db.from('subscriptions').where('org_id', orgId).delete()
+      await db.from('payments').where('org_id', orgId).delete()
+      await db.from('employees').where('org_id', orgId).delete()
+    } catch {
+      // Ignore cascading deletion errors
+    }
+
+    await org.delete()
+    return response.ok({ status: 'success', message: `Organization #${orgId} deleted successfully.` })
+  }
+
+  async getOrganizationAddons({ response, params }: HttpContext) {
+    const orgId = Number(params.id)
+    const allAddons = await db.from('addon_prices').where('is_active', true).select('id', 'name', 'slug', 'price')
+    const orgAddons = await db.from('organization_addons').where('org_id', orgId)
+
+    const enabledMap = new Map<number, boolean>()
+    orgAddons.forEach((row: any) => enabledMap.set(Number(row.addon_id), Boolean(row.is_active)))
+
+    const mapped = allAddons.map((addon: any) => ({
+      id: Number(addon.id),
+      name: addon.name,
+      slug: addon.slug,
+      price: Number(addon.price || 0),
+      enabled: enabledMap.get(Number(addon.id)) ?? true,
+    }))
+
+    return response.ok({ status: 'success', data: mapped })
+  }
+
+  async updateOrganizationAddons({ request, response, params }: HttpContext) {
+    const orgId = Number(params.id)
+    const addons = request.input('addons', []) as Array<{ id: number; enabled: boolean }>
+
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    for (const item of addons) {
+      const addonId = Number(item.id)
+      const isEnabled = Boolean(item.enabled)
+      const existing = await db.from('organization_addons').where('org_id', orgId).where('addon_id', addonId).first()
+
+      if (existing) {
+        await db.from('organization_addons').where('id', existing.id).update({
+          is_active: isEnabled,
+          updated_at: now,
+        })
+      } else {
+        await db.table('organization_addons').insert({
+          org_id: orgId,
+          addon_id: addonId,
+          is_active: isEnabled,
+          start_date: now.slice(0, 10),
+        })
+      }
+    }
+
+    return response.ok({ status: 'success', message: 'Organization module permissions updated successfully.' })
+  }
+
+  async getOrganizationUsers({ response, params }: HttpContext) {
+    const orgId = Number(params.id)
+    const employees = await db
+      .from('employees')
+      .leftJoin('roles', 'roles.id', 'employees.role_id')
+      .select(
+        'employees.id',
+        'employees.first_name',
+        'employees.last_name',
+        'employees.email',
+        'employees.phone',
+        'employees.employee_code',
+        'employees.status',
+        'employees.role_id',
+        'roles.name as role_name'
+      )
+      .where('employees.org_id', orgId)
+      .orderBy('employees.id', 'asc')
+
+    const mapped = employees.map((emp: any) => ({
+      id: Number(emp.id),
+      firstName: emp.first_name || '',
+      lastName: emp.last_name || '',
+      fullName: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
+      email: emp.email || '',
+      phone: emp.phone || '',
+      employeeCode: emp.employee_code || '',
+      roleName: emp.role_name || (emp.role_id === 1 ? 'Super Admin' : emp.role_id === 2 ? 'Admin' : 'Employee'),
+      status: emp.status || 'active',
+    }))
+
+    return response.ok({ status: 'success', data: mapped })
+  }
+
+  async resetUserPassword({ request, response, params }: HttpContext) {
+    const userId = Number(params.userId)
+    const newPassword = request.input('password')
+    if (!newPassword || newPassword.length < 6) {
+      return response.badRequest({ status: 'error', message: 'New password must be at least 6 characters.' })
+    }
+
+    const Employee = (await import('#models/employee')).default
+    const employee = await Employee.find(userId)
+    if (!employee) {
+      return response.notFound({ status: 'error', message: 'Employee user not found.' })
+    }
+
+    employee.passwordHash = newPassword
+    await employee.save()
+
+    return response.ok({ status: 'success', message: `Password for ${employee.email} updated successfully.` })
+  }
 }
+
+

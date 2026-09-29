@@ -258,6 +258,48 @@ const routes = {
     tokens: [{"old":"/api/platform/overview","type":0,"val":"api","end":""},{"old":"/api/platform/overview","type":0,"val":"platform","end":""},{"old":"/api/platform/overview","type":0,"val":"overview","end":""}],
     types: placeholder as Registry['platform.overview']['types'],
   },
+  'platform.create_organization': {
+    methods: ["POST"],
+    pattern: '/api/platform/organizations',
+    tokens: [{"old":"/api/platform/organizations","type":0,"val":"api","end":""},{"old":"/api/platform/organizations","type":0,"val":"platform","end":""},{"old":"/api/platform/organizations","type":0,"val":"organizations","end":""}],
+    types: placeholder as Registry['platform.create_organization']['types'],
+  },
+  'platform.update_organization': {
+    methods: ["PUT"],
+    pattern: '/api/platform/organizations/:id',
+    tokens: [{"old":"/api/platform/organizations/:id","type":0,"val":"api","end":""},{"old":"/api/platform/organizations/:id","type":0,"val":"platform","end":""},{"old":"/api/platform/organizations/:id","type":0,"val":"organizations","end":""},{"old":"/api/platform/organizations/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['platform.update_organization']['types'],
+  },
+  'platform.delete_organization': {
+    methods: ["DELETE"],
+    pattern: '/api/platform/organizations/:id',
+    tokens: [{"old":"/api/platform/organizations/:id","type":0,"val":"api","end":""},{"old":"/api/platform/organizations/:id","type":0,"val":"platform","end":""},{"old":"/api/platform/organizations/:id","type":0,"val":"organizations","end":""},{"old":"/api/platform/organizations/:id","type":1,"val":"id","end":""}],
+    types: placeholder as Registry['platform.delete_organization']['types'],
+  },
+  'platform.get_organization_addons': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/platform/organizations/:id/addons',
+    tokens: [{"old":"/api/platform/organizations/:id/addons","type":0,"val":"api","end":""},{"old":"/api/platform/organizations/:id/addons","type":0,"val":"platform","end":""},{"old":"/api/platform/organizations/:id/addons","type":0,"val":"organizations","end":""},{"old":"/api/platform/organizations/:id/addons","type":1,"val":"id","end":""},{"old":"/api/platform/organizations/:id/addons","type":0,"val":"addons","end":""}],
+    types: placeholder as Registry['platform.get_organization_addons']['types'],
+  },
+  'platform.update_organization_addons': {
+    methods: ["POST"],
+    pattern: '/api/platform/organizations/:id/addons',
+    tokens: [{"old":"/api/platform/organizations/:id/addons","type":0,"val":"api","end":""},{"old":"/api/platform/organizations/:id/addons","type":0,"val":"platform","end":""},{"old":"/api/platform/organizations/:id/addons","type":0,"val":"organizations","end":""},{"old":"/api/platform/organizations/:id/addons","type":1,"val":"id","end":""},{"old":"/api/platform/organizations/:id/addons","type":0,"val":"addons","end":""}],
+    types: placeholder as Registry['platform.update_organization_addons']['types'],
+  },
+  'platform.get_organization_users': {
+    methods: ["GET","HEAD"],
+    pattern: '/api/platform/organizations/:id/users',
+    tokens: [{"old":"/api/platform/organizations/:id/users","type":0,"val":"api","end":""},{"old":"/api/platform/organizations/:id/users","type":0,"val":"platform","end":""},{"old":"/api/platform/organizations/:id/users","type":0,"val":"organizations","end":""},{"old":"/api/platform/organizations/:id/users","type":1,"val":"id","end":""},{"old":"/api/platform/organizations/:id/users","type":0,"val":"users","end":""}],
+    types: placeholder as Registry['platform.get_organization_users']['types'],
+  },
+  'platform.reset_user_password': {
+    methods: ["POST"],
+    pattern: '/api/platform/users/:userId/reset-password',
+    tokens: [{"old":"/api/platform/users/:userId/reset-password","type":0,"val":"api","end":""},{"old":"/api/platform/users/:userId/reset-password","type":0,"val":"platform","end":""},{"old":"/api/platform/users/:userId/reset-password","type":0,"val":"users","end":""},{"old":"/api/platform/users/:userId/reset-password","type":1,"val":"userId","end":""},{"old":"/api/platform/users/:userId/reset-password","type":0,"val":"reset-password","end":""}],
+    types: placeholder as Registry['platform.reset_user_password']['types'],
+  },
   'employees.my_team': {
     methods: ["GET","HEAD"],
     pattern: '/api/employees/my-team',

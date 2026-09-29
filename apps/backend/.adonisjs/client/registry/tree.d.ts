@@ -57,6 +57,13 @@ export interface ApiDefinition {
   }
   platform: {
     overview: typeof routes['platform.overview']
+    createOrganization: typeof routes['platform.create_organization']
+    updateOrganization: typeof routes['platform.update_organization']
+    deleteOrganization: typeof routes['platform.delete_organization']
+    getOrganizationAddons: typeof routes['platform.get_organization_addons']
+    updateOrganizationAddons: typeof routes['platform.update_organization_addons']
+    getOrganizationUsers: typeof routes['platform.get_organization_users']
+    resetUserPassword: typeof routes['platform.reset_user_password']
   }
   employees: {
     myTeam: typeof routes['employees.my_team']

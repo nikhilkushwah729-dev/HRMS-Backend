@@ -46,6 +46,13 @@ export type ScannedRoutes = {
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
     'organizations.toggle_addon': { paramsTuple?: []; params?: {} }
     'platform.overview': { paramsTuple?: []; params?: {} }
+    'platform.create_organization': { paramsTuple?: []; params?: {} }
+    'platform.update_organization': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.delete_organization': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.get_organization_addons': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.update_organization_addons': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.get_organization_users': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.reset_user_password': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'employees.my_team': { paramsTuple?: []; params?: {} }
     'kiosks.register': { paramsTuple?: []; params?: {} }
     'kiosks.validate': { paramsTuple?: []; params?: {} }
@@ -259,6 +266,8 @@ export type ScannedRoutes = {
     'holidays.index': { paramsTuple?: []; params?: {} }
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
     'platform.overview': { paramsTuple?: []; params?: {} }
+    'platform.get_organization_addons': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.get_organization_users': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.my_team': { paramsTuple?: []; params?: {} }
     'kiosks.index': { paramsTuple?: []; params?: {} }
     'kiosks.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -363,6 +372,8 @@ export type ScannedRoutes = {
     'holidays.index': { paramsTuple?: []; params?: {} }
     'organizations.get_addons': { paramsTuple?: []; params?: {} }
     'platform.overview': { paramsTuple?: []; params?: {} }
+    'platform.get_organization_addons': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.get_organization_users': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.my_team': { paramsTuple?: []; params?: {} }
     'kiosks.index': { paramsTuple?: []; params?: {} }
     'kiosks.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -473,6 +484,9 @@ export type ScannedRoutes = {
     'organizations.store_designation': { paramsTuple?: []; params?: {} }
     'holidays.store': { paramsTuple?: []; params?: {} }
     'organizations.toggle_addon': { paramsTuple?: []; params?: {} }
+    'platform.create_organization': { paramsTuple?: []; params?: {} }
+    'platform.update_organization_addons': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.reset_user_password': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'kiosks.register': { paramsTuple?: []; params?: {} }
     'kiosks.validate': { paramsTuple?: []; params?: {} }
     'kiosk_attendance.mark_face': { paramsTuple?: []; params?: {} }
@@ -551,6 +565,7 @@ export type ScannedRoutes = {
     'organizations.update_designation': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'organizations.save_setting_collection': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'holidays.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.update_organization': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.update_geofence': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'attendances.update_zone': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -575,6 +590,7 @@ export type ScannedRoutes = {
     'organizations.destroy_department': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'organizations.destroy_designation': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'holidays.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'platform.delete_organization': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.remove_geofence': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'employees.reset_kiosk_pin': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

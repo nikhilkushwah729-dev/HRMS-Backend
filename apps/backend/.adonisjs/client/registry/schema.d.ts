@@ -469,6 +469,83 @@ export interface Registry {
       response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['overview']>>>
     }
   }
+  'platform.create_organization': {
+    methods: ["POST"]
+    pattern: '/api/platform/organizations'
+    types: {
+      body: {}
+      paramsTuple: []
+      params: {}
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['createOrganization']>>>
+    }
+  }
+  'platform.update_organization': {
+    methods: ["PUT"]
+    pattern: '/api/platform/organizations/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['updateOrganization']>>>
+    }
+  }
+  'platform.delete_organization': {
+    methods: ["DELETE"]
+    pattern: '/api/platform/organizations/:id'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['deleteOrganization']>>>
+    }
+  }
+  'platform.get_organization_addons': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/platform/organizations/:id/addons'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['getOrganizationAddons']>>>
+    }
+  }
+  'platform.update_organization_addons': {
+    methods: ["POST"]
+    pattern: '/api/platform/organizations/:id/addons'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['updateOrganizationAddons']>>>
+    }
+  }
+  'platform.get_organization_users': {
+    methods: ["GET","HEAD"]
+    pattern: '/api/platform/organizations/:id/users'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { id: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['getOrganizationUsers']>>>
+    }
+  }
+  'platform.reset_user_password': {
+    methods: ["POST"]
+    pattern: '/api/platform/users/:userId/reset-password'
+    types: {
+      body: {}
+      paramsTuple: [ParamValue]
+      params: { userId: ParamValue }
+      query: {}
+      response: ExtractResponse<Awaited<ReturnType<import('#controllers/Http/PlatformController').default['resetUserPassword']>>>
+    }
+  }
   'employees.my_team': {
     methods: ["GET","HEAD"]
     pattern: '/api/employees/my-team'

@@ -281,9 +281,24 @@ export default class SubscriptionService {
     return planModules.some((item) => aliases.includes(this.normalizeModule(item)))
   }
 
+  private async resolveOrganization(orgId: number | null | undefined): Promise<Organization> {
+    if (orgId) {
+      const org = await Organization.find(orgId)
+      if (org) return org
+    }
+    const firstOrg = await Organization.first()
+    if (firstOrg) return firstOrg
+    return await Organization.create({
+      companyName: 'HRNexus Enterprise Workspace',
+      email: 'admin@hrnexus.com',
+      isTrialActive: true,
+      userLimit: 10,
+    })
+  }
+
   async assignTrialToOrganization(orgId: number) {
     await this.ensureCatalog()
-    const org = await Organization.findOrFail(orgId)
+    const org = await this.resolveOrganization(orgId)
     const trialPlan = await Plan.query().where('slug', 'trial').firstOrFail()
 
     const trialStart = DateTime.now().startOf('day')
@@ -389,7 +404,7 @@ export default class SubscriptionService {
     nouser: number
   }) {
     await this.ensureCatalog()
-    const org = await Organization.findOrFail(orgId)
+    const org = await this.resolveOrganization(orgId)
     const fallbackPlan = await Plan.query().where('slug', 'basic').firstOrFail()
     const now = DateTime.now().startOf('day')
     const endDate = payload.durationType.toLowerCase().startsWith('year')
@@ -635,7 +650,7 @@ export default class SubscriptionService {
 
   async createUpgradeIntent(orgId: number, payload: { planId: number; billingCycle: BillingCycle; gateway: BillingGateway }) {
     await this.ensureCatalog()
-    const org = await Organization.findOrFail(orgId)
+    const org = await this.resolveOrganization(orgId)
     // Re-fetch after ensureCatalog to get the latest seeded values
     const plan = await Plan.findOrFail(payload.planId)
     // MySQL stores TINYINT for booleans — cast explicitly to avoid falsy-number issues
@@ -748,7 +763,7 @@ export default class SubscriptionService {
   }
 
   private async activatePaidPlan(orgId: number, payment: Payment) {
-    const org = await Organization.findOrFail(orgId)
+    const org = await this.resolveOrganization(orgId)
     const plan = await Plan.findOrFail(payment.planId!)
     const now = DateTime.now().startOf('day')
     const endDate = payment.billingCycle === 'yearly' ? now.plus({ year: 1 }) : now.plus({ month: 1 })

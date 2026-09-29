@@ -125,6 +125,13 @@ router.group(() => {
  */
 router.group(() => {
   router.get('overview', [PlatformController, 'overview'])
+  router.post('organizations', [PlatformController, 'createOrganization'])
+  router.put('organizations/:id', [PlatformController, 'updateOrganization'])
+  router.delete('organizations/:id', [PlatformController, 'deleteOrganization'])
+  router.get('organizations/:id/addons', [PlatformController, 'getOrganizationAddons'])
+  router.post('organizations/:id/addons', [PlatformController, 'updateOrganizationAddons'])
+  router.get('organizations/:id/users', [PlatformController, 'getOrganizationUsers'])
+  router.post('users/:userId/reset-password', [PlatformController, 'resetUserPassword'])
 }).prefix('api/platform').use(middleware.auth())
 
 router
