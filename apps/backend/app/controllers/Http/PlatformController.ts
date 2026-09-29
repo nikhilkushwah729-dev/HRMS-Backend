@@ -303,7 +303,7 @@ export default class PlatformController {
         'employees.employee_code',
         'employees.status',
         'employees.role_id',
-        'roles.name as role_name'
+        'roles.role_name as role_name'
       )
       .where('employees.org_id', orgId)
       .orderBy('employees.id', 'asc')
