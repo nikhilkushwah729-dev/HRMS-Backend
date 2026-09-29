@@ -167,7 +167,7 @@ export default class PlatformController {
   }
 
   async createOrganization({ request, response }: HttpContext) {
-    const payload = request.only(['companyName', 'email', 'industry', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state'])
+    const payload = request.only(['companyName', 'email', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state'])
     if (!payload.companyName) {
       return response.badRequest({ status: 'error', message: 'Organization name is required.' })
     }
@@ -179,7 +179,6 @@ export default class PlatformController {
     const org = await Organization.create({
       companyName: payload.companyName,
       email: payload.email || null,
-      industry: payload.industry || 'Information Technology',
       userLimit: Number(payload.userLimit) || 10,
       subscriptionStatus: payload.subscriptionStatus || 'active',
       phone: payload.phone || null,
@@ -205,10 +204,9 @@ export default class PlatformController {
       return response.notFound({ status: 'error', message: 'Organization not found.' })
     }
 
-    const payload = request.only(['companyName', 'email', 'industry', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state', 'isActive', 'readOnlyMode'])
+    const payload = request.only(['companyName', 'email', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state', 'isActive', 'readOnlyMode'])
     if (payload.companyName !== undefined) org.companyName = payload.companyName
     if (payload.email !== undefined) org.email = payload.email
-    if (payload.industry !== undefined) org.industry = payload.industry
     if (payload.userLimit !== undefined) org.userLimit = Number(payload.userLimit) || org.userLimit
     if (payload.subscriptionStatus !== undefined) {
       org.subscriptionStatus = payload.subscriptionStatus
