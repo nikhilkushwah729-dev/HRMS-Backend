@@ -169,33 +169,53 @@ export default class EmployeeService {
         return employee ?? null
     }
 
+    private async resolveOrganization(orgId: number | null | undefined): Promise<Organization> {
+        if (orgId) {
+            const org = await Organization.find(orgId)
+            if (org) return org
+        }
+        const firstOrg = await Organization.first()
+        if (firstOrg) return firstOrg
+        return await Organization.create({
+            companyName: 'HRNexus Enterprise Workspace',
+            email: 'admin@hrnexus.com',
+            userLimit: 100,
+            subscriptionStatus: 'active',
+            isTrialActive: false,
+            readOnlyMode: false,
+        })
+    }
+
     async create(orgId: number, data: any) {
         const payload = this.parseEmployeeData(data)
 
         // Enforce plan user limit
-        const organization = await Organization.findOrFail(orgId)
+        const organization = await this.resolveOrganization(orgId)
+        const targetOrgId = organization.id
+
         const activeCount = await Employee.query()
-            .where('org_id', orgId)
+            .where('org_id', targetOrgId)
             .whereNull('deleted_at')
             .count('* as total')
             .first()
         
         const count = Number(activeCount?.$extras.total || 0)
-        if (count >= organization.userLimit) {
+        const userLimit = organization.userLimit || 50
+        if (count >= userLimit) {
             throw new Exception(
-                `Workspace limit reached (${organization.userLimit} seats). Please upgrade your plan to add more employees.`, 
+                `Workspace limit reached (${userLimit} seats). Please upgrade your plan to add more employees.`, 
                 { status: 403 }
             )
         }
 
         if (!payload.employeeCode) {
-            payload.employeeCode = await this.generateEmployeeCode(orgId)
+            payload.employeeCode = await this.generateEmployeeCode(targetOrgId)
         }
 
-        await this.assertUniqueEmployeeFields(orgId, payload)
+        await this.assertUniqueEmployeeFields(targetOrgId, payload)
 
         try {
-            return await Employee.create({ ...payload, orgId })
+            return await Employee.create({ ...payload, orgId: targetOrgId })
         } catch (error: any) {
             if (this.isDuplicateEntryError(error)) {
                 throw new Exception('An employee with the same email or employee code already exists', { status: 409 })
@@ -232,6 +252,8 @@ export default class EmployeeService {
 
     private parseEmployeeData(data: any) {
         const payload = { ...data }
+        delete payload.organizationId
+        delete payload.orgId
 
         if (payload.joinDate && typeof payload.joinDate === 'string') {
             payload.joinDate = DateTime.fromISO(payload.joinDate)
