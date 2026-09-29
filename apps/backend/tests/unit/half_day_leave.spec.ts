@@ -1,10 +1,9 @@
 import { test } from '@japa/runner'
 import LeavesController from '#controllers/Http/LeavesController'
 import db from '@adonisjs/lucid/services/db'
-import Organization from '#models/organization'
-import Employee from '#models/employee'
 import Leave from '#models/leave'
 import Payroll from '#models/payroll'
+import { DateTime } from 'luxon'
 import { setupTestTenants } from '../helpers/tenant_harness.js'
 
 test.group('Half Day Leave & HTTP Endpoint Verification', () => {
@@ -100,8 +99,8 @@ test.group('Half Day Leave & HTTP Endpoint Verification', () => {
       employeeId: tenantA.admin.id,
       orgId: tenantA.org.id,
       leaveTypeId: Number(leaveTypeId),
-      startDate: '2026-10-15',
-      endDate: '2026-10-15',
+      startDate: DateTime.fromISO('2026-10-15'),
+      endDate: DateTime.fromISO('2026-10-15'),
       reason: 'HTTP Test Half Day',
       durationType: 'half_day',
       halfDaySession: 'second_half',
@@ -142,7 +141,7 @@ test.group('Half Day Leave & HTTP Endpoint Verification', () => {
     console.log(JSON.stringify(payrollResponse.body(), null, 2))
     console.log('===================================================')
 
-    const leavesData = leavesResponse.body().data
+    const leavesData: any = leavesResponse.body().data
     assert.isArray(leavesData)
     assert.isAbove(leavesData.length, 0)
 
@@ -157,7 +156,7 @@ test.group('Half Day Leave & HTTP Endpoint Verification', () => {
     assert.isUndefined(targetLeave.half_day_session)
     assert.isUndefined(targetLeave.start_date)
 
-    const payrollData = payrollResponse.body().data
+    const payrollData: any = payrollResponse.body().data
     assert.isArray(payrollData)
     assert.isAbove(payrollData.length, 0)
 

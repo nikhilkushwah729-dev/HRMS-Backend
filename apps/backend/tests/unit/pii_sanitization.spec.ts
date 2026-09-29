@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 import AuthorizationService from '#services/AuthorizationService'
 import Employee from '#models/employee'
-import Role from '#models/role'
 import Permission from '#models/permission'
 
 test.group('PII Backend Sanitization Spec', () => {
@@ -72,10 +71,9 @@ test.group('PII Backend Sanitization Spec', () => {
     const payrollActor = new Employee()
     payrollActor.id = 10
     payrollActor.roleId = 99
-    payrollActor.role = new Role()
-    payrollActor.role.permissions = [
-      { permissionKey: 'payroll_read' } as Permission
-    ]
+    ;(payrollActor as any).role = {
+      permissions: [{ permissionKey: 'payroll_read' } as Permission],
+    }
 
     const employeeRecord = {
       id: 2,
@@ -97,10 +95,9 @@ test.group('PII Backend Sanitization Spec', () => {
     const processActor = new Employee()
     processActor.id = 11
     processActor.roleId = 98
-    processActor.role = new Role()
-    processActor.role.permissions = [
-      { permissionKey: 'payroll_process' } as Permission
-    ]
+    ;(processActor as any).role = {
+      permissions: [{ permissionKey: 'payroll_process' } as Permission],
+    }
 
     const employeeRecord = {
       id: 2,
