@@ -203,6 +203,8 @@ router.group(() => {
   router.get('status', [SubscriptionsController, 'getStatus'])
   router.post('upgrade-intent', [SubscriptionsController, 'createUpgradeIntent'])
   router.post('verify-payment', [SubscriptionsController, 'verifyPayment'])
+
+  // TODO: Legacy billing endpoints support backward compatibility and Razorpay fallback. Standardize to /upgrade-intent and /verify-payment in future cleanup.
   router.get('legacy/context', [SubscriptionsController, 'getLegacyContext'])
   router.post('legacy/purchase', [SubscriptionsController, 'legacyPurchase'])
   router.post('legacy/confirm', [SubscriptionsController, 'legacyConfirm'])

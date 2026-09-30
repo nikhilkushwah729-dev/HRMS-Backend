@@ -689,39 +689,8 @@ export default class SubscriptionService {
     return Number(result?.total ?? 0)
   }
 
-  private static paymentColumnsEnsured = false
-
-  private async ensurePaymentColumns() {
-    if (SubscriptionService.paymentColumnsEnsured) return
-    try {
-      const columns = [
-        { name: 'payment_gateway', type: 'VARCHAR(30) NULL' },
-        { name: 'provider', type: 'VARCHAR(30) NULL' },
-        { name: 'provider_order_id', type: 'VARCHAR(255) NULL' },
-        { name: 'provider_payment_id', type: 'VARCHAR(255) NULL' },
-        { name: 'provider_signature', type: 'VARCHAR(500) NULL' },
-        { name: 'billing_cycle', type: 'VARCHAR(20) NULL' },
-        { name: 'failure_reason', type: 'VARCHAR(500) NULL' },
-        { name: 'invoice_url', type: 'VARCHAR(500) NULL' },
-        { name: 'webhook_event_id', type: 'VARCHAR(255) NULL' },
-        { name: 'metadata', type: 'LONGTEXT NULL' },
-      ]
-      for (const col of columns) {
-        try {
-          await db.rawQuery(`ALTER TABLE payments ADD COLUMN ${col.name} ${col.type}`)
-        } catch {
-          // Ignore if column already exists
-        }
-      }
-      SubscriptionService.paymentColumnsEnsured = true
-    } catch {
-      // Ignore
-    }
-  }
-
   async createUpgradeIntent(orgId: number, payload: { planId: number; billingCycle: BillingCycle; gateway: BillingGateway }) {
     await this.ensureCatalog()
-    await this.ensurePaymentColumns()
     const org = await this.resolveOrganization(orgId)
     // Re-fetch after ensureCatalog to get the latest seeded values
     const plan = await Plan.findOrFail(payload.planId)

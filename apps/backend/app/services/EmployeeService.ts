@@ -4,6 +4,7 @@ import OrganizationSetting from '#models/organization_setting'
 import { Exception } from '@adonisjs/core/exceptions'
 import { DateTime } from 'luxon'
 import AuthorizationService from '#services/AuthorizationService'
+import logger from '@adonisjs/core/services/logger'
 
 export default class EmployeeService {
     private readonly employeeCodePrefixKey = 'employee-code-prefix'
@@ -169,32 +170,18 @@ export default class EmployeeService {
         return employee ?? null
     }
 
-    private async resolveOrganization(orgId: number | null | undefined): Promise<Organization> {
-        if (orgId) {
-            const org = await Organization.find(orgId)
-            if (org) return org
-        }
-        const firstOrg = await Organization.first()
-        if (firstOrg) return firstOrg
-        return await Organization.create({
-            companyName: 'HRNexus Enterprise Workspace',
-            email: 'admin@hrnexus.com',
-            userLimit: 100,
-            subscriptionStatus: 'active',
-            isTrialActive: false,
-            readOnlyMode: false,
-        })
-    }
-
     async create(orgId: number, data: any) {
         const payload = this.parseEmployeeData(data)
 
-        // Enforce plan user limit
-        const organization = await this.resolveOrganization(orgId)
-        const targetOrgId = organization.id
+        // Strict organization lookup for tenant isolation
+        const organization = await Organization.find(orgId)
+        if (!organization) {
+            logger.warn({ orgId, data }, 'Employee creation attempted with invalid or missing orgId')
+            throw new Exception('Organization not found', { status: 404 })
+        }
 
         const activeCount = await Employee.query()
-            .where('org_id', targetOrgId)
+            .where('org_id', orgId)
             .whereNull('deleted_at')
             .count('* as total')
             .first()
@@ -209,13 +196,13 @@ export default class EmployeeService {
         }
 
         if (!payload.employeeCode) {
-            payload.employeeCode = await this.generateEmployeeCode(targetOrgId)
+            payload.employeeCode = await this.generateEmployeeCode(orgId)
         }
 
-        await this.assertUniqueEmployeeFields(targetOrgId, payload)
+        await this.assertUniqueEmployeeFields(orgId, payload)
 
         try {
-            return await Employee.create({ ...payload, orgId: targetOrgId })
+            return await Employee.create({ ...payload, orgId })
         } catch (error: any) {
             if (this.isDuplicateEntryError(error)) {
                 throw new Exception('An employee with the same email or employee code already exists', { status: 409 })
