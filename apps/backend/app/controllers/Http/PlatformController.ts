@@ -197,11 +197,20 @@ export default class PlatformController {
     return response.created({ status: 'success', data: org })
   }
 
-  async updateOrganization({ request, response, params }: HttpContext) {
+  async updateOrganization(ctx: HttpContext) {
+    const { request, response, params, auth } = ctx
     const Organization = (await import('#models/organization')).default
     const org = await Organization.find(params.id)
     if (!org) {
       return response.notFound({ status: 'error', message: 'Organization not found.' })
+    }
+
+    const oldValues = {
+      companyName: org.companyName,
+      email: org.email,
+      userLimit: org.userLimit,
+      subscriptionStatus: org.subscriptionStatus,
+      readOnlyMode: org.readOnlyMode,
     }
 
     const payload = request.only(['companyName', 'email', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state', 'isActive', 'readOnlyMode'])
@@ -218,6 +227,29 @@ export default class PlatformController {
     if (payload.readOnlyMode !== undefined) org.readOnlyMode = Boolean(payload.readOnlyMode)
 
     await org.save()
+
+    const user = auth.user
+    if (user) {
+      try {
+        const AuditLogService = (await import('#services/AuditLogService')).default
+        const GeoService = (await import('#services/GeoService')).default
+        const auditLogService = new AuditLogService(new GeoService())
+        await auditLogService.log({
+          orgId: org.id,
+          employeeId: user.id,
+          action: 'UPDATE_ORGANIZATION_SETTINGS',
+          module: 'Platform',
+          entityName: 'Organization',
+          entityId: org.id,
+          oldValues,
+          newValues: payload,
+          ctx,
+        })
+      } catch {
+        // Suppress audit log failures to ensure primary update flow succeeds
+      }
+    }
+
     return response.ok({ status: 'success', data: org })
   }
 
@@ -261,7 +293,8 @@ export default class PlatformController {
     return response.ok({ status: 'success', data: mapped })
   }
 
-  async updateOrganizationAddons({ request, response, params }: HttpContext) {
+  async updateOrganizationAddons(ctx: HttpContext) {
+    const { request, response, params, auth } = ctx
     const orgId = Number(params.id)
     const addons = request.input('addons', []) as Array<{ id: number; enabled: boolean }>
 
@@ -283,6 +316,27 @@ export default class PlatformController {
           is_active: isEnabled,
           start_date: now.slice(0, 10),
         })
+      }
+    }
+
+    const user = auth.user
+    if (user) {
+      try {
+        const AuditLogService = (await import('#services/AuditLogService')).default
+        const GeoService = (await import('#services/GeoService')).default
+        const auditLogService = new AuditLogService(new GeoService())
+        await auditLogService.log({
+          orgId,
+          employeeId: user.id,
+          action: 'UPDATE_ORGANIZATION_ADDONS',
+          module: 'Platform',
+          entityName: 'OrganizationAddon',
+          entityId: orgId,
+          newValues: addons,
+          ctx,
+        })
+      } catch {
+        // Suppress audit log failures to ensure primary update flow succeeds
       }
     }
 
