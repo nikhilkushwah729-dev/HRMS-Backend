@@ -159,7 +159,6 @@ export default class SubscriptionService {
     shiftplanner: ['shiftplanner', 'shift'],
     timesheet: ['timesheet', 'timesheets'],
     payroll: ['payroll', 'salary'],
-    manageclients: ['manageclients', 'clients', 'clientmanagement'],
     expense: ['expense', 'expenses'],
   }
 
@@ -199,6 +198,41 @@ export default class SubscriptionService {
             limitValue: feature.value ?? null,
           }
         )
+      }
+    }
+
+    const realAddons = [
+      { name: 'Leave & Time Off', slug: 'leaveandtimeoff', price: 300 },
+      { name: 'Employee GPS Tracking', slug: 'employeetracking', price: 400 },
+      { name: 'Visit Management', slug: 'trackvisits', price: 300 },
+      { name: 'Geofence Attendance', slug: 'geofence', price: 200 },
+      { name: 'Face Recognition', slug: 'facerecognition', price: 1000 },
+      { name: 'Shift Planner', slug: 'shiftplanner', price: 300 },
+      { name: 'Timesheet Management', slug: 'timesheet', price: 200 },
+      { name: 'Payroll & Tax', slug: 'payroll', price: 500 },
+      { name: 'Expense Management', slug: 'expense', price: 300 },
+    ]
+
+    const validSlugs = new Set(realAddons.map((item) => item.slug))
+
+    for (const item of realAddons) {
+      await AddonPrice.updateOrCreate(
+        { slug: item.slug },
+        {
+          name: item.name,
+          slug: item.slug,
+          price: item.price,
+          isActive: true,
+        }
+      )
+    }
+
+    // Deactivate non-existent/dummy addons
+    const allAddons = await AddonPrice.all()
+    for (const addon of allAddons) {
+      if (!validSlugs.has(addon.slug)) {
+        addon.isActive = false
+        await addon.save()
       }
     }
   }
