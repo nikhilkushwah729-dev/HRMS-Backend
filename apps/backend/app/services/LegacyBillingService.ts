@@ -323,6 +323,36 @@ export default class LegacyBillingService {
     })
   }
 
+  private static paymentColumnsEnsured = false
+
+  private async ensurePaymentColumns() {
+    if (LegacyBillingService.paymentColumnsEnsured) return
+    try {
+      const columns = [
+        { name: 'payment_gateway', type: 'VARCHAR(30) NULL' },
+        { name: 'provider', type: 'VARCHAR(30) NULL' },
+        { name: 'provider_order_id', type: 'VARCHAR(255) NULL' },
+        { name: 'provider_payment_id', type: 'VARCHAR(255) NULL' },
+        { name: 'provider_signature', type: 'VARCHAR(500) NULL' },
+        { name: 'billing_cycle', type: 'VARCHAR(20) NULL' },
+        { name: 'failure_reason', type: 'VARCHAR(500) NULL' },
+        { name: 'invoice_url', type: 'VARCHAR(500) NULL' },
+        { name: 'webhook_event_id', type: 'VARCHAR(255) NULL' },
+        { name: 'metadata', type: 'LONGTEXT NULL' },
+      ]
+      for (const col of columns) {
+        try {
+          await db.rawQuery(`ALTER TABLE payments ADD COLUMN ${col.name} ${col.type}`)
+        } catch {
+          // Column already exists or alter ignored
+        }
+      }
+      LegacyBillingService.paymentColumnsEnsured = true
+    } catch {
+      // Ignore
+    }
+  }
+
   private async createFallbackPurchase(
     org: Organization,
     orgId: number,
@@ -339,6 +369,7 @@ export default class LegacyBillingService {
     tax: number,
     failureMessage: string
   ) {
+    await this.ensurePaymentColumns()
     const order = await this.createLocalRazorpayOrder(paymentAmount, `legacy-fallback-${orgId}-${Date.now()}`)
     const payment = await Payment.create({
       orgId,
@@ -513,6 +544,7 @@ export default class LegacyBillingService {
     }
 
     const normalized = Array.isArray(response) ? response[0] : response
+    await this.ensurePaymentColumns()
     const payment = await Payment.create({
       orgId,
       planId: org.planId,
