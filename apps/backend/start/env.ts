@@ -69,6 +69,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   FRONTEND_URL: Env.schema.string.optional(),
   RAZORPAY_KEY_ID: Env.schema.string.optional(),
   RAZORPAY_KEY_SECRET: Env.schema.string.optional(),
+  RAZORPAY_WEBHOOK_SECRET: Env.schema.string.optional(),
   STRIPE_PUBLISHABLE_KEY: Env.schema.string.optional(),
   STRIPE_SECRET_KEY: Env.schema.string.optional(),
   STRIPE_WEBHOOK_SECRET: Env.schema.string.optional(),

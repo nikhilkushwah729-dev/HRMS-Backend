@@ -92,12 +92,16 @@ export default class SubscriptionsController {
   }
 
   async razorpayWebhook({ request, response }: HttpContext) {
-    await this.subscriptionService.handleGatewayWebhook('razorpay', request.all(), request.header('x-razorpay-signature') || undefined)
+    const rawBody = request.raw() || JSON.stringify(request.all())
+    const signature = request.header('x-razorpay-signature') || undefined
+    await this.subscriptionService.handleGatewayWebhook('razorpay', request.all(), signature, rawBody)
     return response.ok({ status: 'success' })
   }
 
   async stripeWebhook({ request, response }: HttpContext) {
-    await this.subscriptionService.handleGatewayWebhook('stripe', request.all(), request.header('stripe-signature') || undefined)
+    const rawBody = request.raw() || JSON.stringify(request.all())
+    const signature = request.header('stripe-signature') || undefined
+    await this.subscriptionService.handleGatewayWebhook('stripe', request.all(), signature, rawBody)
     return response.ok({ status: 'success' })
   }
 

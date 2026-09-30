@@ -878,17 +878,30 @@ export default class SubscriptionService {
     await this.sendLifecycleMail(org, 'Payment successful', `${plan.name} plan activated`, `Your payment was verified successfully and ${plan.name} is now active.`)
   }
 
-  async handleGatewayWebhook(gateway: BillingGateway, payload: any, signature?: string) {
+  async handleGatewayWebhook(gateway: BillingGateway, payload: any, signature?: string, rawBody?: string) {
     if (gateway === 'razorpay') {
-      const secret = env.get('RAZORPAY_KEY_SECRET', '')
-      if (secret && signature) {
-        // Verification logic logic... (omitted for brevity in replace, but usually goes here)
+      const secret = env.get('RAZORPAY_WEBHOOK_SECRET')
+      if (!secret) {
+        throw new Exception('RAZORPAY_WEBHOOK_SECRET environment variable is not configured', { status: 500 })
       }
-      
+      if (!signature) {
+        throw new Exception('Missing x-razorpay-signature header', { status: 400 })
+      }
+
+      const bodyToSign = rawBody || JSON.stringify(payload)
+      const expectedSignature = crypto.createHmac('sha256', secret).update(bodyToSign).digest('hex')
+
+      const signatureBuffer = Buffer.from(signature)
+      const expectedBuffer = Buffer.from(expectedSignature)
+
+      if (signatureBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
+        throw new Exception('Invalid Razorpay webhook signature', { status: 400 })
+      }
+
       const orderId = payload?.payload?.payment?.entity?.order_id
       const providerPaymentId = payload?.payload?.payment?.entity?.id
       const payment = await Payment.query().where('providerOrderId', orderId).first()
-      
+
       if (payment && (payload?.event === 'payment.captured' || payload?.event === 'order.paid')) {
         payment.webhookEventId = payload?.event ?? payload?.id ?? null
         payment.providerPaymentId = providerPaymentId ?? payment.providerPaymentId
@@ -901,17 +914,48 @@ export default class SubscriptionService {
     }
 
     if (gateway === 'stripe') {
+      const secret = env.get('STRIPE_WEBHOOK_SECRET')
+      if (!secret) {
+        throw new Exception('STRIPE_WEBHOOK_SECRET environment variable is not configured', { status: 500 })
+      }
+      if (!signature) {
+        throw new Exception('Missing stripe-signature header', { status: 400 })
+      }
+
+      const signatureItems = signature.split(',').reduce<Record<string, string>>((acc, item) => {
+        const [k, v] = item.split('=')
+        if (k && v) acc[k.trim()] = v.trim()
+        return acc
+      }, {})
+
+      const timestamp = signatureItems['t']
+      const v1Signature = signatureItems['v1']
+
+      if (!timestamp || !v1Signature) {
+        throw new Exception('Invalid stripe-signature header format', { status: 400 })
+      }
+
+      const bodyToSign = `${timestamp}.${rawBody || JSON.stringify(payload)}`
+      const expectedSignature = crypto.createHmac('sha256', secret).update(bodyToSign).digest('hex')
+
+      const signatureBuffer = Buffer.from(v1Signature)
+      const expectedBuffer = Buffer.from(expectedSignature)
+
+      if (signatureBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
+        throw new Exception('Invalid Stripe webhook signature', { status: 400 })
+      }
+
       const eventType = payload?.type
       const object = payload?.data?.object
-      
+
       if (eventType === 'checkout.session.completed' || eventType === 'payment_intent.succeeded') {
-        const providerOrderId = object?.id // CS_xxx or PI_xxx
+        const providerOrderId = object?.id
         const providerPaymentId = object?.payment_intent || object?.id
-        
+
         const payment = await Payment.query()
           .where((q) => q.where('providerOrderId', providerOrderId).orWhere('providerPaymentId', providerPaymentId))
           .first()
-          
+
         if (payment && payment.status !== 'success') {
           payment.status = 'success'
           payment.webhookEventId = payload?.id ?? null
