@@ -3,6 +3,7 @@ import { DateTime } from 'luxon'
 import { Exception } from '@adonisjs/core/exceptions'
 import crypto from 'node:crypto'
 import env from '#start/env'
+import logger from '@adonisjs/core/services/logger'
 import mail from '@adonisjs/mail/services/main'
 import SubscriptionLifecycleMailer from '#mailers/subscription_lifecycle_mailer'
 import Organization from '#models/organization'
@@ -69,7 +70,7 @@ const DEFAULT_PLANS = [
     storageLimitMb: 5120,
     durationDays: 30,
     features: { support: 'priority', analytics: 'advanced' },
-    modules: ['ESS', 'Attendance', 'Leaves', 'Visits', 'Expenses'],
+    modules: ['ESS', 'Attendance', 'Leaves', 'Visits', 'Expenses', 'AuditLogs'],
     isActive: true,
     isPublic: true,
     isTrialPlan: false,
@@ -86,7 +87,7 @@ const DEFAULT_PLANS = [
     storageLimitMb: 102400,
     durationDays: 30,
     features: { support: 'dedicated', analytics: 'enterprise', sso: true },
-    modules: ['ESS', 'Attendance', 'Leaves', 'Visits', 'Expenses', 'Assets', 'Performance'],
+    modules: ['ESS', 'Attendance', 'Leaves', 'Visits', 'Expenses', 'Assets', 'Performance', 'AuditLogs'],
     isActive: true,
     isPublic: true,
     isTrialPlan: false,
@@ -102,6 +103,7 @@ const DEFAULT_FEATURE_LIMITS: Record<string, Array<{ key: string; label: string;
     { key: 'module.Payroll', label: 'Payroll', type: 'boolean', enabled: false },
     { key: 'module.Visits', label: 'Visit Management', type: 'boolean', enabled: false },
     { key: 'module.Expenses', label: 'Expenses', type: 'boolean', enabled: false },
+    { key: 'module.AuditLogs', label: 'Audit Logs', type: 'boolean', enabled: false },
     { key: 'limit.users', label: 'Users', type: 'number', enabled: true, value: '20' },
     { key: 'limit.storage_mb', label: 'Storage MB', type: 'number', enabled: true, value: '512' },
   ],
@@ -112,6 +114,7 @@ const DEFAULT_FEATURE_LIMITS: Record<string, Array<{ key: string; label: string;
     { key: 'module.Payroll', label: 'Payroll', type: 'boolean', enabled: false },
     { key: 'module.Visits', label: 'Visit Management', type: 'boolean', enabled: false },
     { key: 'module.Expenses', label: 'Expenses', type: 'boolean', enabled: false },
+    { key: 'module.AuditLogs', label: 'Audit Logs', type: 'boolean', enabled: false },
     { key: 'limit.users', label: 'Users', type: 'number', enabled: true, value: '20' },
     { key: 'limit.storage_mb', label: 'Storage MB', type: 'number', enabled: true, value: '512' },
   ],
@@ -122,6 +125,7 @@ const DEFAULT_FEATURE_LIMITS: Record<string, Array<{ key: string; label: string;
     { key: 'module.Payroll', label: 'Payroll', type: 'boolean', enabled: false },
     { key: 'module.Visits', label: 'Visit Management', type: 'boolean', enabled: true },
     { key: 'module.Expenses', label: 'Expenses', type: 'boolean', enabled: true },
+    { key: 'module.AuditLogs', label: 'Audit Logs', type: 'boolean', enabled: true },
     { key: 'limit.users', label: 'Users', type: 'number', enabled: true, value: '100' },
     { key: 'limit.storage_mb', label: 'Storage MB', type: 'number', enabled: true, value: '5120' },
   ],
@@ -134,6 +138,7 @@ const DEFAULT_FEATURE_LIMITS: Record<string, Array<{ key: string; label: string;
     { key: 'module.Expenses', label: 'Expenses', type: 'boolean', enabled: true },
     { key: 'module.Assets', label: 'Assets', type: 'boolean', enabled: true },
     { key: 'module.Performance', label: 'Performance', type: 'boolean', enabled: true },
+    { key: 'module.AuditLogs', label: 'Audit Logs', type: 'boolean', enabled: true },
     { key: 'limit.users', label: 'Users', type: 'number', enabled: true, value: '1000' },
     { key: 'limit.storage_mb', label: 'Storage MB', type: 'number', enabled: true, value: '102400' },
   ],
@@ -149,6 +154,7 @@ export default class SubscriptionService {
     projects: ['projects', 'project'],
     expenses: ['expenses', 'expense'],
     timesheets: ['timesheets', 'timesheet'],
+    auditlogs: ['auditlogs', 'audit_logs', 'audit-logs', 'compliance'],
   }
   private addonAliases: Record<string, string[]> = {
     leaveandtimeoff: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
@@ -1058,8 +1064,14 @@ export default class SubscriptionService {
         readOnly: false,
         subscriptionStatus: org.subscriptionStatus,
       }
-    } catch {
-      return { allowed: true, reason: null, readOnly: false, subscriptionStatus: 'active' }
+    } catch (error) {
+      logger.error({ err: error, orgId, module }, 'evaluateFeatureAccess failed')
+      return {
+        allowed: false,
+        reason: 'Unable to verify subscription access. Please try again or contact support.',
+        readOnly: true,
+        subscriptionStatus: 'unknown',
+      }
     }
   }
 

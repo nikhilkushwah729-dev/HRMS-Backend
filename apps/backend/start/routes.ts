@@ -260,7 +260,7 @@ router.group(() => {
   router.get('/', [RegularizationsController, 'index'])
   router.post('/', [RegularizationsController, 'store'])
   router.put('/:id', [RegularizationsController, 'update'])
-}).prefix('api/regularizations').use(middleware.auth())
+}).prefix('api/regularizations').use(middleware.auth()).use(middleware.subscription({ module: 'Attendance' }))
 
 /**
  * GPS Tracking Routes
@@ -270,7 +270,7 @@ router.group(() => {
   router.post('update', [TrackingController, 'update'])
   router.get('history', [TrackingController, 'history'])
   router.get('current', [TrackingController, 'current'])
-}).prefix('api/tracking').use(middleware.auth())
+}).prefix('api/tracking').use(middleware.auth()).use(middleware.subscription({ module: 'employeetracking' }))
 
 /**
  * Leave Management Routes
@@ -321,7 +321,7 @@ router.group(() => {
   router.get('/:id', [AnnouncementsController, 'show'])
   router.post('/', [AnnouncementsController, 'store'])
   router.put('/:id', [AnnouncementsController, 'update'])
-}).prefix('api/announcements').use(middleware.auth())
+}).prefix('api/announcements').use(middleware.auth()).use(middleware.subscription({ module: 'ESS' }))
 
 const ExpensesController = () => import('#controllers/Http/ExpensesController')
 
@@ -344,7 +344,7 @@ router.group(() => {
   router.get('/:id', [TimesheetsController, 'show'])
   router.put('/:id', [TimesheetsController, 'update'])
   router.post('/:id/submit', [TimesheetsController, 'submit'])
-}).prefix('api/timesheets').use(middleware.auth())
+}).prefix('api/timesheets').use(middleware.auth()).use(middleware.subscription({ module: 'Timesheets' }))
 
 router.group(() => {
   router.get('/dashboard', [VisitManagementController, 'dashboard'])
@@ -403,7 +403,7 @@ router.group(() => {
   router.get('/actions', [AuditLogsController, 'getActions'])
   router.get('/export', [AuditLogsController, 'export'])
   router.get('/:id', [AuditLogsController, 'show'])
-}).prefix('api/audit-logs').use(middleware.auth())
+}).prefix('api/audit-logs').use(middleware.auth()).use(middleware.subscription({ module: 'AuditLogs' }))
 
 // Documents
 router.group(() => {
@@ -411,7 +411,7 @@ router.group(() => {
   router.post('/', [DocumentsController, 'store'])
   router.get('/:id/download', [DocumentsController, 'download'])
   router.delete('/:id', [DocumentsController, 'destroy'])
-}).prefix('api/documents').use(middleware.auth()).use(middleware.permission({ anyOf: ['documents_read', 'employee_read'] }))
+}).prefix('api/documents').use(middleware.auth()).use(middleware.subscription({ module: 'ESS' })).use(middleware.permission({ anyOf: ['documents_read', 'employee_read'] }))
 
 // Roles & Permissions
 router.group(() => {
@@ -429,7 +429,7 @@ router.group(() => {
   router.post('/', [EmployeeExperiencesController, 'store'])
   router.put('/:id', [EmployeeExperiencesController, 'update'])
   router.delete('/:id', [EmployeeExperiencesController, 'destroy'])
-}).prefix('api/experiences').use(middleware.auth())
+}).prefix('api/experiences').use(middleware.auth()).use(middleware.subscription({ module: 'ESS' }))
 
 // Employee Education
 router.group(() => {
@@ -437,7 +437,7 @@ router.group(() => {
   router.post('/', [EmployeeEducationsController, 'store'])
   router.put('/:id', [EmployeeEducationsController, 'update'])
   router.delete('/:id', [EmployeeEducationsController, 'destroy'])
-}).prefix('api/education').use(middleware.auth())
+}).prefix('api/education').use(middleware.auth()).use(middleware.subscription({ module: 'ESS' }))
 
 /**
  * Face Recognition Routes
@@ -449,7 +449,7 @@ router.group(() => {
   router.post('/verify', [FaceRecognitionController, 'verify'])
   router.get('/status/:id', [FaceRecognitionController, 'status'])
   router.delete('/:id', [FaceRecognitionController, 'delete'])
-}).prefix('api/face').use(middleware.auth()).use(middleware.permission({ permission: 'face_profile_manage' }))
+}).prefix('api/face').use(middleware.auth()).use(middleware.subscription({ module: 'facerecognition' })).use(middleware.permission({ permission: 'face_profile_manage' }))
 
 /**
  * Employee Invitations Routes

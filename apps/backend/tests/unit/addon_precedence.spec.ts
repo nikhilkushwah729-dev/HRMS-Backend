@@ -74,4 +74,23 @@ test.group('Payroll Lock & Addon Precedence Spec (Priority 6 & 3)', () => {
     await db.from('organization_addons').where('org_id', org.id).delete()
     await org.delete()
   })
+
+  test('fails closed on unexpected database error during feature access evaluation', async ({ assert }) => {
+    const service = new SubscriptionService()
+
+    const originalFind = Organization.find
+    Organization.find = (async () => {
+      throw new Error('Database connection failure simulation')
+    }) as any
+
+    try {
+      const failClosedResult = await service.evaluateFeatureAccess(9999, 'ESS')
+      assert.isFalse(failClosedResult.allowed)
+      assert.equal(failClosedResult.subscriptionStatus, 'unknown')
+      assert.isTrue(failClosedResult.readOnly)
+      assert.include(failClosedResult.reason || '', 'Unable to verify subscription access')
+    } finally {
+      Organization.find = originalFind
+    }
+  })
 })
