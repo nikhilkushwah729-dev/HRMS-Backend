@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 import crypto from 'node:crypto'
-import SubscriptionService from '#services/SubscriptionService'
 
 // ---------------------------------------------------------------------------
 // Minimal stub for the Razorpay SDK — no real network calls
@@ -30,20 +29,7 @@ class MockRazorpayFailure {
   }
 }
 
-// Subclass that exposes a way to inject a mock Razorpay instance
-class TestableSS extends SubscriptionService {
-  // @ts-ignore — override for testing
-  protected mockRzp: any = null
 
-  setMockRazorpay(mock: any) {
-    this.mockRzp = mock
-  }
-
-  // Override only the Razorpay instantiation part
-  protected getRazorpayInstance() {
-    return this.mockRzp
-  }
-}
 
 // ---------------------------------------------------------------------------
 // We also need SubscriptionService.createUpgradeIntent() to use
