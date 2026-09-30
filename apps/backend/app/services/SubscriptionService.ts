@@ -749,21 +749,38 @@ export default class SubscriptionService {
   }) {
     if (payload.gateway === 'razorpay') {
       const secret = env.get('RAZORPAY_KEY_SECRET', '')
-      if (!secret) return true
+      // Fail-closed: if secret is not configured, reject the payment rather than bypass verification
+      if (!secret) {
+        throw new Exception('RAZORPAY_KEY_SECRET is not configured — cannot verify payment signature', { status: 500 })
+      }
+      if (!payload.signature) {
+        throw new Exception('Missing Razorpay payment signature', { status: 400 })
+      }
       const generated = crypto
         .createHmac('sha256', secret)
         .update(`${payload.orderId}|${payload.paymentId}`)
         .digest('hex')
-      return generated === payload.signature
+      const sigBuf = Buffer.from(payload.signature)
+      const expBuf = Buffer.from(generated)
+      return sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)
     }
 
-    const secret = env.get('STRIPE_WEBHOOK_SECRET', '')
-    if (!secret || !payload.rawBody) return true
+    // Stripe client-side payment confirmation uses STRIPE_SECRET_KEY for signature,
+    // not STRIPE_WEBHOOK_SECRET (which is only for server-to-server webhook verification).
+    const secret = env.get('STRIPE_SECRET_KEY', '')
+    if (!secret) {
+      throw new Exception('STRIPE_SECRET_KEY is not configured — cannot verify payment signature', { status: 500 })
+    }
+    if (!payload.signature || !payload.rawBody) {
+      throw new Exception('Missing Stripe payment signature or body', { status: 400 })
+    }
     const generated = crypto
       .createHmac('sha256', secret)
       .update(payload.rawBody)
       .digest('hex')
-    return generated === payload.signature
+    const sigBuf = Buffer.from(payload.signature)
+    const expBuf = Buffer.from(generated)
+    return sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)
   }
 
   async verifyPayment(orgId: number, payload: {
