@@ -13,6 +13,7 @@ import Payment from '#models/payment'
 import FeatureLimit from '#models/feature_limit'
 import AddonPrice from '#models/addon_price'
 import Invoice from '#models/invoice'
+import Razorpay from 'razorpay'
 
 type BillingGateway = 'razorpay' | 'stripe'
 type BillingCycle = 'trial' | 'monthly' | 'yearly'
@@ -701,17 +702,21 @@ export default class SubscriptionService {
       throw new Exception('Selected plan is not available for upgrade', { status: 400 })
     }
 
-    const amount = payload.billingCycle === 'yearly' ? Number(plan.yearlyPrice || plan.monthlyPrice) : Number(plan.monthlyPrice || plan.price)
-    const orderId = `ord_${crypto.randomUUID()}`
+    const amountINR = payload.billingCycle === 'yearly'
+      ? Number(plan.yearlyPrice || plan.monthlyPrice)
+      : Number(plan.monthlyPrice || plan.price)
+    const currency = plan.currency || 'INR'
+
+    // Create Payment row first to obtain a stable receipt ID before hitting the gateway
     const payment = await Payment.create({
       orgId,
       planId: plan.id,
-      amount,
-      currency: plan.currency || 'INR',
+      amount: amountINR,
+      currency,
       paymentMethod: payload.gateway,
       paymentGateway: payload.gateway,
       provider: payload.gateway,
-      providerOrderId: orderId,
+      providerOrderId: null,         // will be updated with real Razorpay order_id below
       transactionId: null,
       providerPaymentId: null,
       providerSignature: null,
@@ -720,25 +725,70 @@ export default class SubscriptionService {
       metadata: JSON.stringify({ planSlug: plan.slug, source: 'upgrade' }),
     })
 
+    let realOrderId: string
+
+    if (payload.gateway === 'razorpay') {
+      const rzp = new Razorpay({
+        key_id: env.get('RAZORPAY_KEY_ID'),
+        key_secret: env.get('RAZORPAY_KEY_SECRET'),
+      })
+
+      let rzpOrder: { id: string }
+      try {
+        // Razorpay requires amount in paise (smallest currency unit): ₹1499 → 149900
+        const amountInPaise = Math.round(amountINR * 100)
+        rzpOrder = await rzp.orders.create({
+          amount: amountInPaise,
+          currency,
+          receipt: `rcpt_${payment.id}`,
+          notes: {
+            orgId: String(orgId),
+            planSlug: plan.slug,
+            billingCycle: payload.billingCycle,
+          },
+        }) as { id: string }
+      } catch (err: any) {
+        // Mark payment as failed immediately — no orphan/stuck 'pending' rows
+        payment.status = 'failed'
+        payment.failureReason = err?.error?.description || err?.message || 'Razorpay order creation failed'
+        await payment.save()
+        logger.error({ err, orgId, planId: plan.id }, 'Razorpay orders.create() failed')
+        throw new Exception(
+          `Payment gateway error: ${payment.failureReason}. Please try again or contact support.`,
+          { status: 502 }
+        )
+      }
+
+      realOrderId = rzpOrder.id
+    } else {
+      // Stripe: generate a local reference (Stripe uses PaymentIntent, not orders)
+      realOrderId = `pi_local_${crypto.randomUUID()}`
+    }
+
+    // Update Payment row with the real gateway order ID
+    payment.providerOrderId = realOrderId
+    await payment.save()
+
     return {
       paymentId: payment.id,
       provider: payload.gateway,
-      amount,
-      currency: plan.currency || 'INR',
-      orderId,
+      amount: amountINR,
+      amountInPaise: Math.round(amountINR * 100),
+      currency,
+      orderId: realOrderId,
       publishableKey: payload.gateway === 'stripe'
         ? env.get('STRIPE_PUBLISHABLE_KEY', '')
-        : env.get('RAZORPAY_KEY_ID', ''),
+        : env.get('RAZORPAY_KEY_ID'),
       plan: {
         id: plan.id,
         name: plan.name,
         slug: plan.slug,
       },
-      simulation: !env.get(payload.gateway === 'stripe' ? 'STRIPE_SECRET_KEY' : 'RAZORPAY_KEY_SECRET'),
-      checkoutReference: `${payload.gateway}_${orderId}`,
+      checkoutReference: `${payload.gateway}_${realOrderId}`,
       organizationName: org.companyName,
     }
   }
+
 
   private verifyGatewaySignature(payload: {
     gateway: BillingGateway
