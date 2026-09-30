@@ -2,6 +2,8 @@ import Employee from '#models/employee'
 import Organization from '#models/organization'
 import Role from '#models/role'
 import hash from '@adonisjs/core/services/hash'
+import db from '@adonisjs/lucid/services/db'
+import SubscriptionService from '#services/SubscriptionService'
 
 export interface TenantUserSet {
   org: Organization
@@ -32,6 +34,9 @@ export async function setupTestTenants(): Promise<DualTenantHarness> {
   }
 
   // 2. Provision Tenant A
+  const service = new SubscriptionService()
+  await service.ensureCatalog()
+
   const orgA = await Organization.updateOrCreate(
     { id: 1001 },
     {
@@ -42,8 +47,26 @@ export async function setupTestTenants(): Promise<DualTenantHarness> {
       timezone: 'Asia/Kolkata',
       subscriptionStatus: 'active',
       userLimit: 50,
+      planId: 3, // Pro plan
     }
   )
+
+  // Ensure payroll addon active for tenant A test harness
+  const payrollAddon = await db.from('addon_prices').where('slug', 'payroll').first()
+  if (payrollAddon) {
+    const existing = await db.from('organization_addons').where('org_id', orgA.id).where('addon_id', payrollAddon.id).first()
+    if (!existing) {
+      await db.table('organization_addons').insert({
+        org_id: orgA.id,
+        addon_id: payrollAddon.id,
+        start_date: new Date(),
+        is_active: true,
+        created_at: new Date(),
+      })
+    } else {
+      await db.from('organization_addons').where('id', existing.id).update({ is_active: true })
+    }
+  }
 
   const adminA = await Employee.updateOrCreate(
     { email: 'admin.a@tenanta.com' },

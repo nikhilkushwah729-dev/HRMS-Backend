@@ -69,7 +69,7 @@ const DEFAULT_PLANS = [
     storageLimitMb: 5120,
     durationDays: 30,
     features: { support: 'priority', analytics: 'advanced' },
-    modules: ['ESS', 'Attendance', 'Leaves', 'Payroll', 'Visits', 'Expenses'],
+    modules: ['ESS', 'Attendance', 'Leaves', 'Visits', 'Expenses'],
     isActive: true,
     isPublic: true,
     isTrialPlan: false,
@@ -86,7 +86,7 @@ const DEFAULT_PLANS = [
     storageLimitMb: 102400,
     durationDays: 30,
     features: { support: 'dedicated', analytics: 'enterprise', sso: true },
-    modules: ['ESS', 'Attendance', 'Leaves', 'Payroll', 'Visits', 'Expenses', 'Assets', 'Performance'],
+    modules: ['ESS', 'Attendance', 'Leaves', 'Visits', 'Expenses', 'Assets', 'Performance'],
     isActive: true,
     isPublic: true,
     isTrialPlan: false,
@@ -119,7 +119,7 @@ const DEFAULT_FEATURE_LIMITS: Record<string, Array<{ key: string; label: string;
     { key: 'module.ESS', label: 'ESS', type: 'boolean', enabled: true },
     { key: 'module.Attendance', label: 'Attendance', type: 'boolean', enabled: true },
     { key: 'module.Leaves', label: 'Leaves', type: 'boolean', enabled: true },
-    { key: 'module.Payroll', label: 'Payroll', type: 'boolean', enabled: true },
+    { key: 'module.Payroll', label: 'Payroll', type: 'boolean', enabled: false },
     { key: 'module.Visits', label: 'Visit Management', type: 'boolean', enabled: true },
     { key: 'module.Expenses', label: 'Expenses', type: 'boolean', enabled: true },
     { key: 'limit.users', label: 'Users', type: 'number', enabled: true, value: '100' },
@@ -129,7 +129,7 @@ const DEFAULT_FEATURE_LIMITS: Record<string, Array<{ key: string; label: string;
     { key: 'module.ESS', label: 'ESS', type: 'boolean', enabled: true },
     { key: 'module.Attendance', label: 'Attendance', type: 'boolean', enabled: true },
     { key: 'module.Leaves', label: 'Leaves', type: 'boolean', enabled: true },
-    { key: 'module.Payroll', label: 'Payroll', type: 'boolean', enabled: true },
+    { key: 'module.Payroll', label: 'Payroll', type: 'boolean', enabled: false },
     { key: 'module.Visits', label: 'Visit Management', type: 'boolean', enabled: true },
     { key: 'module.Expenses', label: 'Expenses', type: 'boolean', enabled: true },
     { key: 'module.Assets', label: 'Assets', type: 'boolean', enabled: true },
@@ -222,7 +222,7 @@ export default class SubscriptionService {
           name: item.name,
           slug: item.slug,
           price: item.price,
-          isActive: true,
+          isActive: item.slug === 'payroll' ? false : true,
         }
       )
     }
@@ -979,32 +979,74 @@ export default class SubscriptionService {
       if (!org) {
         return { allowed: true, reason: null, readOnly: false, subscriptionStatus: 'active' }
       }
-      const planId = org.planId
 
+      const isExpired = ['expired', 'cancelled', 'inactive'].includes(org.subscriptionStatus)
+      const readOnly = Boolean(org.readOnlyMode || isExpired)
+
+      // Level 1: Read-only state blocks write mutations
+      if (readOnly && method !== 'GET') {
+        return {
+          allowed: false,
+          reason: 'Your subscription is in read-only mode. Upgrade to resume changes.',
+          readOnly,
+          subscriptionStatus: org.subscriptionStatus,
+        }
+      }
+
+      // Check organization_addons table for direct add-on overrides
+      const normalized = this.normalizeModule(module)
+      const aliases = this.addonAliases[normalized] ?? [normalized]
+      const checkSlugs = Array.from(new Set([normalized, ...aliases]))
+
+      const addonRow = await db
+        .from('organization_addons')
+        .innerJoin('addon_prices', 'addon_prices.id', 'organization_addons.addon_id')
+        .where('organization_addons.org_id', orgId)
+        .whereIn('addon_prices.slug', checkSlugs)
+        .select('organization_addons.is_active')
+        .first()
+
+      if (addonRow !== undefined && addonRow !== null) {
+        const isAddonActive = Number(addonRow.is_active) === 1 || addonRow.is_active === true
+        if (isAddonActive) {
+          // Level 2: Explicit active add-on row grants access
+          return {
+            allowed: true,
+            reason: null,
+            readOnly,
+            subscriptionStatus: org.subscriptionStatus,
+          }
+        } else {
+          // Level 3: Explicit inactive add-on row blocks access
+          return {
+            allowed: false,
+            reason: `The ${module} module is currently deactivated for your organization.`,
+            readOnly,
+            subscriptionStatus: org.subscriptionStatus,
+          }
+        }
+      }
+
+      // Level 4: Fallback to Plan modules and Feature Limits
+      const planId = org.planId
       if (!planId) {
-        return { allowed: true, reason: 'No active plan found for this organization.', readOnly: false, subscriptionStatus: org.subscriptionStatus || 'active' }
+        return {
+          allowed: false,
+          reason: 'No active plan found for this organization.',
+          readOnly,
+          subscriptionStatus: org.subscriptionStatus || 'active',
+        }
       }
 
       const plan = await Plan.find(planId)
       const limits = await FeatureLimit.query().where('planId', planId)
       const planModules = this.parseJson(plan?.modules, []) as string[]
       const enabled = this.moduleEnabledForPlan(module, planModules, limits)
-      const isExpired = ['expired', 'cancelled', 'inactive'].includes(org.subscriptionStatus)
-      const readOnly = org.readOnlyMode || isExpired
 
       if (!enabled) {
         return {
-          allowed: true,
-          reason: `Your current plan does not include ${module}.`,
-          readOnly,
-          subscriptionStatus: org.subscriptionStatus,
-        }
-      }
-
-      if (readOnly && method !== 'GET') {
-        return {
           allowed: false,
-          reason: 'Your subscription is in read-only mode. Upgrade to resume changes.',
+          reason: `Your current plan does not include the ${module} module. Upgrade your plan or activate the add-on.`,
           readOnly,
           subscriptionStatus: org.subscriptionStatus,
         }
