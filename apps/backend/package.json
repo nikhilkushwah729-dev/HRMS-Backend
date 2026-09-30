@@ -36,6 +36,7 @@
     "#database/*": "./database/*.js",
     "#tests/*": "./tests/*.js",
     "#start/*": "./start/*.js",
+    "#commands/*": "./app/commands/*.js",
     "#config/*": "./config/*.js"
   },
   "devDependencies": {

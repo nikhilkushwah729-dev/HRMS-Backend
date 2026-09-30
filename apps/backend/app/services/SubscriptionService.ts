@@ -286,6 +286,7 @@ export default class SubscriptionService {
   }
 
   private async sendLifecycleMail(org: Organization, subject: string, headline: string, message: string) {
+    if (env.get('NODE_ENV') === 'test') return
     try {
       await mail.send(
         new SubscriptionLifecycleMailer({
@@ -1020,10 +1021,14 @@ export default class SubscriptionService {
     }
   }
 
-  async syncTrialStatuses() {
+  async syncTrialStatuses(targetOrgId?: number) {
     await this.ensureCatalog()
     const today = DateTime.now().startOf('day')
-    const organizations = await Organization.query()
+    const query = Organization.query()
+    if (targetOrgId) {
+      query.where('id', targetOrgId)
+    }
+    const organizations = await query
 
     for (const org of organizations) {
       const admin = await db.from('employees').where('org_id', org.id).orderBy('id', 'asc').first()
