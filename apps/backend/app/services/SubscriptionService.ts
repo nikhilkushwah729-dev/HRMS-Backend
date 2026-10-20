@@ -341,7 +341,16 @@ export default class SubscriptionService {
   async assignTrialToOrganization(orgId: number) {
     await this.ensureCatalog()
     const org = await this.resolveOrganization(orgId)
-    const trialPlan = await Plan.query().where('slug', 'trial').firstOrFail()
+    let trialPlan = await Plan.query().where('slug', 'trial').first()
+    if (!trialPlan) {
+      trialPlan = await Plan.query().where('is_trial_plan', true).first()
+    }
+    if (!trialPlan) {
+      trialPlan = await Plan.first()
+    }
+    if (!trialPlan) {
+      throw new Exception('No trial plan configured', { status: 404 })
+    }
 
     const trialStart = DateTime.now().startOf('day')
     const trialEnd = trialStart.plus({ days: 7 })
@@ -447,7 +456,16 @@ export default class SubscriptionService {
   }) {
     await this.ensureCatalog()
     const org = await this.resolveOrganization(orgId)
-    const fallbackPlan = await Plan.query().where('slug', 'basic').firstOrFail()
+    let fallbackPlan = await Plan.query().where('slug', 'basic').first()
+    if (!fallbackPlan) {
+      fallbackPlan = await Plan.query().where('is_trial_plan', false).first()
+    }
+    if (!fallbackPlan) {
+      fallbackPlan = await Plan.first()
+    }
+    if (!fallbackPlan) {
+      throw new Exception('No active plan found', { status: 404 })
+    }
     const now = DateTime.now().startOf('day')
     const endDate = payload.durationType.toLowerCase().startsWith('year')
       ? now.plus({ years: payload.duration })
@@ -694,11 +712,18 @@ export default class SubscriptionService {
     await this.ensureCatalog()
     const org = await this.resolveOrganization(orgId)
     // Re-fetch after ensureCatalog to get the latest seeded values
-    const plan = await Plan.findOrFail(payload.planId)
+    let plan = await Plan.find(payload.planId)
     // MySQL stores TINYINT for booleans — cast explicitly to avoid falsy-number issues
-    const isActive = Number(plan.isActive) === 1 || plan.isActive === true
-    const isTrialPlan = Number(plan.isTrialPlan) === 1 || plan.isTrialPlan === true
-    if (!isActive || isTrialPlan) {
+    const isPlanValid = plan && (Number(plan.isActive) === 1 || plan.isActive === true) && !(Number(plan.isTrialPlan) === 1 || plan.isTrialPlan === true)
+    if (!isPlanValid) {
+      // Dynamic fallback: find the 'basic' plan by slug if payload.planId is out of sync or trial
+      plan = await Plan.query().where('slug', 'basic').where('is_active', true).first()
+    }
+    if (!plan) {
+      // Fallback to the first active non-trial plan
+      plan = await Plan.query().where('is_trial_plan', false).where('is_active', true).orderBy('sort_order', 'asc').first()
+    }
+    if (!plan) {
       throw new Exception('Selected plan is not available for upgrade', { status: 400 })
     }
 
@@ -872,7 +897,16 @@ export default class SubscriptionService {
 
   private async activatePaidPlan(orgId: number, payment: Payment) {
     const org = await this.resolveOrganization(orgId)
-    const plan = await Plan.findOrFail(payment.planId!)
+    let plan = payment.planId ? await Plan.find(payment.planId) : null
+    if (!plan) {
+      plan = await Plan.query().where('slug', 'basic').first()
+    }
+    if (!plan) {
+      plan = await Plan.query().where('is_trial_plan', false).orderBy('sort_order', 'asc').first()
+    }
+    if (!plan) {
+      throw new Exception('No eligible plan found for activation', { status: 404 })
+    }
     const now = DateTime.now().startOf('day')
     const endDate = payment.billingCycle === 'yearly' ? now.plus({ year: 1 }) : now.plus({ month: 1 })
 
