@@ -35,8 +35,7 @@ export default class EmployeeInvitation extends BaseModel {
     @column.dateTime({ autoCreate: true })
     declare createdAt: DateTime
 
-    @column.dateTime({ autoCreate: true, autoUpdate: true })
-    declare updatedAt: DateTime
+    declare updatedAt?: DateTime | null
 
     // Relationships
     @belongsTo(() => Organization, { foreignKey: 'orgId' })

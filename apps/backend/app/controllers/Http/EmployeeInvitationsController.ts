@@ -209,7 +209,7 @@ export default class EmployeeInvitationsController {
                 invitedByName: inv.inviter ? `${inv.inviter.firstName} ${inv.inviter.lastName || ''}`.trim() : 'Admin',
                 invitedAt: inv.createdAt,
                 expiresAt: inv.expiresAt,
-                acceptedAt: inv.status === 'accepted' ? inv.updatedAt : null,
+                acceptedAt: inv.status === 'accepted' ? ((inv as any).updatedAt ?? inv.createdAt) : null,
             })),
         })
     }
