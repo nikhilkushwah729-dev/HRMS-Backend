@@ -17,14 +17,31 @@ const corsConfig = defineConfig({
    */
   origin: (() => {
     const configured = env.get('CORS_ORIGIN')
-    if (!configured) {
-      return [env.get('FRONTEND_URL') || 'http://localhost:4200']
+    const frontendUrl = env.get('FRONTEND_URL')
+    const defaultOrigins = [
+      'https://account-hrnexus.netlify.app',
+      'https://singular-mooncake-7833e7.netlify.app',
+      'http://localhost:4200',
+      'http://localhost:3000',
+    ]
+
+    if (frontendUrl && !defaultOrigins.includes(frontendUrl)) {
+      defaultOrigins.push(frontendUrl)
     }
 
-    return configured
+    if (!configured) {
+      return defaultOrigins
+    }
+
+    const origins = configured
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean)
+
+    for (const item of defaultOrigins) {
+      if (!origins.includes(item)) origins.push(item)
+    }
+    return origins
   })(),
 
   methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],

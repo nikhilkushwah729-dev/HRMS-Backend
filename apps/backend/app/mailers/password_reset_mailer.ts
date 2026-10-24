@@ -2,7 +2,7 @@ import { BaseMail } from '@adonisjs/mail'
 import env from '#start/env'
 
 export default class PasswordResetMailer extends BaseMail {
-    private readonly frontendUrl = env.get('FRONTEND_URL') || 'http://localhost:4200'
+    private readonly frontendUrl = env.get('FRONTEND_URL') || 'https://account-hrnexus.netlify.app'
 
     constructor(protected user: { email: string; fullName: string }, protected token: string) {
         super()

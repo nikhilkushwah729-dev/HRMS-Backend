@@ -626,7 +626,7 @@ export default class AuthService {
      * SMTP remains available as the local-development fallback.
      */
     async sendPasswordResetEmail(email: string, fullName: string, token: string) {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200'
+        const frontendUrl = process.env.FRONTEND_URL || 'https://account-hrnexus.netlify.app'
         const resetUrl = `${frontendUrl}/auth/reset-password?token=${encodeURIComponent(token)}`
         const delivered = await this.sendHttpEmail({
             email,

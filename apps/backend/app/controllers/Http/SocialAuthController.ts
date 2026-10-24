@@ -13,7 +13,7 @@ export default class SocialAuthController {
   private readonly firebaseApiKey = process.env.FIREBASE_API_KEY || 'AIzaSyCykZJKsYtyQ8xY8uGsTBa-42LY2Fdf-k8'
 
   // Frontend URL for OAuth redirect
-  private readonly frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200'
+  private readonly frontendUrl = process.env.FRONTEND_URL || 'https://account-hrnexus.netlify.app'
 
   constructor() {
     this.oauthService = new OAuthService()

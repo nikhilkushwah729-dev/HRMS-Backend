@@ -2,7 +2,7 @@ import { BaseMail } from '@adonisjs/mail'
 import env from '#start/env'
 
 export default class SubscriptionLifecycleMailer extends BaseMail {
-  private readonly frontendUrl = env.get('FRONTEND_URL') || 'http://localhost:4200'
+  private readonly frontendUrl = env.get('FRONTEND_URL') || 'https://account-hrnexus.netlify.app'
 
   constructor(
     protected payload: {

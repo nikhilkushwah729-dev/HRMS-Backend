@@ -40,7 +40,7 @@ export default class EmployeeInvitationsController {
             organizationName: invitation.organization?.companyName || 'your organization',
             roleName: invitation.role?.roleName || 'Employee',
             inviterName: invitation.inviter ? `${invitation.inviter.firstName} ${invitation.inviter.lastName || ''}`.trim() : 'HR Team',
-            invitationUrl: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/auth/invitation/${invitation.token}`,
+            invitationUrl: `${process.env.FRONTEND_URL || 'https://account-hrnexus.netlify.app'}/auth/invitation/${invitation.token}`,
             expiresAt: invitation.expiresAt.toFormat('dd LLL yyyy, hh:mm a'),
         }))
     }
@@ -171,7 +171,7 @@ export default class EmployeeInvitationsController {
                 expiresAt: invitation.expiresAt,
                 emailDelivered,
                 deliveryError,
-                invitationUrl: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/auth/invitation/${token}`,
+                invitationUrl: `${process.env.FRONTEND_URL || 'https://account-hrnexus.netlify.app'}/auth/invitation/${token}`,
                 _dev_token: token,
             },
         })
@@ -392,7 +392,7 @@ export default class EmployeeInvitationsController {
                 expiresAt: invitation.expiresAt,
                 emailDelivered,
                 deliveryError,
-                invitationUrl: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/auth/invitation/${token}`,
+                invitationUrl: `${process.env.FRONTEND_URL || 'https://account-hrnexus.netlify.app'}/auth/invitation/${token}`,
                 _dev_token: token,
             },
         })
