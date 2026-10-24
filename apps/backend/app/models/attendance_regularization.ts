@@ -28,7 +28,7 @@ export default class AttendanceRegularization extends BaseModel {
     declare checkOut: string | null
 
     @column()
-    declare type: 'missed_punch' | 'late_arrival' | 'half_day' | 'other'
+    declare type: 'missed_punch' | 'late_arrival' | 'early_departure' | 'half_day' | 'overtime' | 'other' | string
 
     @column()
     declare reason: string

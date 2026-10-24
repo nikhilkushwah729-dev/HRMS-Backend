@@ -2,10 +2,18 @@ import { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
 import FaceEmbedding from '#models/face_embedding'
 import Employee from '#models/employee'
+import AttendanceService from '#services/AttendanceService'
+import { DateTime } from 'luxon'
 import { inject } from '@adonisjs/core'
 
 @inject()
 export default class FaceRecognitionController {
+    constructor(protected attendanceService: AttendanceService) { }
+
+    private isPrivilegedRole(roleId: number | null | undefined): boolean {
+        return !!roleId && [1, 2, 3].includes(roleId)
+    }
+
     static registerFaceValidator = vine.compile(
         vine.object({
             employeeId: vine.number(),
@@ -17,8 +25,8 @@ export default class FaceRecognitionController {
 
     static verifyFaceValidator = vine.compile(
         vine.object({
-            embedding: vine.string(), // JSON string of embedding array
             employeeId: vine.number().optional(),
+            action: vine.enum(['check_in', 'check_out']).optional(),
         })
     )
 
@@ -36,6 +44,13 @@ export default class FaceRecognitionController {
 
         if (!incomingEmbeddings.length) {
             return response.badRequest({ message: 'At least one face embedding is required' })
+        }
+
+        // Authorization: Employee can register own face; only HR/Admin (roleId 1, 2, 3) can register for others
+        const isSelf = employee.id === data.employeeId
+        const isPrivileged = this.isPrivilegedRole(employee.roleId)
+        if (!isSelf && !isPrivileged) {
+            return response.forbidden({ message: 'You do not have permission to register face data for another employee' })
         }
 
         // Check if employee belongs to same org
@@ -88,14 +103,58 @@ export default class FaceRecognitionController {
     }
 
     /**
-     * Verify face against stored embeddings
+     * Parse embedding from payload whether it is raw number array, JSON string, or serialized object
+     */
+    private parseEmbeddingPayload(input: any): number[] | null {
+        if (!input) return null
+        let arr: number[] | null = null
+        if (Array.isArray(input)) {
+            arr = input.map(Number)
+        } else if (typeof input === 'string') {
+            try {
+                const parsed = JSON.parse(input)
+                arr = Array.isArray(parsed) ? parsed.map(Number) : null
+            } catch {
+                return null
+            }
+        }
+        if (!arr || arr.length < 64) {
+            return null
+        }
+        if (arr.some((val) => isNaN(val) || !isFinite(val))) {
+            return null
+        }
+        return arr
+    }
+
+    /**
+     * Verify face against stored embeddings and optionally record attendance
      */
     async verify({ auth, request, response }: HttpContext) {
         const employee = auth.user!
+        const rawEmbedding = request.input('embedding')
+        const embeddingArray = this.parseEmbeddingPayload(rawEmbedding)
+
+        if (!embeddingArray || embeddingArray.length === 0) {
+            return response.badRequest({ message: 'Valid face embedding array (minimum 64 dimensions) is required' })
+        }
+
         const data = await request.validateUsing(FaceRecognitionController.verifyFaceValidator)
+        const action = data.action
+
+        let matched = false
+        let similarity = 0
+        let matchedEmployeeId: number | null = null
+        let sampleCount = 0
 
         // If verifying for specific employee
         if (data.employeeId) {
+            const isSelf = employee.id === data.employeeId
+            const isPrivileged = this.isPrivilegedRole(employee.roleId)
+            if (!isSelf && !isPrivileged) {
+                return response.forbidden({ message: 'You cannot perform face verification punches on behalf of other employees' })
+            }
+
             const embeddings = await FaceEmbedding.query()
                 .where('employee_id', data.employeeId)
                 .where('org_id', employee.orgId)
@@ -106,40 +165,95 @@ export default class FaceRecognitionController {
                 return response.notFound({ message: 'No active face registration found for this employee' })
             }
 
-            const match = this.findBestMatch(JSON.parse(data.embedding), embeddings)
+            const match = this.findBestMatch(embeddingArray, embeddings)
+            similarity = match.similarity
+            matched = similarity > 0.7
+            matchedEmployeeId = data.employeeId
+            sampleCount = embeddings.length
+        } else {
+            // Search all active employees in org
+            const embeddings = await FaceEmbedding.query()
+                .where('org_id', employee.orgId)
+                .where('is_active', true)
+                .orderBy('created_at', 'desc')
 
+            const bestMatch = this.findBestMatchAcrossEmployees(embeddingArray, embeddings)
+            if (bestMatch && bestMatch.similarity > 0.7) {
+                matched = true
+                similarity = bestMatch.similarity
+                matchedEmployeeId = bestMatch.employeeId
+                sampleCount = bestMatch.sampleCount
+            } else {
+                similarity = bestMatch?.similarity || 0
+                sampleCount = bestMatch?.sampleCount || 0
+            }
+        }
+
+        if (!matched || !matchedEmployeeId) {
             return response.ok({
                 status: 'success',
-                matched: match.similarity > 0.7, // Threshold
-                similarity: match.similarity,
-                employeeId: data.employeeId,
-                sampleCount: embeddings.length,
+                success: false,
+                matched: false,
+                message: 'Face did not match any registered employee',
+                similarity,
+                sampleCount,
             })
         }
 
-        // Search all active employees in org
-        const embeddings = await FaceEmbedding.query()
-            .where('org_id', employee.orgId)
-            .where('is_active', true)
-            .orderBy('created_at', 'desc')
+        // Fetch employee details
+        const targetEmployee = await Employee.find(matchedEmployeeId)
+        const employeeName = targetEmployee?.firstName || 'Employee'
 
-        const bestMatch = this.findBestMatchAcrossEmployees(JSON.parse(data.embedding), embeddings)
-
-        if (bestMatch && bestMatch.similarity > 0.7) {
-            return response.ok({
-                status: 'success',
-                matched: true,
-                similarity: bestMatch.similarity,
-                employeeId: bestMatch.employeeId,
-                sampleCount: bestMatch.sampleCount,
-            })
+        // Record attendance if action was specified
+        let attendanceRecord = null
+        if (action) {
+            try {
+                if (action === 'check_in') {
+                    attendanceRecord = await this.attendanceService.checkIn(matchedEmployeeId, employee.orgId, {
+                        source: 'face'
+                    })
+                } else if (action === 'check_out') {
+                    attendanceRecord = await this.attendanceService.checkOut(matchedEmployeeId, {
+                        source: 'face'
+                    })
+                }
+            } catch (error: any) {
+                return response.badRequest({
+                    status: 'error',
+                    success: false,
+                    matched: true,
+                    similarity,
+                    employeeId: matchedEmployeeId,
+                    message: error?.message || 'Attendance action failed',
+                })
+            }
         }
 
         return response.ok({
             status: 'success',
-            matched: false,
-            similarity: bestMatch?.similarity || 0,
-            sampleCount: bestMatch?.sampleCount || 0,
+            success: true,
+            matched: true,
+            similarity,
+            employeeId: matchedEmployeeId,
+            sampleCount,
+            employee: targetEmployee ? {
+                id: targetEmployee.id,
+                name: `${targetEmployee.firstName} ${targetEmployee.lastName || ''}`.trim(),
+                email: targetEmployee.email,
+            } : undefined,
+            attendance: attendanceRecord ? {
+                date: DateTime.now().toISODate()!,
+                action: action,
+                matchScore: `${Math.round(similarity * 100)}%`,
+            } : undefined,
+            tts: {
+                name: employeeName,
+                message: action === 'check_in'
+                    ? `Welcome ${employeeName}, check-in recorded.`
+                    : action === 'check_out'
+                        ? `Goodbye ${employeeName}, check-out recorded.`
+                        : `Face recognized as ${employeeName}.`,
+            }
         })
     }
 
@@ -148,7 +262,12 @@ export default class FaceRecognitionController {
      */
     async status({ auth, params, response }: HttpContext) {
         const employee = auth.user!
-        const targetEmployeeId = params.id
+        const targetEmployeeId = Number(params.id)
+        const isSelf = employee.id === targetEmployeeId
+        const isPrivileged = this.isPrivilegedRole(employee.roleId)
+        if (!isSelf && !isPrivileged) {
+            return response.forbidden({ message: 'You do not have permission to view face status for this employee' })
+        }
 
         const embedding = await FaceEmbedding.query()
             .where('employee_id', targetEmployeeId)
@@ -174,7 +293,12 @@ export default class FaceRecognitionController {
      */
     async delete({ auth, params, response }: HttpContext) {
         const employee = auth.user!
-        const targetEmployeeId = params.id
+        const targetEmployeeId = Number(params.id)
+        const isSelf = employee.id === targetEmployeeId
+        const isPrivileged = this.isPrivilegedRole(employee.roleId)
+        if (!isSelf && !isPrivileged) {
+            return response.forbidden({ message: 'You do not have permission to delete face registration for this employee' })
+        }
 
         await FaceEmbedding.query()
             .where('employee_id', targetEmployeeId)
@@ -263,4 +387,3 @@ export default class FaceRecognitionController {
         }
     }
 }
-

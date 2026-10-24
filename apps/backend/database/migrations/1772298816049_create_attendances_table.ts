@@ -20,7 +20,7 @@ export default class extends BaseSchema {
       table.decimal('check_out_lat', 10, 8).nullable()
       table.decimal('check_out_lng', 11, 8).nullable()
       table.enum('status', ['present', 'absent', 'half_day', 'late', 'on_leave', 'holiday', 'weekend']).notNullable().defaultTo('present')
-      table.enum('source', ['manual', 'biometric', 'mobile', 'web', 'geo_fence']).notNullable().defaultTo('web')
+      table.enum('source', ['manual', 'biometric', 'mobile', 'web', 'geo_fence', 'camera', 'face', 'kiosk']).notNullable().defaultTo('web')
       table.string('notes', 500).nullable()
       table.integer('modified_by').unsigned().nullable()
       table.dateTime('modified_at').nullable()

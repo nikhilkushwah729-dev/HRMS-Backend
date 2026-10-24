@@ -262,6 +262,7 @@ router.group(() => {
   router.get('/', [RegularizationsController, 'index'])
   router.post('/', [RegularizationsController, 'store'])
   router.put('/:id', [RegularizationsController, 'update'])
+  router.put('/:id/status', [RegularizationsController, 'update']).as('regularizations.updateStatus')
 }).prefix('api/regularizations').use(middleware.auth()).use(middleware.subscription({ module: 'Attendance' }))
 
 /**

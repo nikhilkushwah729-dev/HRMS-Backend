@@ -16,7 +16,7 @@ export default class FaceEmbedding extends BaseModel {
     @column({ columnName: 'org_id' })
     declare orgId: number
 
-    @column({ columnName: 'embedding' })
+    @column({ columnName: 'embedding', serializeAs: null })
     declare embedding: string // JSON string of embedding array
 
     @column({ columnName: 'image_url' })

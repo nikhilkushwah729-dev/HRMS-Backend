@@ -1,11 +1,28 @@
 import Attendance from '#models/attendance'
 import Shift from '#models/shift'
+import EmployeeShift from '#models/employee_shift'
 import Holiday from '#models/holiday'
+import Payroll from '#models/payroll'
+import RegularizationService from '#services/RegularizationService'
 import { DateTime } from 'luxon'
 import { Exception } from '@adonisjs/core/exceptions'
 import db from '@adonisjs/lucid/services/db'
 
 export default class AttendanceService {
+    private async isPayrollLockedForDate(employeeId: number, orgId: number, date: DateTime): Promise<boolean> {
+        const locked = await Payroll.query()
+            .where('org_id', orgId)
+            .where('month', date.month)
+            .where('year', date.year)
+            .where((q) => {
+                q.where('employee_id', employeeId).orWhere('is_locked', true)
+            })
+            .where((q) => {
+                q.where('is_locked', true).orWhereIn('status', ['processed', 'paid'])
+            })
+            .first()
+        return !!locked
+    }
     private mapShiftRecord(shift: any) {
         return {
             id: Number(shift.id),
@@ -100,6 +117,11 @@ export default class AttendanceService {
         const now = DateTime.now()
         const todayStr = now.toISODate()!
 
+        // Payroll-period locking: prevent check-in if payroll is locked/paid for this period
+        if (await this.isPayrollLockedForDate(employeeId, orgId, now)) {
+            throw new Exception('Attendance for this period is locked because payroll has already been processed or paid', { status: 400 })
+        }
+
         // 1. Same-day attendance prevention
         const query = Attendance.query()
             .where('employee_id', employeeId)
@@ -121,20 +143,48 @@ export default class AttendanceService {
         // 2. Fetch Shift & Calculate Late Status
         let isLate = false
         let shiftIdToSave: number | null = null
+        let resolvedShift: Shift | null = null
 
         if (data.shiftId) {
-            const shift = await Shift.find(data.shiftId)
-            if (shift) {
-                shiftIdToSave = shift.id
-                const [startH, startM] = shift.startTime.split(':').map(Number)
-                const shiftStartTime = now.set({ hour: startH, minute: startM, second: 0, millisecond: 0 })
-                const graceEndTime = shiftStartTime.plus({ minutes: shift.graceTime || 0 })
+            resolvedShift = await Shift.query()
+                .where('id', data.shiftId)
+                .where('org_id', orgId)
+                .first()
+        }
 
-                if (now > graceEndTime) {
-                    isLate = true
-                }
+        if (!resolvedShift) {
+            // Check if employee has an assigned shift
+            const empShift = await EmployeeShift.query()
+                .where('employee_id', employeeId)
+                .where('effective_from', '<=', todayStr)
+                .where((q) => {
+                    q.whereNull('effective_to').orWhere('effective_to', '>=', todayStr)
+                })
+                .preload('shift')
+                .orderBy('effective_from', 'desc')
+                .first()
+
+            if (empShift?.shift) {
+                resolvedShift = empShift.shift
             } else {
-                console.warn(`Shift ${data.shiftId} not found. Ignoring shift assignment.`)
+                // Fallback to active organization default shift
+                resolvedShift = await Shift.query()
+                    .where('org_id', orgId)
+                    .where('is_active', true)
+                    .orderBy('id', 'asc')
+                    .first()
+            }
+        }
+
+        if (resolvedShift) {
+            shiftIdToSave = resolvedShift.id
+            const startTimeStr = resolvedShift.startTime || '09:00:00'
+            const [startH, startM] = startTimeStr.split(':').map(Number)
+            const shiftStartTime = now.set({ hour: startH, minute: startM, second: 0, millisecond: 0 })
+            const graceEndTime = shiftStartTime.plus({ minutes: resolvedShift.graceTime || 0 })
+
+            if (now > graceEndTime) {
+                isLate = true
             }
         }
 
@@ -170,19 +220,41 @@ export default class AttendanceService {
     }
 
     /**
-     * Check-out employee
+     * Check-out employee (supports same-day and overnight shifts)
      */
     async checkOut(employeeId: number, data: any) {
         const now = DateTime.now()
-        const attendance = await Attendance.query()
+        const todayStr = now.toISODate()!
+        const yesterdayStr = now.minus({ days: 1 }).toISODate()!
+
+        // Find active check-in: check today first, then yesterday for overnight shifts
+        let attendance = await Attendance.query()
             .where('employee_id', employeeId)
-            .where('attendance_date', now.toISODate()!)
+            .where('attendance_date', todayStr)
             .whereNull('check_out')
             .preload('shift')
             .first()
 
         if (!attendance) {
-            throw new Exception('No active check-in found for today', { status: 404 })
+            attendance = await Attendance.query()
+                .where('employee_id', employeeId)
+                .where('attendance_date', yesterdayStr)
+                .whereNull('check_out')
+                .preload('shift')
+                .first()
+        }
+
+        if (!attendance) {
+            throw new Exception('No active check-in found for today or an ongoing overnight shift', { status: 404 })
+        }
+
+        const sessionDate = attendance.attendanceDate instanceof DateTime
+            ? attendance.attendanceDate
+            : DateTime.fromISO(String(attendance.attendanceDate))
+
+        // Payroll-period locking: prevent check-out if payroll is locked/paid
+        if (await this.isPayrollLockedForDate(employeeId, attendance.orgId, sessionDate)) {
+            throw new Exception('Cannot update attendance: payroll for this period is locked or already paid', { status: 400 })
         }
 
         attendance.checkOut = now
@@ -191,9 +263,18 @@ export default class AttendanceService {
 
         // Calculate work hours
         if (attendance.checkIn) {
-            const diff = now.diff(attendance.checkIn, ['hours', 'minutes']).toObject()
-            const totalHours = (diff.hours || 0) + (diff.minutes || 0) / 60
-            attendance.workHours = parseFloat(totalHours.toFixed(2))
+            const checkInDateTime = attendance.checkIn instanceof DateTime
+                ? attendance.checkIn
+                : DateTime.fromISO(String(attendance.checkIn))
+            const diff = now.diff(checkInDateTime, ['hours', 'minutes']).toObject()
+            const rawHours = Math.max(0, (diff.hours || 0) + (diff.minutes || 0) / 60)
+            if (rawHours > 24) {
+                attendance.workHours = 24.0
+                const noteMsg = `Stale checkout (${rawHours.toFixed(1)}h elapsed). Capped at 24h for manager review.`
+                attendance.notes = attendance.notes ? `${attendance.notes}; ${noteMsg}` : noteMsg
+            } else {
+                attendance.workHours = parseFloat(rawHours.toFixed(2))
+            }
             const breakHours = Number(attendance.totalBreakMin || 0) / 60
             attendance.netWorkHours = Math.max(0, parseFloat((attendance.workHours - breakHours).toFixed(2)))
 
@@ -201,11 +282,18 @@ export default class AttendanceService {
             if (attendance.workHours < 4) {
                 attendance.isHalfDay = true
                 attendance.status = 'half_day'
+            } else {
+                attendance.isHalfDay = false
+                if (attendance.status === 'half_day') {
+                    attendance.status = attendance.isLate ? 'late' : 'present'
+                }
             }
 
             // Logic: Overtime if > 9 hours (assuming 8h shift + 1h buffer)
             if (attendance.workHours > 9) {
                 attendance.isOvertime = true
+            } else {
+                attendance.isOvertime = false
             }
         }
 
@@ -258,17 +346,19 @@ export default class AttendanceService {
         let breakTimeMinutes = Number(attendance.totalBreakMin || 0)
 
         if (attendance.checkIn) {
-            const checkInTime = DateTime.fromISO(attendance.checkIn.toString())
+            const checkInTime = attendance.checkIn instanceof DateTime
+                ? attendance.checkIn
+                : DateTime.fromISO(String(attendance.checkIn))
             const checkOutTime = attendance.checkOut 
-                ? DateTime.fromISO(attendance.checkOut.toString())
+                ? (attendance.checkOut instanceof DateTime ? attendance.checkOut : DateTime.fromISO(String(attendance.checkOut)))
                 : DateTime.now()
             
             const diff = checkOutTime.diff(checkInTime, ['hours', 'minutes']).toObject()
-            totalWorkHours = parseFloat(((diff.hours || 0) + (diff.minutes || 0) / 60).toFixed(2))
+            totalWorkHours = Math.max(0, parseFloat(((diff.hours || 0) + (diff.minutes || 0) / 60).toFixed(2)))
             
             // Calculate overtime (beyond 9 hours)
             if (totalWorkHours > 9) {
-                overtimeHours = totalWorkHours - 9
+                overtimeHours = parseFloat((totalWorkHours - 9).toFixed(2))
             }
         }
 
@@ -489,19 +579,14 @@ export default class AttendanceService {
         check_out?: string,
         reason: string
     }) {
-        // Store in a simple way - you might want a separate table for this
-        const result = await db.table('attendance_regularizations').insert({
-            employee_id: employeeId,
-            org_id: orgId,
-            regularization_date: data.date,
-            check_in: data.check_in,
-            check_out: data.check_out || null,
+        const regService = new RegularizationService()
+        return await regService.submitRequest(employeeId, orgId, {
+            regularizationDate: data.date,
+            checkIn: data.check_in,
+            checkOut: data.check_out,
             reason: data.reason,
-            status: 'pending',
-            created_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss')
+            type: 'missed_punch',
         })
-
-        return result
     }
 
     /**
@@ -539,25 +624,8 @@ export default class AttendanceService {
             throw new Exception('Request not found', { status: 404 })
         }
 
-        await db.from('attendance_regularizations')
-            .where('id', requestId)
-            .update({
-                status: action,
-                approved_by: adminId,
-                approved_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
-                rejection_reason: reason || null
-            })
-
-        // If approved, create/update attendance
-        if (action === 'approved') {
-            await db.from('attendances')
-                .where('employee_id', request.employee_id)
-                .where('attendance_date', request.regularization_date)
-                .update({
-                    check_in: request.check_in,
-                    check_out: request.check_out
-                })
-        }
+        const regService = new RegularizationService()
+        await regService.processRequest(requestId, adminId, request.org_id, action, reason)
 
         return { success: true, action }
     }
