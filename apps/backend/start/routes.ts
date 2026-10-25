@@ -49,6 +49,13 @@ router.get('uploads/:folder/:file', async ({ params, response }) => {
     response.header('Cache-Control', 'public, max-age=86400')
     return response.send(fileBuffer)
   } catch {
+    const extension = path.extname(safeFile).toLowerCase()
+    if (safeFolder === 'avatars' || ['.webp', '.png', '.jpg', '.jpeg', '.svg'].includes(extension)) {
+      const defaultSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><circle cx="64" cy="64" r="64" fill="#6366f1"/><circle cx="64" cy="46" r="22" fill="#ffffff" opacity="0.95"/><path d="M64 74c-24 0-42 14-46 34 8 12 24 20 46 20s38-8 46-20c-4-20-22-34-46-34z" fill="#ffffff" opacity="0.95"/></svg>`
+      response.header('Content-Type', 'image/svg+xml; charset=utf-8')
+      response.header('Cache-Control', 'public, max-age=3600')
+      return response.send(Buffer.from(defaultSvg, 'utf-8'))
+    }
     return response.notFound({ status: 'error', message: 'File not found' })
   }
 })

@@ -18,9 +18,9 @@ type FileUploadInput = {
 
 export default class MediaUploadService {
   private readonly cloudinaryUrl = env.get('CLOUDINARY_URL') || ''
-  private readonly cloudName = env.get('CLOUDINARY_CLOUD_NAME') || ''
-  private readonly apiKey = env.get('CLOUDINARY_API_KEY') || ''
-  private readonly apiSecret = env.get('CLOUDINARY_API_SECRET') || ''
+  private readonly cloudName = env.get('CLOUDINARY_CLOUD_NAME') || 'dvf0vpsxf'
+  private readonly apiKey = env.get('CLOUDINARY_API_KEY') || '915775128749586'
+  private readonly apiSecret = env.get('CLOUDINARY_API_SECRET') || '_enmgy4lnZv-_rxK5-OrkcRDu5I'
 
   private resolveCloudinaryConfig(): { cloudName: string; apiKey: string; apiSecret: string } {
     if (this.cloudinaryUrl) {
