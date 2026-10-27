@@ -53,5 +53,6 @@ export const middleware = router.named({
   seatLimit: () => import('#middleware/seat_limit_middleware'),
   kioskAuth: () => import('#middleware/kiosk_auth_middleware'),
   rateLimiter: () => import('#middleware/rate_limiter_middleware'),
+  tenant: () => import('#middleware/tenant_middleware'),
 })
 

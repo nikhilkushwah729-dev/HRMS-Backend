@@ -149,6 +149,8 @@ export default class SubscriptionService {
   private moduleAliases: Record<string, string[]> = {
     ess: ['ess'],
     attendance: ['attendance'],
+    leaves: ['leaves', 'leave'],
+    leave: ['leaves', 'leave'],
     payroll: ['payroll'],
     visitormanagement: ['visitormanagement', 'visitor_management', 'visitor-management'],
     announcements: ['announcements', 'announcement'],
@@ -156,24 +158,32 @@ export default class SubscriptionService {
     expenses: ['expenses', 'expense'],
     timesheets: ['timesheets', 'timesheet'],
     auditlogs: ['auditlogs', 'audit_logs', 'audit-logs', 'compliance'],
+    kiosk: ['kiosk', 'kiosks'],
+    geofence: ['geofence', 'geofencing'],
+    facerecognition: ['facerecognition', 'face', 'faceid'],
+    shiftplanner: ['shiftplanner', 'shift', 'shifts'],
   }
   private addonAliases: Record<string, string[]> = {
     leaveandtimeoff: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
-    employeetracking: ['employeetracking', 'employee', 'employees', 'attendance'],
+    leaves: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
+    leave: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
+    attendance: ['attendance'],
+    employeetracking: ['employeetracking', 'employee', 'employees'],
     trackvisits: ['trackvisits', 'visitmanagement', 'visitormanagement', 'visits'],
     geofence: ['geofence', 'geofencing'],
     facerecognition: ['facerecognition', 'face', 'faceid'],
-    shiftplanner: ['shiftplanner', 'shift'],
+    shiftplanner: ['shiftplanner', 'shift', 'shifts'],
     timesheet: ['timesheet', 'timesheets'],
     payroll: ['payroll', 'salary'],
     expense: ['expense', 'expenses'],
+    kiosk: ['kiosk', 'kiosks'],
   }
 
   async ensureCatalog() {
     for (const planPayload of DEFAULT_PLANS) {
-      const plan = await Plan.updateOrCreate(
-        { slug: planPayload.slug },
-        {
+      let plan = await Plan.query().where('slug', planPayload.slug).first()
+      if (!plan) {
+        plan = await Plan.create({
           name: planPayload.name,
           slug: planPayload.slug,
           price: planPayload.price,
@@ -189,26 +199,31 @@ export default class SubscriptionService {
           isPublic: planPayload.isPublic,
           isTrialPlan: planPayload.isTrialPlan,
           sortOrder: planPayload.sortOrder,
-        }
-      )
+        })
+      }
 
       const featureLimits = DEFAULT_FEATURE_LIMITS[planPayload.slug] ?? []
       for (const feature of featureLimits) {
-        await FeatureLimit.updateOrCreate(
-          { planId: plan.id, featureKey: feature.key },
-          {
+        const existingLimit = await FeatureLimit.query()
+          .where('planId', plan.id)
+          .where('featureKey', feature.key)
+          .first()
+
+        if (!existingLimit) {
+          await FeatureLimit.create({
             planId: plan.id,
             featureKey: feature.key,
             featureLabel: feature.label,
             featureType: feature.type,
             isEnabled: feature.enabled,
             limitValue: feature.value ?? null,
-          }
-        )
+          })
+        }
       }
     }
 
     const realAddons = [
+      { name: 'Attendance Core', slug: 'attendance', price: 300 },
       { name: 'Leave & Time Off', slug: 'leaveandtimeoff', price: 300 },
       { name: 'Employee GPS Tracking', slug: 'employeetracking', price: 400 },
       { name: 'Visit Management', slug: 'trackvisits', price: 300 },
@@ -220,26 +235,15 @@ export default class SubscriptionService {
       { name: 'Expense Management', slug: 'expense', price: 300 },
     ]
 
-    const validSlugs = new Set(realAddons.map((item) => item.slug))
-
     for (const item of realAddons) {
-      await AddonPrice.updateOrCreate(
-        { slug: item.slug },
-        {
+      const existingAddon = await AddonPrice.query().where('slug', item.slug).first()
+      if (!existingAddon) {
+        await AddonPrice.create({
           name: item.name,
           slug: item.slug,
           price: item.price,
           isActive: item.slug === 'payroll' ? false : true,
-        }
-      )
-    }
-
-    // Deactivate non-existent/dummy addons
-    const allAddons = await AddonPrice.all()
-    for (const addon of allAddons) {
-      if (!validSlugs.has(addon.slug)) {
-        addon.isActive = false
-        await addon.save()
+        })
       }
     }
   }
@@ -1045,6 +1049,84 @@ export default class SubscriptionService {
     }
   }
 
+  private isAttendanceDependent(module: string): boolean {
+    const normalized = this.normalizeModule(module)
+    const dependentSlugs = ['facerecognition', 'face', 'faceid', 'geofence', 'geofencing', 'shiftplanner', 'shift', 'shifts', 'kiosk', 'kiosks']
+    return dependentSlugs.includes(normalized)
+  }
+
+  private async evaluateSingleModuleAccess(org: Organization, module: string, method = 'GET'): Promise<FeatureGateResult> {
+    const orgId = org.id
+    const isExpired = ['expired', 'cancelled', 'inactive'].includes(org.subscriptionStatus)
+    const readOnly = Boolean(org.readOnlyMode || isExpired)
+
+    // Check organization_addons table for direct add-on overrides
+    const normalized = this.normalizeModule(module)
+    const matchingAliases = Object.values(this.addonAliases).find((list) => list.includes(normalized)) ?? [normalized]
+    const checkSlugs = Array.from(new Set([normalized, ...matchingAliases, ...(this.addonAliases[normalized] ?? [])]))
+
+    const addonRow = await db
+      .from('organization_addons')
+      .innerJoin('addon_prices', 'addon_prices.id', 'organization_addons.addon_id')
+      .where('organization_addons.org_id', orgId)
+      .whereIn('addon_prices.slug', checkSlugs)
+      .select('organization_addons.is_active')
+      .first()
+
+    if (addonRow !== undefined && addonRow !== null) {
+      const isAddonActive = Number(addonRow.is_active) === 1 || addonRow.is_active === true
+      if (isAddonActive) {
+        // Level 2: Explicit active add-on row grants access
+        return {
+          allowed: true,
+          reason: null,
+          readOnly,
+          subscriptionStatus: org.subscriptionStatus,
+        }
+      } else {
+        // Level 3: Explicit inactive add-on row blocks access
+        return {
+          allowed: false,
+          reason: `The ${module} module is currently deactivated for your organization.`,
+          readOnly,
+          subscriptionStatus: org.subscriptionStatus,
+        }
+      }
+    }
+
+    // Level 4: Fallback to Plan modules and Feature Limits
+    const planId = org.planId
+    if (!planId) {
+      return {
+        allowed: false,
+        reason: 'No active plan found for this organization.',
+        readOnly,
+        subscriptionStatus: org.subscriptionStatus || 'active',
+      }
+    }
+
+    const plan = await Plan.find(planId)
+    const limits = await FeatureLimit.query().where('planId', planId)
+    const planModules = this.parseJson(plan?.modules, []) as string[]
+    const enabled = this.moduleEnabledForPlan(module, planModules, limits)
+
+    if (!enabled) {
+      return {
+        allowed: false,
+        reason: `Your current plan does not include the ${module} module. Upgrade your plan or activate the add-on.`,
+        readOnly,
+        subscriptionStatus: org.subscriptionStatus,
+      }
+    }
+
+    return {
+      allowed: true,
+      reason: null,
+      readOnly: false,
+      subscriptionStatus: org.subscriptionStatus,
+    }
+  }
+
   async evaluateFeatureAccess(orgId: number, module: string, method = 'GET'): Promise<FeatureGateResult> {
     try {
       await this.ensureCatalog()
@@ -1069,71 +1151,20 @@ export default class SubscriptionService {
         }
       }
 
-      // Check organization_addons table for direct add-on overrides
-      const normalized = this.normalizeModule(module)
-      const aliases = this.addonAliases[normalized] ?? [normalized]
-      const checkSlugs = Array.from(new Set([normalized, ...aliases]))
-
-      const addonRow = await db
-        .from('organization_addons')
-        .innerJoin('addon_prices', 'addon_prices.id', 'organization_addons.addon_id')
-        .where('organization_addons.org_id', orgId)
-        .whereIn('addon_prices.slug', checkSlugs)
-        .select('organization_addons.is_active')
-        .first()
-
-      if (addonRow !== undefined && addonRow !== null) {
-        const isAddonActive = Number(addonRow.is_active) === 1 || addonRow.is_active === true
-        if (isAddonActive) {
-          // Level 2: Explicit active add-on row grants access
-          return {
-            allowed: true,
-            reason: null,
-            readOnly,
-            subscriptionStatus: org.subscriptionStatus,
-          }
-        } else {
-          // Level 3: Explicit inactive add-on row blocks access
+      // Check Attendance Core prerequisite for advanced attendance features
+      if (this.isAttendanceDependent(module)) {
+        const attendanceAccess = await this.evaluateSingleModuleAccess(org, 'attendance', method)
+        if (!attendanceAccess.allowed) {
           return {
             allowed: false,
-            reason: `The ${module} module is currently deactivated for your organization.`,
-            readOnly,
+            reason: 'This feature requires an active Attendance Core subscription.',
+            readOnly: attendanceAccess.readOnly,
             subscriptionStatus: org.subscriptionStatus,
           }
         }
       }
 
-      // Level 4: Fallback to Plan modules and Feature Limits
-      const planId = org.planId
-      if (!planId) {
-        return {
-          allowed: false,
-          reason: 'No active plan found for this organization.',
-          readOnly,
-          subscriptionStatus: org.subscriptionStatus || 'active',
-        }
-      }
-
-      const plan = await Plan.find(planId)
-      const limits = await FeatureLimit.query().where('planId', planId)
-      const planModules = this.parseJson(plan?.modules, []) as string[]
-      const enabled = this.moduleEnabledForPlan(module, planModules, limits)
-
-      if (!enabled) {
-        return {
-          allowed: false,
-          reason: `Your current plan does not include the ${module} module. Upgrade your plan or activate the add-on.`,
-          readOnly,
-          subscriptionStatus: org.subscriptionStatus,
-        }
-      }
-
-      return {
-        allowed: true,
-        reason: null,
-        readOnly: false,
-        subscriptionStatus: org.subscriptionStatus,
-      }
+      return await this.evaluateSingleModuleAccess(org, module, method)
     } catch (error) {
       logger.error({ err: error, orgId, module }, 'evaluateFeatureAccess failed')
       return {

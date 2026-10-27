@@ -223,10 +223,11 @@ export default class OrganizationService {
 
             if (!allAddons || allAddons.length === 0) {
                 return [
-                    { id: 1, name: 'Attendance & Leave', slug: 'attendance', description: 'Attendance, Shifts, Leaves & Overtime', isActive: true },
-                    { id: 2, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms', isActive: true },
-                    { id: 3, name: 'Timesheets & Tasks', slug: 'timesheets', description: 'Project tracking and log hours', isActive: true },
-                    { id: 4, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs', isActive: true },
+                    { id: 1, name: 'Attendance Management', slug: 'attendance', description: 'Attendance, Shifts, Time In & Out', isActive: true },
+                    { id: 2, name: 'Leave Management', slug: 'leaves', description: 'Leave requests, types, balances and approvals', isActive: true },
+                    { id: 3, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms', isActive: true },
+                    { id: 4, name: 'Timesheets & Tasks', slug: 'timesheets', description: 'Project tracking and log hours', isActive: true },
+                    { id: 5, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs', isActive: true },
                 ]
             }
 
@@ -242,10 +243,11 @@ export default class OrganizationService {
             })
         } catch {
             return [
-                { id: 1, name: 'Attendance & Leave', slug: 'attendance', description: 'Attendance, Shifts, Leaves & Overtime', isActive: true },
-                { id: 2, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms', isActive: true },
-                { id: 3, name: 'Timesheets & Tasks', slug: 'timesheets', description: 'Project tracking and log hours', isActive: true },
-                { id: 4, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs', isActive: true },
+                { id: 1, name: 'Attendance Management', slug: 'attendance', description: 'Attendance, Shifts, Time In & Out', isActive: true },
+                { id: 2, name: 'Leave Management', slug: 'leaves', description: 'Leave requests, types, balances and approvals', isActive: true },
+                { id: 3, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms', isActive: true },
+                { id: 4, name: 'Timesheets & Tasks', slug: 'timesheets', description: 'Project tracking and log hours', isActive: true },
+                { id: 5, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs', isActive: true },
             ]
         }
     }
@@ -259,11 +261,11 @@ export default class OrganizationService {
         if (orgAddon) {
             orgAddon.isActive = isActive
             await orgAddon.save()
-        } else if (isActive) {
+        } else {
             orgAddon = await OrganizationAddon.create({
                 orgId,
                 addonId,
-                isActive: true,
+                isActive: Boolean(isActive),
                 startDate: DateTime.now()
             })
         }

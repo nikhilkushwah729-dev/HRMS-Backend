@@ -20,9 +20,6 @@ export default class AddonPrice extends BaseModel {
     declare slug: string
 
     @column()
-    declare description: string | null
-
-    @column()
     declare price: number
 
     @column()

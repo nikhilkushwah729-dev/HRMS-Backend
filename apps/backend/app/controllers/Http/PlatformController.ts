@@ -166,7 +166,28 @@ export default class PlatformController {
     })
   }
 
-  async createOrganization({ request, response }: HttpContext) {
+  private async isVerifiedSuperAdmin(user: any): Promise<boolean> {
+    if (!user) return false
+    const roleId = Number(user.roleId ?? 0)
+    if (roleId <= 0) return false
+
+    try {
+      const Role = (await import('#models/role')).default
+      const role = await Role.find(roleId)
+      if (!role) return false
+
+      const normalizedName = String(role.roleName || '').trim().toLowerCase()
+      return normalizedName === 'super admin' && (role.orgId === null || Boolean(role.isSystem))
+    } catch {
+      return false
+    }
+  }
+
+  async createOrganization({ request, response, auth }: HttpContext) {
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
     const payload = request.only(['companyName', 'email', 'userLimit', 'subscriptionStatus', 'phone', 'city', 'state'])
     if (!payload.companyName) {
       return response.badRequest({ status: 'error', message: 'Organization name is required.' })
@@ -199,6 +220,10 @@ export default class PlatformController {
 
   async updateOrganization(ctx: HttpContext) {
     const { request, response, params, auth } = ctx
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
     const Organization = (await import('#models/organization')).default
     const org = await Organization.find(params.id)
     if (!org) {
@@ -253,7 +278,10 @@ export default class PlatformController {
     return response.ok({ status: 'success', data: org })
   }
 
-  async deleteOrganization({ response, params }: HttpContext) {
+  async deleteOrganization({ response, params, auth }: HttpContext) {
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
     const Organization = (await import('#models/organization')).default
     const org = await Organization.find(params.id)
     if (!org) {
@@ -274,7 +302,10 @@ export default class PlatformController {
     return response.ok({ status: 'success', message: `Organization #${orgId} deleted successfully.` })
   }
 
-  async getOrganizationAddons({ response, params }: HttpContext) {
+  async getOrganizationAddons({ response, params, auth }: HttpContext) {
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
     const orgId = Number(params.id)
     const allAddons = await db.from('addon_prices').where('is_active', true).select('id', 'name', 'slug', 'price')
     const orgAddons = await db.from('organization_addons').where('org_id', orgId)
@@ -295,6 +326,9 @@ export default class PlatformController {
 
   async updateOrganizationAddons(ctx: HttpContext) {
     const { request, response, params, auth } = ctx
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
     const orgId = Number(params.id)
     const addons = request.input('addons', []) as Array<{ id: number; enabled: boolean }>
 
@@ -343,7 +377,10 @@ export default class PlatformController {
     return response.ok({ status: 'success', message: 'Organization module permissions updated successfully.' })
   }
 
-  async getOrganizationUsers({ response, params }: HttpContext) {
+  async getOrganizationUsers({ response, params, auth }: HttpContext) {
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
     const orgId = Number(params.id)
     const employees = await db
       .from('employees')
@@ -377,7 +414,10 @@ export default class PlatformController {
     return response.ok({ status: 'success', data: mapped })
   }
 
-  async resetUserPassword({ request, response, params }: HttpContext) {
+  async resetUserPassword({ request, response, params, auth }: HttpContext) {
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
     const userId = Number(params.userId)
     const newPassword = request.input('password')
     if (!newPassword || newPassword.length < 6) {
@@ -395,6 +435,706 @@ export default class PlatformController {
 
     return response.ok({ status: 'success', message: `Password for ${employee.email} updated successfully.` })
   }
+
+  private readonly validModules = new Set([
+    'ess',
+    'attendance',
+    'leaves',
+    'leave',
+    'payroll',
+    'visits',
+    'visitmanagement',
+    'visitormanagement',
+    'expenses',
+    'expense',
+    'timesheets',
+    'timesheet',
+    'auditlogs',
+    'assets',
+    'performance',
+    'announcements',
+    'projects',
+    'kiosk',
+    'geofence',
+    'facerecognition',
+    'shiftplanner',
+    'employeetracking',
+    'tracking',
+  ])
+
+  private readonly attendanceDependentModules = new Set([
+    'facerecognition',
+    'geofence',
+    'shiftplanner',
+    'kiosk',
+  ])
+
+  private validateModules(modules: unknown): { isValid: boolean; error?: string; normalized: string[] } {
+    if (!Array.isArray(modules)) {
+      return { isValid: false, error: 'Modules must be an array of module names.', normalized: [] }
+    }
+
+    const normalizedList: string[] = []
+    const normalizedSet = new Set<string>()
+
+    for (const m of modules) {
+      if (typeof m !== 'string' || !m.trim()) {
+        return { isValid: false, error: 'Module names must be non-empty strings.', normalized: [] }
+      }
+      const raw = m.trim()
+      const norm = raw.toLowerCase().replace(/[^a-z0-9]/g, '')
+      if (!this.validModules.has(norm)) {
+        return {
+          isValid: false,
+          error: `Invalid or unsupported module: '${raw}'.`,
+          normalized: [],
+        }
+      }
+      normalizedSet.add(norm)
+      normalizedList.push(raw)
+    }
+
+    const hasAttendance = normalizedSet.has('attendance')
+    const missingPrereqs: string[] = []
+    for (const mod of normalizedSet) {
+      if (this.attendanceDependentModules.has(mod) && !hasAttendance) {
+        missingPrereqs.push(mod)
+      }
+    }
+
+    if (missingPrereqs.length > 0) {
+      return {
+        isValid: false,
+        error: `Modules [${missingPrereqs.join(', ')}] require Attendance Core to be included in the plan.`,
+        normalized: [],
+      }
+    }
+
+    return { isValid: true, normalized: normalizedList }
+  }
+
+  private async logAudit(
+    ctx: HttpContext,
+    params: {
+      action: string
+      entityName: string
+      entityId: string | number
+      oldValues?: any
+      newValues?: any
+    }
+  ) {
+    const user = ctx.auth?.user
+    if (!user) return
+
+    try {
+      const AuditLogService = (await import('#services/AuditLogService')).default
+      const GeoService = (await import('#services/GeoService')).default
+      const auditLogService = new AuditLogService(new GeoService())
+      await auditLogService.log({
+        orgId: user.orgId ?? undefined,
+        employeeId: user.id,
+        action: params.action,
+        module: 'Platform',
+        entityName: params.entityName,
+        entityId: String(params.entityId),
+        oldValues: params.oldValues,
+        newValues: params.newValues,
+        ctx,
+      })
+    } catch {
+      // Suppress audit log failures to ensure primary mutation succeeds
+    }
+  }
+
+  async getPlans({ response, auth }: HttpContext) {
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
+    const Plan = (await import('#models/plan')).default
+    const FeatureLimit = (await import('#models/feature_limit')).default
+
+    const plans = await Plan.query().orderBy('sortOrder', 'asc').orderBy('id', 'asc')
+    const planIds = plans.map((p) => p.id)
+
+    const limits = planIds.length > 0
+      ? await FeatureLimit.query().whereIn('planId', planIds).orderBy('id', 'asc')
+      : []
+
+    const limitsByPlan = new Map<number, any[]>()
+    for (const limit of limits) {
+      if (!limitsByPlan.has(limit.planId)) {
+        limitsByPlan.set(limit.planId, [])
+      }
+      limitsByPlan.get(limit.planId)!.push({
+        id: limit.id,
+        featureKey: limit.featureKey,
+        featureLabel: limit.featureLabel,
+        featureType: limit.featureType,
+        isEnabled: Boolean(limit.isEnabled),
+        limitValue: limit.limitValue,
+        metadata: limit.metadata,
+      })
+    }
+
+    const subCounts = planIds.length > 0
+      ? await db
+          .from('subscriptions')
+          .whereIn('plan_id', planIds)
+          .where('status', 'active')
+          .groupBy('plan_id')
+          .select('plan_id')
+          .count('* as count')
+      : []
+
+    const subCountByPlan = new Map<number, number>()
+    for (const row of subCounts as any[]) {
+      subCountByPlan.set(Number(row.plan_id), Number(row.count ?? 0))
+    }
+
+    const data = plans.map((plan) => {
+      let modules = []
+      try {
+        modules = typeof plan.modules === 'string' ? JSON.parse(plan.modules) : (plan.modules ?? [])
+      } catch {
+        modules = []
+      }
+
+      let features = {}
+      try {
+        features = typeof plan.features === 'string' ? JSON.parse(plan.features) : (plan.features ?? {})
+      } catch {
+        features = {}
+      }
+
+      return {
+        id: plan.id,
+        name: plan.name,
+        slug: plan.slug,
+        price: Number(plan.price ?? 0),
+        monthlyPrice: Number(plan.monthlyPrice ?? 0),
+        yearlyPrice: Number(plan.yearlyPrice ?? 0),
+        currency: plan.currency || 'INR',
+        userLimit: Number(plan.userLimit ?? 10),
+        storageLimitMb: Number(plan.storageLimitMb ?? 512),
+        durationDays: Number(plan.durationDays ?? 30),
+        features,
+        modules,
+        isActive: Boolean(plan.isActive),
+        isPublic: Boolean(plan.isPublic),
+        isTrialPlan: Boolean(plan.isTrialPlan),
+        sortOrder: Number(plan.sortOrder ?? 0),
+        activeSubscriptionsCount: subCountByPlan.get(plan.id) ?? 0,
+        featureLimits: limitsByPlan.get(plan.id) ?? [],
+      }
+    })
+
+    return response.ok({ status: 'success', data })
+  }
+
+  async createPlan(ctx: HttpContext) {
+    const { request, response, auth } = ctx
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
+    const name = String(request.input('name') || '').trim()
+    if (!name) {
+      return response.badRequest({ status: 'error', message: 'Plan name is required.' })
+    }
+
+    let slug = String(request.input('slug') || '').trim().toLowerCase()
+    if (!slug) {
+      slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    }
+    if (!/^[a-z0-9_-]+$/.test(slug)) {
+      return response.badRequest({ status: 'error', message: 'Slug can only contain lowercase letters, numbers, hyphens, and underscores.' })
+    }
+
+    const Plan = (await import('#models/plan')).default
+    const existing = await Plan.query().where('slug', slug).first()
+    if (existing) {
+      return response.badRequest({ status: 'error', message: `Plan with slug '${slug}' already exists.` })
+    }
+
+    const price = Number(request.input('price', request.input('monthlyPrice', 0)))
+    const monthlyPrice = Number(request.input('monthlyPrice', price))
+    const yearlyPrice = Number(request.input('yearlyPrice', monthlyPrice * 10))
+
+    if (price < 0 || monthlyPrice < 0 || yearlyPrice < 0) {
+      return response.badRequest({ status: 'error', message: 'Plan prices cannot be negative.' })
+    }
+
+    const userLimit = Number(request.input('userLimit', 10))
+    if (!Number.isInteger(userLimit) || userLimit <= 0) {
+      return response.badRequest({ status: 'error', message: 'userLimit must be a positive integer.' })
+    }
+
+    const storageLimitMb = Number(request.input('storageLimitMb', 512))
+    if (!Number.isInteger(storageLimitMb) || storageLimitMb < 0) {
+      return response.badRequest({ status: 'error', message: 'storageLimitMb must be a non-negative integer.' })
+    }
+
+    const durationDays = Number(request.input('durationDays', 30))
+    if (!Number.isInteger(durationDays) || durationDays <= 0) {
+      return response.badRequest({ status: 'error', message: 'durationDays must be a positive integer.' })
+    }
+
+    const currency = String(request.input('currency', 'INR')).trim().toUpperCase()
+    if (!currency || currency.length < 2 || currency.length > 10) {
+      return response.badRequest({ status: 'error', message: 'currency must be a valid currency code.' })
+    }
+
+    const rawModules = request.input('modules', ['ESS', 'Attendance', 'Leaves'])
+    const moduleValidation = this.validateModules(rawModules)
+    if (!moduleValidation.isValid) {
+      return response.badRequest({ status: 'error', message: moduleValidation.error })
+    }
+
+    const isActive = request.input('isActive') !== undefined ? Boolean(request.input('isActive')) : true
+    const isPublic = request.input('isPublic') !== undefined ? Boolean(request.input('isPublic')) : true
+    const isTrialPlan = Boolean(request.input('isTrialPlan', false))
+    const sortOrder = Number(request.input('sortOrder', 0))
+    const features = request.input('features', {})
+    const featureLimits = request.input('featureLimits', [])
+
+    const createdPlan = await db.transaction(async (trx) => {
+      const plan = new Plan()
+      plan.useTransaction(trx)
+      plan.name = name
+      plan.slug = slug
+      plan.price = price
+      plan.monthlyPrice = monthlyPrice
+      plan.yearlyPrice = yearlyPrice
+      plan.currency = currency
+      plan.userLimit = userLimit
+      plan.storageLimitMb = storageLimitMb
+      plan.durationDays = durationDays
+      plan.modules = JSON.stringify(moduleValidation.normalized)
+      plan.features = typeof features === 'object' ? JSON.stringify(features) : features
+      plan.isActive = isActive
+      plan.isPublic = isPublic
+      plan.isTrialPlan = isTrialPlan
+      plan.sortOrder = sortOrder
+      await plan.save()
+
+      if (Array.isArray(featureLimits) && featureLimits.length > 0) {
+        const FeatureLimit = (await import('#models/feature_limit')).default
+        for (const fl of featureLimits) {
+          if (fl && fl.featureKey) {
+            await FeatureLimit.create({
+              planId: plan.id,
+              featureKey: String(fl.featureKey).trim(),
+              featureLabel: fl.featureLabel ? String(fl.featureLabel).trim() : null,
+              featureType: ['boolean', 'number', 'json'].includes(fl.featureType) ? fl.featureType : 'boolean',
+              isEnabled: fl.isEnabled !== undefined ? Boolean(fl.isEnabled) : true,
+              limitValue: fl.limitValue !== undefined && fl.limitValue !== null ? String(fl.limitValue) : null,
+              metadata: fl.metadata ?? null,
+            }, { client: trx })
+          }
+        }
+      }
+
+      return plan
+    })
+
+    await this.logAudit(ctx, {
+      action: 'CREATE_PLAN',
+      entityName: 'Plan',
+      entityId: createdPlan.id,
+      newValues: {
+        id: createdPlan.id,
+        name: createdPlan.name,
+        slug: createdPlan.slug,
+        price: createdPlan.price,
+        modules: moduleValidation.normalized,
+        isActive: createdPlan.isActive,
+      },
+    })
+
+    return response.created({ status: 'success', data: createdPlan })
+  }
+
+  async updatePlan(ctx: HttpContext) {
+    const { request, response, params, auth } = ctx
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
+    const planId = Number(params.id)
+    if (!planId) {
+      return response.badRequest({ status: 'error', message: 'Valid plan ID is required.' })
+    }
+
+    const Plan = (await import('#models/plan')).default
+    const plan = await Plan.find(planId)
+    if (!plan) {
+      return response.notFound({ status: 'error', message: 'Plan not found.' })
+    }
+
+    const oldValues: Record<string, any> = {
+      name: plan.name,
+      slug: plan.slug,
+      price: plan.price,
+      monthlyPrice: plan.monthlyPrice,
+      yearlyPrice: plan.yearlyPrice,
+      currency: plan.currency,
+      userLimit: plan.userLimit,
+      storageLimitMb: plan.storageLimitMb,
+      durationDays: plan.durationDays,
+      modules: plan.modules,
+      features: plan.features,
+      isActive: plan.isActive,
+      isPublic: plan.isPublic,
+      isTrialPlan: plan.isTrialPlan,
+      sortOrder: plan.sortOrder,
+    }
+
+    if (request.input('name') !== undefined) {
+      const name = String(request.input('name')).trim()
+      if (!name) {
+        return response.badRequest({ status: 'error', message: 'Plan name cannot be empty.' })
+      }
+      plan.name = name
+    }
+
+    if (request.input('slug') !== undefined) {
+      const slug = String(request.input('slug')).trim().toLowerCase()
+      if (!/^[a-z0-9_-]+$/.test(slug)) {
+        return response.badRequest({ status: 'error', message: 'Slug can only contain lowercase letters, numbers, hyphens, and underscores.' })
+      }
+      if (slug !== plan.slug) {
+        const existing = await Plan.query().where('slug', slug).whereNot('id', plan.id).first()
+        if (existing) {
+          return response.badRequest({ status: 'error', message: `Plan with slug '${slug}' already exists.` })
+        }
+        plan.slug = slug
+      }
+    }
+
+    if (request.input('price') !== undefined) {
+      const p = Number(request.input('price'))
+      if (p < 0 || Number.isNaN(p)) return response.badRequest({ status: 'error', message: 'Plan price cannot be negative.' })
+      plan.price = p
+    }
+    if (request.input('monthlyPrice') !== undefined) {
+      const mp = Number(request.input('monthlyPrice'))
+      if (mp < 0 || Number.isNaN(mp)) return response.badRequest({ status: 'error', message: 'Monthly price cannot be negative.' })
+      plan.monthlyPrice = mp
+    }
+    if (request.input('yearlyPrice') !== undefined) {
+      const yp = Number(request.input('yearlyPrice'))
+      if (yp < 0 || Number.isNaN(yp)) return response.badRequest({ status: 'error', message: 'Yearly price cannot be negative.' })
+      plan.yearlyPrice = yp
+    }
+
+    if (request.input('userLimit') !== undefined) {
+      const ul = Number(request.input('userLimit'))
+      if (!Number.isInteger(ul) || ul <= 0) return response.badRequest({ status: 'error', message: 'userLimit must be a positive integer.' })
+      plan.userLimit = ul
+    }
+    if (request.input('storageLimitMb') !== undefined) {
+      const sl = Number(request.input('storageLimitMb'))
+      if (!Number.isInteger(sl) || sl < 0) return response.badRequest({ status: 'error', message: 'storageLimitMb must be a non-negative integer.' })
+      plan.storageLimitMb = sl
+    }
+    if (request.input('durationDays') !== undefined) {
+      const dd = Number(request.input('durationDays'))
+      if (!Number.isInteger(dd) || dd <= 0) return response.badRequest({ status: 'error', message: 'durationDays must be a positive integer.' })
+      plan.durationDays = dd
+    }
+    if (request.input('currency') !== undefined) {
+      const c = String(request.input('currency')).trim().toUpperCase()
+      if (!c || c.length < 2 || c.length > 10) return response.badRequest({ status: 'error', message: 'currency must be a valid currency code.' })
+      plan.currency = c
+    }
+
+    if (request.input('modules') !== undefined) {
+      const moduleValidation = this.validateModules(request.input('modules'))
+      if (!moduleValidation.isValid) {
+        return response.badRequest({ status: 'error', message: moduleValidation.error })
+      }
+
+      let existingModules: string[] = []
+      try {
+        existingModules = typeof plan.modules === 'string' ? JSON.parse(plan.modules) : (plan.modules ?? [])
+      } catch {
+        existingModules = []
+      }
+
+      const existingNormalized = new Set(existingModules.map((m) => m.toLowerCase().replace(/[^a-z0-9]/g, '')))
+      const newNormalized = new Set(moduleValidation.normalized.map((m) => m.toLowerCase().replace(/[^a-z0-9]/g, '')))
+
+      const removedModules = Array.from(existingNormalized).filter((m) => !newNormalized.has(m))
+      if (removedModules.length > 0) {
+        const activeSubs = await db
+          .from('subscriptions')
+          .where('plan_id', plan.id)
+          .where('status', 'active')
+          .count('* as count')
+        const activeCount = Number((activeSubs[0] as any)?.count ?? 0)
+        if (activeCount > 0) {
+          return response.badRequest({
+            status: 'error',
+            message: `Cannot remove module(s) [${removedModules.join(', ')}] from a plan with active paid subscriptions (${activeCount} active). Removing modules would immediately revoke paid customer access. Create a new plan instead or adjust organization-specific add-ons.`,
+          })
+        }
+      }
+
+      plan.modules = JSON.stringify(moduleValidation.normalized)
+    }
+
+    if (request.input('isActive') !== undefined) {
+      const targetIsActive = Boolean(request.input('isActive'))
+      if (!targetIsActive && plan.isActive) {
+        if (plan.isTrialPlan || plan.slug === 'trial') {
+          const otherTrial = await Plan.query()
+            .where('isTrialPlan', true)
+            .whereNot('id', plan.id)
+            .where('isActive', true)
+            .first()
+          if (!otherTrial) {
+            return response.badRequest({
+              status: 'error',
+              message: 'Cannot deactivate the configured default trial plan. At least one active trial plan must be maintained.',
+            })
+          }
+        }
+
+        const activeSubs = await db
+          .from('subscriptions')
+          .where('plan_id', plan.id)
+          .where('status', 'active')
+          .count('* as count')
+        const activeCount = Number((activeSubs[0] as any)?.count ?? 0)
+        if (activeCount > 0) {
+          return response.badRequest({
+            status: 'error',
+            message: `Cannot deactivate a plan with active subscriptions (${activeCount} active). Consider making it private (isPublic = false) instead.`,
+          })
+        }
+      }
+      plan.isActive = targetIsActive
+    }
+
+    if (request.input('isPublic') !== undefined) plan.isPublic = Boolean(request.input('isPublic'))
+    if (request.input('isTrialPlan') !== undefined) plan.isTrialPlan = Boolean(request.input('isTrialPlan'))
+    if (request.input('sortOrder') !== undefined) plan.sortOrder = Number(request.input('sortOrder'))
+    if (request.input('features') !== undefined) {
+      const f = request.input('features')
+      plan.features = typeof f === 'object' ? JSON.stringify(f) : f
+    }
+
+    const featureLimits = request.input('featureLimits')
+
+    await db.transaction(async (trx) => {
+      plan.useTransaction(trx)
+      await plan.save()
+
+      if (Array.isArray(featureLimits)) {
+        const FeatureLimit = (await import('#models/feature_limit')).default
+        for (const fl of featureLimits) {
+          if (fl && fl.featureKey) {
+            const featureKey = String(fl.featureKey).trim()
+            const existingLimit = await FeatureLimit.query({ client: trx })
+              .where('planId', plan.id)
+              .where('featureKey', featureKey)
+              .first()
+
+            if (existingLimit) {
+              if (fl.featureLabel !== undefined) existingLimit.featureLabel = fl.featureLabel ? String(fl.featureLabel).trim() : null
+              if (fl.featureType !== undefined && ['boolean', 'number', 'json'].includes(fl.featureType)) existingLimit.featureType = fl.featureType
+              if (fl.isEnabled !== undefined) existingLimit.isEnabled = Boolean(fl.isEnabled)
+              if (fl.limitValue !== undefined) existingLimit.limitValue = fl.limitValue !== null ? String(fl.limitValue) : null
+              if (fl.metadata !== undefined) existingLimit.metadata = fl.metadata
+              await existingLimit.save()
+            } else {
+              await FeatureLimit.create({
+                planId: plan.id,
+                featureKey,
+                featureLabel: fl.featureLabel ? String(fl.featureLabel).trim() : null,
+                featureType: ['boolean', 'number', 'json'].includes(fl.featureType) ? fl.featureType : 'boolean',
+                isEnabled: fl.isEnabled !== undefined ? Boolean(fl.isEnabled) : true,
+                limitValue: fl.limitValue !== undefined && fl.limitValue !== null ? String(fl.limitValue) : null,
+                metadata: fl.metadata ?? null,
+              }, { client: trx })
+            }
+          }
+        }
+      }
+    })
+
+    await this.logAudit(ctx, {
+      action: 'UPDATE_PLAN',
+      entityName: 'Plan',
+      entityId: plan.id,
+      oldValues,
+      newValues: plan.toJSON(),
+    })
+
+    return response.ok({ status: 'success', data: plan })
+  }
+
+  async togglePlan(ctx: HttpContext) {
+    const { request, response, params, auth } = ctx
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
+    const planId = Number(params.id)
+    if (!planId) {
+      return response.badRequest({ status: 'error', message: 'Valid plan ID is required.' })
+    }
+
+    const Plan = (await import('#models/plan')).default
+    const plan = await Plan.find(planId)
+    if (!plan) {
+      return response.notFound({ status: 'error', message: 'Plan not found.' })
+    }
+
+    const targetIsActive = request.input('isActive') !== undefined
+      ? Boolean(request.input('isActive'))
+      : !plan.isActive
+
+    if (!targetIsActive && plan.isActive) {
+      if (plan.isTrialPlan || plan.slug === 'trial') {
+        const otherTrial = await Plan.query()
+          .where('isTrialPlan', true)
+          .whereNot('id', plan.id)
+          .where('isActive', true)
+          .first()
+        if (!otherTrial) {
+          return response.badRequest({
+            status: 'error',
+            message: 'Cannot deactivate the configured default trial plan. At least one active trial plan must be maintained.',
+          })
+        }
+      }
+
+      const activeSubs = await db
+        .from('subscriptions')
+        .where('plan_id', plan.id)
+        .where('status', 'active')
+        .count('* as count')
+      const activeCount = Number((activeSubs[0] as any)?.count ?? 0)
+      if (activeCount > 0) {
+        return response.badRequest({
+          status: 'error',
+          message: `Cannot deactivate a plan with active subscriptions (${activeCount} active). Consider making it private (isPublic = false) instead.`,
+        })
+      }
+    }
+
+    const oldIsActive = plan.isActive
+    plan.isActive = targetIsActive
+    await plan.save()
+
+    await this.logAudit(ctx, {
+      action: 'TOGGLE_PLAN',
+      entityName: 'Plan',
+      entityId: plan.id,
+      oldValues: { isActive: oldIsActive },
+      newValues: { isActive: plan.isActive },
+    })
+
+    return response.ok({ status: 'success', data: plan })
+  }
+
+  async getAddons({ response, auth }: HttpContext) {
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
+    const AddonPrice = (await import('#models/addon_price')).default
+    const addons = await AddonPrice.query().orderBy('id', 'asc')
+
+    const activeCounts = await db
+      .from('organization_addons')
+      .where('is_active', true)
+      .groupBy('addon_id')
+      .select('addon_id')
+      .count('* as count')
+
+    const countMap = new Map<number, number>()
+    for (const row of activeCounts as any[]) {
+      countMap.set(Number(row.addon_id), Number(row.count ?? 0))
+    }
+
+    const data = addons.map((addon) => ({
+      id: addon.id,
+      name: addon.name,
+      slug: addon.slug,
+      price: Number(addon.price ?? 0),
+      planType: addon.planType,
+      isActive: Boolean(addon.isActive),
+      activeOrganizationsCount: countMap.get(addon.id) ?? 0,
+      createdAt: addon.createdAt,
+      updatedAt: addon.updatedAt,
+    }))
+
+    return response.ok({ status: 'success', data })
+  }
+
+  async updateAddon(ctx: HttpContext) {
+    const { request, response, params, auth } = ctx
+    if (!(await this.isVerifiedSuperAdmin(auth.user))) {
+      return response.forbidden({ status: 'error', message: 'Platform Super Admin access required.' })
+    }
+
+    const addonId = Number(params.id)
+    if (!addonId) {
+      return response.badRequest({ status: 'error', message: 'Valid add-on ID is required.' })
+    }
+
+    const AddonPrice = (await import('#models/addon_price')).default
+    const addon = await AddonPrice.find(addonId)
+    if (!addon) {
+      return response.notFound({ status: 'error', message: 'Add-on not found.' })
+    }
+
+    const oldValues = {
+      name: addon.name,
+      price: addon.price,
+      isActive: addon.isActive,
+    }
+
+    if (request.input('name') !== undefined) {
+      const name = String(request.input('name')).trim()
+      if (!name) {
+        return response.badRequest({ status: 'error', message: 'Add-on name cannot be empty.' })
+      }
+      addon.name = name
+    }
+
+    if (request.input('price') !== undefined) {
+      const price = Number(request.input('price'))
+      if (price < 0 || Number.isNaN(price)) {
+        return response.badRequest({ status: 'error', message: 'Add-on price cannot be negative.' })
+      }
+      addon.price = price
+    }
+
+    if (request.input('isActive') !== undefined) {
+      addon.isActive = Boolean(request.input('isActive'))
+    }
+
+    await addon.save()
+
+    await this.logAudit(ctx, {
+      action: 'UPDATE_ADDON',
+      entityName: 'AddonPrice',
+      entityId: addon.id,
+      oldValues,
+      newValues: {
+        name: addon.name,
+        price: addon.price,
+        isActive: addon.isActive,
+      },
+    })
+
+    return response.ok({ status: 'success', data: addon })
+  }
 }
+
 
 
