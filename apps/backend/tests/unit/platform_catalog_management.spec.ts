@@ -432,7 +432,7 @@ test.group('Phase 3B Super Admin Catalog Management APIs Spec', () => {
 
     // Must be rejected with 400 Bad Request to protect active subscriber entitlements
     unsafeRemoveRes.assertStatus(400)
-    assert.include(unsafeRemoveRes.body().message, 'active paid subscriptions')
+    assert.include((unsafeRemoveRes.body() as any).message, 'active paid subscriptions')
 
     // However, ADDING a module (e.g. 'Visits') must be allowed
     const safeAddRes = await client

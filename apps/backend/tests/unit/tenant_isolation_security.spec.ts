@@ -99,8 +99,10 @@ test.group('Phase 1 Tenant Isolation & Security Spec', () => {
     // Query organization profile as Tenant Alpha Admin
     const orgResponse = await client.get('/api/organization').loginAs(tenantA.admin)
     orgResponse.assertStatus(200)
-    assert.equal(Number(orgResponse.body().data?.id || orgResponse.body().id), tenantA.org.id)
-    assert.notEqual(Number(orgResponse.body().data?.id || orgResponse.body().id), tenantB.org.id)
+    const orgBody = orgResponse.body() as any
+    const orgId = orgBody.data?.id || orgBody.id
+    assert.equal(Number(orgId), tenantA.org.id)
+    assert.notEqual(Number(orgId), tenantB.org.id)
   }).timeout(10000)
 
   test('3. Public Endpoints: Registration, login, and public endpoints work without authentication', async ({ client, assert }) => {

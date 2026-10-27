@@ -39,7 +39,7 @@ export default class TenantMiddleware {
       })
     }
 
-    if (!org.isActive || org.subscriptionStatus === 'suspended') {
+    if (!org.isActive || (org.subscriptionStatus as string) === 'suspended' || org.subscriptionStatus === 'inactive' || org.subscriptionStatus === 'cancelled') {
       return ctx.response.forbidden({
         status: 'error',
         message: 'Organization account is inactive or suspended. Please contact support.',

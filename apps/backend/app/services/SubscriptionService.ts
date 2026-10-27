@@ -1055,7 +1055,7 @@ export default class SubscriptionService {
     return dependentSlugs.includes(normalized)
   }
 
-  private async evaluateSingleModuleAccess(org: Organization, module: string, method = 'GET'): Promise<FeatureGateResult> {
+  private async evaluateSingleModuleAccess(org: Organization, module: string, _method = 'GET'): Promise<FeatureGateResult> {
     const orgId = org.id
     const isExpired = ['expired', 'cancelled', 'inactive'].includes(org.subscriptionStatus)
     const readOnly = Boolean(org.readOnlyMode || isExpired)

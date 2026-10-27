@@ -32,11 +32,11 @@ test.group('Phase 2 Decoupled Attendance & Leave Entitlements Spec', () => {
     // 2. Attendance check-in must be blocked with 402
     const checkInResponse = await client
       .post('/api/attendance/check-in')
-      .json({ type: 'web', location: { latitude: 28.6139, longitude: 77.209 } })
+      .json({ type: 'web', location: { latitude: 28.6139, longitude: 77.209 } } as any)
       .loginAs(tenantA.employee)
 
     checkInResponse.assertStatus(402)
-    assert.include(checkInResponse.body().message, 'deactivated')
+    assert.include((checkInResponse.body() as any).message, 'deactivated')
 
     // Clean up
     if (attendanceAddon) {
@@ -69,7 +69,7 @@ test.group('Phase 2 Decoupled Attendance & Leave Entitlements Spec', () => {
     // 2. Leave routes must be blocked with 402
     const leavesResponse = await client.get('/api/leaves').loginAs(tenantA.admin)
     leavesResponse.assertStatus(402)
-    assert.include(leavesResponse.body().message, 'deactivated')
+    assert.include((leavesResponse.body() as any).message, 'deactivated')
 
     const leaveTypesResponse = await client.get('/api/leave-types').loginAs(tenantA.admin)
     leaveTypesResponse.assertStatus(402)
@@ -125,7 +125,7 @@ test.group('Phase 2 Decoupled Attendance & Leave Entitlements Spec', () => {
 
     const checkInResponse = await client
       .post('/api/attendance/check-in')
-      .json({ type: 'web', location: { latitude: 28.6139, longitude: 77.209 } })
+      .json({ type: 'web', location: { latitude: 28.6139, longitude: 77.209 } } as any)
       .loginAs(tenantA.employee)
     checkInResponse.assertStatus(402)
 
@@ -194,7 +194,7 @@ test.group('Phase 2 Decoupled Attendance & Leave Entitlements Spec', () => {
     // HTTP route access to Kiosks should return 402 with dependency reason
     const kioskRouteResponse = await client.get('/api/kiosks').loginAs(tenantA.admin)
     kioskRouteResponse.assertStatus(402)
-    assert.include(kioskRouteResponse.body().message, 'requires an active Attendance Core subscription')
+    assert.include((kioskRouteResponse.body() as any).message, 'requires an active Attendance Core subscription')
 
     // Clean up
     if (attendanceAddon) {
