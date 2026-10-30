@@ -238,8 +238,13 @@ export default class OrganizationService {
                     { id: 1, name: 'Attendance Management', slug: 'attendance', price: 300, description: 'Attendance, Shifts, Time In & Out', isActive: true },
                     { id: 2, name: 'Leave Management', slug: 'leaveandtimeoff', price: 300, description: 'Leave requests, types, balances and approvals', isActive: true },
                     { id: 3, name: 'Payroll & Compliance', slug: 'payroll', price: 500, description: 'Salary processing and tax forms', isActive: false },
-                    { id: 4, name: 'Timesheets & Tasks', slug: 'timesheet', price: 200, description: 'Project tracking and log hours', isActive: false },
-                    { id: 5, name: 'Visit Management', slug: 'trackvisits', price: 300, description: 'Client visits and visitor logs', isActive: false },
+                    { id: 4, name: 'Timesheets & Tasks', slug: 'timesheet', price: 350, description: 'Project tracking and log hours', isActive: false },
+                    { id: 5, name: 'Visit Management', slug: 'trackvisits', price: 500, description: 'Client visits and visitor logs', isActive: false },
+                    { id: 6, name: 'Face Recognition', slug: 'facerecognition', price: 600, description: 'AI face recognition attendance', isActive: false },
+                    { id: 7, name: 'Geofence Attendance', slug: 'geofence', price: 350, description: 'Geofence location compliance', isActive: false },
+                    { id: 8, name: 'Employee GPS Tracking', slug: 'employeetracking', price: 400, description: 'Live field team tracking', isActive: false },
+                    { id: 9, name: 'Shift Planner', slug: 'shiftplanner', price: 300, description: 'Rotational rosters and shifts', isActive: false },
+                    { id: 10, name: 'Expense Management', slug: 'expense', price: 300, description: 'Reimbursements and expense claims', isActive: false },
                 ]
             }
 
@@ -267,8 +272,13 @@ export default class OrganizationService {
                 { id: 1, name: 'Attendance Management', slug: 'attendance', price: 300, description: 'Attendance, Shifts, Time In & Out', isActive: true },
                 { id: 2, name: 'Leave Management', slug: 'leaveandtimeoff', price: 300, description: 'Leave requests, types, balances and approvals', isActive: true },
                 { id: 3, name: 'Payroll & Compliance', slug: 'payroll', price: 500, description: 'Salary processing and tax forms', isActive: false },
-                { id: 4, name: 'Timesheets & Tasks', slug: 'timesheet', price: 200, description: 'Project tracking and log hours', isActive: false },
-                { id: 5, name: 'Visit Management', slug: 'trackvisits', price: 300, description: 'Client visits and visitor logs', isActive: false },
+                { id: 4, name: 'Timesheets & Tasks', slug: 'timesheet', price: 350, description: 'Project tracking and log hours', isActive: false },
+                { id: 5, name: 'Visit Management', slug: 'trackvisits', price: 500, description: 'Client visits and visitor logs', isActive: false },
+                { id: 6, name: 'Face Recognition', slug: 'facerecognition', price: 600, description: 'AI face recognition attendance', isActive: false },
+                { id: 7, name: 'Geofence Attendance', slug: 'geofence', price: 350, description: 'Geofence location compliance', isActive: false },
+                { id: 8, name: 'Employee GPS Tracking', slug: 'employeetracking', price: 400, description: 'Live field team tracking', isActive: false },
+                { id: 9, name: 'Shift Planner', slug: 'shiftplanner', price: 300, description: 'Rotational rosters and shifts', isActive: false },
+                { id: 10, name: 'Expense Management', slug: 'expense', price: 300, description: 'Reimbursements and expense claims', isActive: false },
             ]
         }
     }
