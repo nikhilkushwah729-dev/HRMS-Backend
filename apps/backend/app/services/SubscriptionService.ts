@@ -164,18 +164,18 @@ export default class SubscriptionService {
     shiftplanner: ['shiftplanner', 'shift', 'shifts'],
   }
   private addonAliases: Record<string, string[]> = {
-    leaveandtimeoff: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
+    leaveandtimeoff: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves', 'leave-time-off', 'leave_and_time_off'],
     leaves: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
     leave: ['leaveandtimeoff', 'leavetimeoff', 'leave', 'leaves'],
-    attendance: ['attendance'],
-    employeetracking: ['employeetracking', 'employee', 'employees'],
-    trackvisits: ['trackvisits', 'visitmanagement', 'visitormanagement', 'visits'],
-    geofence: ['geofence', 'geofencing'],
-    facerecognition: ['facerecognition', 'face', 'faceid'],
-    shiftplanner: ['shiftplanner', 'shift', 'shifts'],
-    timesheet: ['timesheet', 'timesheets'],
-    payroll: ['payroll', 'salary'],
-    expense: ['expense', 'expenses'],
+    attendance: ['attendance', 'attendancecore', 'attendance-management'],
+    employeetracking: ['employeetracking', 'employee', 'employees', 'employee-tracking', 'employeegpstracking'],
+    trackvisits: ['trackvisits', 'visitmanagement', 'visitormanagement', 'visits', 'track-visit', 'clientvisittracking'],
+    geofence: ['geofence', 'geofencing', 'geo-fence', 'geofenceattendance'],
+    facerecognition: ['facerecognition', 'face', 'faceid', 'face-recognition'],
+    shiftplanner: ['shiftplanner', 'shift', 'shifts', 'shift-planner', 'shiftrosterplanner'],
+    timesheet: ['timesheet', 'timesheets', 'timesheetmanagement', 'timesheets-project-hours'],
+    payroll: ['payroll', 'salary', 'payrollcompliance', 'payrolltax'],
+    expense: ['expense', 'expenses', 'expensemanagement'],
     kiosk: ['kiosk', 'kiosks'],
   }
 
@@ -712,11 +712,24 @@ export default class SubscriptionService {
     return Number(result?.total ?? 0)
   }
 
-  async createUpgradeIntent(orgId: number, payload: { planId: number; billingCycle: BillingCycle; gateway: BillingGateway }) {
+  async createUpgradeIntent(orgId: number, payload: {
+    planId?: number
+    billingCycle?: BillingCycle
+    gateway: BillingGateway
+    amount?: number
+    purchaseMode?: string
+    addons?: string[]
+    addonIds?: number[]
+    seats?: number
+    durationMonths?: number
+  }) {
     await this.ensureCatalog()
     const org = await this.resolveOrganization(orgId)
     // Re-fetch after ensureCatalog to get the latest seeded values
-    let plan = await Plan.find(payload.planId)
+    let plan = payload.planId ? await Plan.find(payload.planId) : null
+    if (!plan && org.planId) {
+      plan = await Plan.find(org.planId)
+    }
     // MySQL stores TINYINT for booleans — cast explicitly to avoid falsy-number issues
     const isPlanValid = plan && (Number(plan.isActive) === 1 || plan.isActive === true) && !(Number(plan.isTrialPlan) === 1 || plan.isTrialPlan === true)
     if (!isPlanValid) {
@@ -731,9 +744,14 @@ export default class SubscriptionService {
       throw new Exception('Selected plan is not available for upgrade', { status: 400 })
     }
 
-    const amountINR = payload.billingCycle === 'yearly'
-      ? Number(plan.yearlyPrice || plan.monthlyPrice)
-      : Number(plan.monthlyPrice || plan.price)
+    let amountINR: number
+    if (payload.amount !== undefined && payload.amount !== null && Number(payload.amount) > 0) {
+      amountINR = Number(payload.amount)
+    } else {
+      amountINR = payload.billingCycle === 'yearly'
+        ? Number(plan.yearlyPrice || plan.monthlyPrice)
+        : Number(plan.monthlyPrice || plan.price)
+    }
     const currency = plan.currency || 'INR'
 
     // Create Payment row first to obtain a stable receipt ID before hitting the gateway
@@ -750,8 +768,17 @@ export default class SubscriptionService {
       providerPaymentId: null,
       providerSignature: null,
       status: 'pending',
-      billingCycle: payload.billingCycle,
-      metadata: JSON.stringify({ planSlug: plan.slug, source: 'upgrade' }),
+      billingCycle: payload.billingCycle || 'monthly',
+      metadata: JSON.stringify({
+        planSlug: plan.slug,
+        source: 'upgrade',
+        purchaseMode: payload.purchaseMode,
+        selectedAddons: payload.addons || [],
+        selectedAddonIds: payload.addonIds || [],
+        seats: payload.seats,
+        durationMonths: payload.durationMonths,
+        amount: amountINR,
+      }),
     })
 
     let realOrderId: string
@@ -773,7 +800,10 @@ export default class SubscriptionService {
           notes: {
             orgId: String(orgId),
             planSlug: plan.slug,
-            billingCycle: payload.billingCycle,
+            billingCycle: payload.billingCycle || 'monthly',
+            amount: String(amountINR),
+            purchaseMode: payload.purchaseMode || 'upgrade',
+            addonsCount: String((payload.addons || []).length),
           },
         }) as { id: string }
       } catch (err: any) {
@@ -911,8 +941,27 @@ export default class SubscriptionService {
     if (!plan) {
       throw new Exception('No eligible plan found for activation', { status: 404 })
     }
+
+    const metadata = typeof payment.metadata === 'string' ? JSON.parse(payment.metadata || '{}') : payment.metadata || {}
+    const purchaseMode = metadata.purchaseMode
+    const selectedAddons: string[] = Array.isArray(metadata.selectedAddons) ? metadata.selectedAddons : []
+    const selectedAddonIds: number[] = Array.isArray(metadata.selectedAddonIds) ? metadata.selectedAddonIds : []
+    const seats = metadata.seats ? Number(metadata.seats) : null
+    const durationMonths = metadata.durationMonths ? Number(metadata.durationMonths) : null
+
     const now = DateTime.now().startOf('day')
-    const endDate = payment.billingCycle === 'yearly' ? now.plus({ year: 1 }) : now.plus({ month: 1 })
+
+    // Determine target end date
+    let endDate: DateTime
+    const currentEndDate = org.planEndDate ? (typeof (org.planEndDate as any).toISODate === 'function' ? (org.planEndDate as any) : DateTime.fromJSDate(new Date(org.planEndDate as any))) : null
+    if (purchaseMode === 'addon_only' && currentEndDate && currentEndDate > now) {
+      // Co-term add-on with existing active subscription without altering duration
+      endDate = currentEndDate
+    } else if (durationMonths && durationMonths > 0) {
+      endDate = now.plus({ months: durationMonths })
+    } else {
+      endDate = payment.billingCycle === 'yearly' ? now.plus({ year: 1 }) : now.plus({ month: 1 })
+    }
 
     await Subscription.query().where('orgId', orgId).whereIn('status', ['trialing', 'active', 'grace']).update({
       status: 'cancelled',
@@ -929,13 +978,17 @@ export default class SubscriptionService {
       autoRenew: true,
       paymentGateway: payment.provider ?? payment.paymentGateway,
       externalSubscriptionId: payment.providerOrderId,
-      metadata: JSON.stringify({ paymentId: payment.id }),
+      metadata: JSON.stringify({ paymentId: payment.id, purchaseMode, selectedAddons }),
     })
 
     org.planId = plan.id
     org.planStatus = true
     org.planEndDate = endDate
-    org.userLimit = plan.userLimit
+    if (seats && seats > 0) {
+      org.userLimit = Math.max(org.userLimit || 0, seats)
+    } else if (plan.userLimit) {
+      org.userLimit = Math.max(org.userLimit || 0, plan.userLimit)
+    }
     org.isTrialActive = false
     org.subscriptionStatus = 'active'
     org.readOnlyMode = false
@@ -952,11 +1005,47 @@ export default class SubscriptionService {
       // taxPercent defaults to 18.00 in DB — omit to use default
     })
 
+    // Step 1: Sync base plan modules
     await this.syncOrganizationAddonsForPlan(orgId, plan.id)
 
+    // Step 2: Explicitly activate all purchased add-ons
+    if (selectedAddons.length > 0 || selectedAddonIds.length > 0) {
+      const allAddons = await AddonPrice.all()
+      for (const addon of allAddons) {
+        const idMatch = selectedAddonIds.includes(addon.id)
+        const slugCandidates = this.addonNameCandidates(addon.slug)
+        const nameCandidates = this.addonNameCandidates(addon.name)
+        const allCandidates = new Set([addon.slug, addon.name, ...slugCandidates, ...nameCandidates].map((c) => this.normalizeAddonName(c)))
+
+        const slugMatch = selectedAddons.some((selected) => {
+          const normSelected = this.normalizeAddonName(selected)
+          return allCandidates.has(normSelected)
+        })
+
+        if (idMatch || slugMatch) {
+          const existing = await db.from('organization_addons').where('org_id', orgId).where('addon_id', addon.id).first()
+          if (existing) {
+            await db.from('organization_addons').where('id', existing.id).update({
+              is_active: true,
+              updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
+            })
+          } else {
+            await db.table('organization_addons').insert({
+              org_id: orgId,
+              addon_id: addon.id,
+              is_active: true,
+              start_date: DateTime.now().toISODate(),
+              created_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
+              updated_at: DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'),
+            })
+          }
+        }
+      }
+    }
+
     const admin = await db.from('employees').where('org_id', orgId).orderBy('id', 'asc').first()
-    await this.createNotification(orgId, admin?.id ?? null, 'Payment successful', `${plan.name} plan is now active for your organization.`, 'success')
-    await this.sendLifecycleMail(org, 'Payment successful', `${plan.name} plan activated`, `Your payment was verified successfully and ${plan.name} is now active.`)
+    await this.createNotification(orgId, admin?.id ?? null, 'Payment successful', `${plan.name} plan and selected add-ons are now active for your organization.`, 'success')
+    await this.sendLifecycleMail(org, 'Payment successful', `${plan.name} plan activated`, `Your payment was verified successfully and ${plan.name} with selected add-ons is now active.`)
   }
 
   async handleGatewayWebhook(gateway: BillingGateway, payload: any, signature?: string, rawBody?: string) {

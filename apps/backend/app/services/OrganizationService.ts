@@ -1,4 +1,5 @@
 import Organization from '#models/organization'
+import Plan from '#models/plan'
 import Department from '#models/department'
 import Designation from '#models/designation'
 import AddonPrice from '#models/addon_price'
@@ -219,52 +220,76 @@ export default class OrganizationService {
     async getAddons(orgId: number) {
         try {
             const allAddons = await AddonPrice.query().where('isActive', true)
+            const org = orgId ? await Organization.find(orgId) : null
+            let planModules: string[] = []
+            if (org?.planId) {
+                const plan = await Plan.find(org.planId)
+                if (plan?.modules) {
+                    try {
+                        planModules = typeof plan.modules === 'string' ? JSON.parse(plan.modules) : plan.modules
+                    } catch {}
+                }
+            }
+            const normalizedPlanModules = planModules.map((m) => String(m).toLowerCase().replace(/[^a-z0-9]/g, ''))
             const orgAddons = orgId ? await OrganizationAddon.query().where('orgId', orgId) : []
 
             if (!allAddons || allAddons.length === 0) {
                 return [
-                    { id: 1, name: 'Attendance Management', slug: 'attendance', description: 'Attendance, Shifts, Time In & Out', isActive: true },
-                    { id: 2, name: 'Leave Management', slug: 'leaves', description: 'Leave requests, types, balances and approvals', isActive: true },
-                    { id: 3, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms', isActive: true },
-                    { id: 4, name: 'Timesheets & Tasks', slug: 'timesheets', description: 'Project tracking and log hours', isActive: true },
-                    { id: 5, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs', isActive: true },
+                    { id: 1, name: 'Attendance Management', slug: 'attendance', price: 300, description: 'Attendance, Shifts, Time In & Out', isActive: true },
+                    { id: 2, name: 'Leave Management', slug: 'leaveandtimeoff', price: 300, description: 'Leave requests, types, balances and approvals', isActive: true },
+                    { id: 3, name: 'Payroll & Compliance', slug: 'payroll', price: 500, description: 'Salary processing and tax forms', isActive: false },
+                    { id: 4, name: 'Timesheets & Tasks', slug: 'timesheet', price: 200, description: 'Project tracking and log hours', isActive: false },
+                    { id: 5, name: 'Visit Management', slug: 'trackvisits', price: 300, description: 'Client visits and visitor logs', isActive: false },
                 ]
             }
 
             return allAddons.map(addon => {
                 const orgAddon = orgAddons.find(oa => oa.addonId === addon.id)
+                let isEnabled = false
+                if (orgAddon) {
+                    isEnabled = Number(orgAddon.isActive) === 1 || orgAddon.isActive === true
+                } else {
+                    const normSlug = String(addon.slug || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+                    isEnabled = normalizedPlanModules.includes(normSlug)
+                }
+
                 return {
                     id: addon.id,
                     name: addon.name,
                     slug: addon.slug,
+                    price: Number(addon.price || 0),
                     description: `Manage ${addon.name} module`,
-                    isActive: orgAddon ? orgAddon.isActive : true
+                    isActive: isEnabled
                 }
             })
         } catch {
             return [
-                { id: 1, name: 'Attendance Management', slug: 'attendance', description: 'Attendance, Shifts, Time In & Out', isActive: true },
-                { id: 2, name: 'Leave Management', slug: 'leaves', description: 'Leave requests, types, balances and approvals', isActive: true },
-                { id: 3, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms', isActive: true },
-                { id: 4, name: 'Timesheets & Tasks', slug: 'timesheets', description: 'Project tracking and log hours', isActive: true },
-                { id: 5, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs', isActive: true },
+                { id: 1, name: 'Attendance Management', slug: 'attendance', price: 300, description: 'Attendance, Shifts, Time In & Out', isActive: true },
+                { id: 2, name: 'Leave Management', slug: 'leaveandtimeoff', price: 300, description: 'Leave requests, types, balances and approvals', isActive: true },
+                { id: 3, name: 'Payroll & Compliance', slug: 'payroll', price: 500, description: 'Salary processing and tax forms', isActive: false },
+                { id: 4, name: 'Timesheets & Tasks', slug: 'timesheet', price: 200, description: 'Project tracking and log hours', isActive: false },
+                { id: 5, name: 'Visit Management', slug: 'trackvisits', price: 300, description: 'Client visits and visitor logs', isActive: false },
             ]
         }
     }
 
     async toggleAddon(orgId: number, addonId: number, isActive: boolean) {
+        const parsedAddonId = Number(addonId)
+        if (!parsedAddonId || isNaN(parsedAddonId)) {
+            return null
+        }
         let orgAddon = await OrganizationAddon.query()
             .where('orgId', orgId)
-            .where('addonId', addonId)
+            .where('addonId', parsedAddonId)
             .first()
 
         if (orgAddon) {
-            orgAddon.isActive = isActive
+            orgAddon.isActive = Boolean(isActive)
             await orgAddon.save()
         } else {
             orgAddon = await OrganizationAddon.create({
                 orgId,
-                addonId,
+                addonId: parsedAddonId,
                 isActive: Boolean(isActive),
                 startDate: DateTime.now()
             })

@@ -11,9 +11,15 @@ export default class SubscriptionsController {
 
   static upgradeValidator = vine.compile(
     vine.object({
-      planId: vine.number(),
-      billingCycle: vine.enum(['monthly', 'yearly']),
+      planId: vine.number().optional(),
+      billingCycle: vine.enum(['monthly', 'yearly']).optional(),
       gateway: vine.enum(['razorpay', 'stripe']),
+      amount: vine.number().positive().optional(),
+      purchaseMode: vine.string().optional(),
+      addons: vine.array(vine.string()).optional(),
+      addonIds: vine.array(vine.number()).optional(),
+      seats: vine.number().positive().optional(),
+      durationMonths: vine.number().positive().optional(),
     })
   )
 
