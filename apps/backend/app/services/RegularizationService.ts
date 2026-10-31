@@ -20,17 +20,23 @@ export default class RegularizationService {
         }
 
         // Attendance locking: prevent changes if payroll has been processed or paid for this month
-        const isPayrollLocked = await Payroll.query()
-            .where('org_id', orgId)
-            .where('month', date.month)
-            .where('year', date.year)
-            .where((q) => {
-                q.where('employee_id', employeeId).orWhere('is_locked', true)
-            })
-            .where((q) => {
-                q.where('is_locked', true).orWhereIn('status', ['processed', 'paid'])
-            })
-            .first()
+        let isPayrollLocked = false
+        try {
+            const lockedRecord = await Payroll.query()
+                .where('org_id', orgId)
+                .where('month', date.month)
+                .where('year', date.year)
+                .where((q) => {
+                    q.where('employee_id', employeeId).orWhere('is_locked', true)
+                })
+                .where((q) => {
+                    q.where('is_locked', true).orWhereIn('status', ['processed', 'paid'])
+                })
+                .first()
+            isPayrollLocked = !!lockedRecord
+        } catch {
+            isPayrollLocked = false
+        }
 
         if (isPayrollLocked) {
             throw new Exception('Attendance for this period is locked because payroll has already been processed or paid', { status: 400 })
@@ -87,17 +93,23 @@ export default class RegularizationService {
             ? request.regularizationDate.year
             : DateTime.fromISO(String(request.regularizationDate)).year
 
-        const isPayrollLocked = await Payroll.query()
-            .where('org_id', orgId)
-            .where('month', regMonth)
-            .where('year', regYear)
-            .where((q) => {
-                q.where('employee_id', request.employeeId).orWhere('is_locked', true)
-            })
-            .where((q) => {
-                q.where('is_locked', true).orWhereIn('status', ['processed', 'paid'])
-            })
-            .first()
+        let isPayrollLocked = false
+        try {
+            const lockedRecord = await Payroll.query()
+                .where('org_id', orgId)
+                .where('month', regMonth)
+                .where('year', regYear)
+                .where((q) => {
+                    q.where('employee_id', request.employeeId).orWhere('is_locked', true)
+                })
+                .where((q) => {
+                    q.where('is_locked', true).orWhereIn('status', ['processed', 'paid'])
+                })
+                .first()
+            isPayrollLocked = !!lockedRecord
+        } catch {
+            isPayrollLocked = false
+        }
 
         if (isPayrollLocked) {
             throw new Exception('Cannot process regularization: attendance for this period is locked because payroll has already been processed or paid', { status: 400 })

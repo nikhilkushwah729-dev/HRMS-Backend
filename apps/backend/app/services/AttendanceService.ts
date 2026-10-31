@@ -9,19 +9,68 @@ import { Exception } from '@adonisjs/core/exceptions'
 import db from '@adonisjs/lucid/services/db'
 
 export default class AttendanceService {
+    private static isPayrollTableEnsured = false
+
+    private static async ensurePayrollsTable() {
+        if (AttendanceService.isPayrollTableEnsured) return
+        try {
+            const hasTable = await db.connection().schema.hasTable('payrolls')
+            if (!hasTable) {
+                await db.connection().schema.createTable('payrolls', (table) => {
+                    table.increments('id').unsigned().primary()
+                    table.integer('employee_id').unsigned().notNullable()
+                    table.integer('org_id').unsigned().notNullable()
+                    table.tinyint('month').notNullable()
+                    table.smallint('year').notNullable()
+                    table.decimal('basic_salary', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('hra', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('allowances', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('bonus', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('gross_salary', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('pf_deduction', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('esi_deduction', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('tds_deduction', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('other_deductions', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('total_deductions', 12, 2).notNullable().defaultTo(0.00)
+                    table.decimal('net_salary', 12, 2).notNullable().defaultTo(0.00)
+                    table.date('payment_date').nullable()
+                    table.enum('payment_mode', ['bank_transfer', 'cash', 'cheque']).defaultTo('bank_transfer')
+                    table.string('payment_ref', 100).nullable()
+                    table.enum('status', ['draft', 'processed', 'paid', 'failed', 'reversed']).notNullable().defaultTo('draft')
+                    table.integer('processed_by').unsigned().nullable()
+                    table.boolean('is_locked').notNullable().defaultTo(false)
+                    table.timestamps(true, true)
+
+                    table.index(['org_id'], 'idx_payrolls_org_id')
+                    table.index(['employee_id'], 'idx_payrolls_employee_id')
+                    table.index(['month', 'year'], 'idx_payrolls_month_year')
+                })
+            }
+            AttendanceService.isPayrollTableEnsured = true
+        } catch (error) {
+            console.error('[AttendanceService] ensurePayrollsTable warning:', error)
+        }
+    }
+
     private async isPayrollLockedForDate(employeeId: number, orgId: number, date: DateTime): Promise<boolean> {
-        const locked = await Payroll.query()
-            .where('org_id', orgId)
-            .where('month', date.month)
-            .where('year', date.year)
-            .where((q) => {
-                q.where('employee_id', employeeId).orWhere('is_locked', true)
-            })
-            .where((q) => {
-                q.where('is_locked', true).orWhereIn('status', ['processed', 'paid'])
-            })
-            .first()
-        return !!locked
+        try {
+            await AttendanceService.ensurePayrollsTable()
+            const locked = await Payroll.query()
+                .where('org_id', orgId)
+                .where('month', date.month)
+                .where('year', date.year)
+                .where((q) => {
+                    q.where('employee_id', employeeId).orWhere('is_locked', true)
+                })
+                .where((q) => {
+                    q.where('is_locked', true).orWhereIn('status', ['processed', 'paid'])
+                })
+                .first()
+            return !!locked
+        } catch (error) {
+            console.error('[AttendanceService] Payroll lock check skipped or table missing:', error)
+            return false
+        }
     }
     private mapShiftRecord(shift: any) {
         return {
