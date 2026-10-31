@@ -1,5 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
+import db from '@adonisjs/lucid/services/db'
 import FaceEmbedding from '#models/face_embedding'
 import Employee from '#models/employee'
 import AttendanceService from '#services/AttendanceService'
@@ -9,6 +10,52 @@ import { inject } from '@adonisjs/core'
 @inject()
 export default class FaceRecognitionController {
     constructor(protected attendanceService: AttendanceService) { }
+
+    private static isTableEnsured = false
+
+    public static async ensureTable() {
+        if (FaceRecognitionController.isTableEnsured) return
+
+        try {
+            const hasTable = await db.connection().schema.hasTable('face_embeddings')
+            if (!hasTable) {
+                try {
+                    await db.connection().schema.createTable('face_embeddings', (table) => {
+                        table.increments('id').unsigned().primary()
+                        table.integer('employee_id').unsigned().notNullable()
+                        table.integer('org_id').unsigned().notNullable()
+                        table.text('embedding', 'longtext').notNullable()
+                        table.string('image_url', 500).nullable()
+                        table.boolean('is_active').notNullable().defaultTo(true)
+                        table.timestamps(true, true)
+
+                        table.index(['employee_id'], 'idx_face_embeddings_employee_id')
+                        table.index(['org_id'], 'idx_face_embeddings_org_id')
+                        table.index(['is_active'], 'idx_face_embeddings_active')
+                    })
+                } catch {
+                    await db.rawQuery(`
+                        CREATE TABLE IF NOT EXISTS face_embeddings (
+                            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                            employee_id INT UNSIGNED NOT NULL,
+                            org_id INT UNSIGNED NOT NULL,
+                            embedding LONGTEXT NOT NULL,
+                            image_url VARCHAR(500) NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            INDEX idx_face_embeddings_employee_id (employee_id),
+                            INDEX idx_face_embeddings_org_id (org_id),
+                            INDEX idx_face_embeddings_active (is_active)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                    `)
+                }
+            }
+            FaceRecognitionController.isTableEnsured = true
+        } catch (error) {
+            console.error('[FaceRecognitionController] ensureTable warning:', error)
+        }
+    }
 
     private isPrivilegedRole(roleId: number | null | undefined): boolean {
         return !!roleId && [1, 2, 3].includes(roleId)
@@ -34,6 +81,7 @@ export default class FaceRecognitionController {
      * Register face embedding for an employee
      */
     async register({ auth, request, response }: HttpContext) {
+        await FaceRecognitionController.ensureTable()
         const employee = auth.user!
         const data = await request.validateUsing(FaceRecognitionController.registerFaceValidator)
         const incomingEmbeddings = data.embeddings?.length
@@ -131,6 +179,7 @@ export default class FaceRecognitionController {
      * Verify face against stored embeddings and optionally record attendance
      */
     async verify({ auth, request, response }: HttpContext) {
+        await FaceRecognitionController.ensureTable()
         const employee = auth.user!
         const rawEmbedding = request.input('embedding')
         const embeddingArray = this.parseEmbeddingPayload(rawEmbedding)
@@ -261,37 +310,49 @@ export default class FaceRecognitionController {
      * Get employee's face registration status
      */
     async status({ auth, params, response }: HttpContext) {
-        const employee = auth.user!
-        const targetEmployeeId = Number(params.id)
-        const isSelf = employee.id === targetEmployeeId
-        const isPrivileged = this.isPrivilegedRole(employee.roleId)
-        if (!isSelf && !isPrivileged) {
-            return response.forbidden({ message: 'You do not have permission to view face status for this employee' })
+        try {
+            await FaceRecognitionController.ensureTable()
+            const employee = auth.user!
+            const targetEmployeeId = Number(params.id)
+            const isSelf = employee.id === targetEmployeeId
+            const isPrivileged = this.isPrivilegedRole(employee.roleId)
+            if (!isSelf && !isPrivileged) {
+                return response.forbidden({ message: 'You do not have permission to view face status for this employee' })
+            }
+
+            const embedding = await FaceEmbedding.query()
+                .where('employee_id', targetEmployeeId)
+                .where('org_id', employee.orgId)
+                .where('is_active', true)
+                .first()
+
+            return response.ok({
+                status: 'success',
+                registered: !!embedding,
+                sampleCount: embedding
+                    ? (await FaceEmbedding.query()
+                        .where('employee_id', targetEmployeeId)
+                        .where('org_id', employee.orgId)
+                        .where('is_active', true)).length
+                    : 0,
+                data: embedding ? { id: embedding.id, imageUrl: embedding.imageUrl, createdAt: embedding.createdAt } : null,
+            })
+        } catch (error: any) {
+            console.error('[FaceRecognitionController] status check error:', error?.message || error)
+            return response.ok({
+                status: 'success',
+                registered: false,
+                sampleCount: 0,
+                data: null,
+            })
         }
-
-        const embedding = await FaceEmbedding.query()
-            .where('employee_id', targetEmployeeId)
-            .where('org_id', employee.orgId)
-            .where('is_active', true)
-            .first()
-
-        return response.ok({
-            status: 'success',
-            registered: !!embedding,
-            sampleCount: embedding
-                ? (await FaceEmbedding.query()
-                    .where('employee_id', targetEmployeeId)
-                    .where('org_id', employee.orgId)
-                    .where('is_active', true)).length
-                : 0,
-            data: embedding ? { id: embedding.id, imageUrl: embedding.imageUrl, createdAt: embedding.createdAt } : null,
-        })
     }
 
     /**
      * Delete face registration
      */
     async delete({ auth, params, response }: HttpContext) {
+        await FaceRecognitionController.ensureTable()
         const employee = auth.user!
         const targetEmployeeId = Number(params.id)
         const isSelf = employee.id === targetEmployeeId
