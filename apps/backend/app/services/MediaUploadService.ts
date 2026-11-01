@@ -253,15 +253,21 @@ export default class MediaUploadService {
       return trimmed
     }
 
-    try {
-      const result = this.isDataImage(trimmed) && this.hasCloudinaryConfig()
-        ? await this.uploadToCloudinary(trimmed, folder)
-        : await this.saveLocally(trimmed, folder)
+    if (this.isDataImage(trimmed) && this.hasCloudinaryConfig()) {
+      try {
+        const result = await this.uploadToCloudinary(trimmed, folder)
+        return result.url
+      } catch (cloudinaryError: any) {
+        console.warn(`Cloudinary upload failed for ${folder}, falling back to local storage:`, cloudinaryError?.message || cloudinaryError)
+      }
+    }
 
+    try {
+      const result = await this.saveLocally(trimmed, folder)
       return result.url
-    } catch (error) {
-      console.error(`Failed to store image for ${folder}`, error)
-      return undefined
+    } catch (localError: any) {
+      console.warn(`Local image save failed for ${folder}, falling back to raw data URL:`, localError?.message || localError)
+      return trimmed
     }
   }
 }

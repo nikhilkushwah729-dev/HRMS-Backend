@@ -103,8 +103,6 @@ export default class AttendancesController {
             const storedSelfie = await this.mediaUploadService.storeImage(data.selfieUrl, 'attendances')
             if (storedSelfie) {
                 data.selfieUrl = storedSelfie
-            } else if (data.selfieUrl.startsWith('data:image')) {
-                data.selfieUrl = undefined
             }
         }
 
@@ -122,6 +120,15 @@ export default class AttendancesController {
     async checkOut({ auth, request, response }: HttpContext) {
         const employee = auth.user!
         const data = await request.validateUsing(AttendancesController.checkOutValidator)
+
+        // Handle Base64 Selfie Image
+        if (data.selfieUrl) {
+            const storedSelfie = await this.mediaUploadService.storeImage(data.selfieUrl, 'attendances')
+            if (storedSelfie) {
+                data.selfieUrl = storedSelfie
+            }
+        }
+
         const result = await this.attendanceService.checkOut(employee.id, data)
         return response.ok({
             status: 'success',

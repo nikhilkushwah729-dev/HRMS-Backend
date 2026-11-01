@@ -215,6 +215,7 @@ test.group('Attendance Module Final Verification', (group) => {
 
     // Clean up temporary lock so subsequent tests remain unaffected
     await Payroll.query().where('employee_id', tenantB.admin.id).delete()
+    await Payroll.query().where('employee_id', tenantA.employee.id).delete()
   })
 
   test('Break tracking correctly records duration and deducts from net work hours', async ({ assert }) => {

@@ -4,12 +4,23 @@ import db from '@adonisjs/lucid/services/db'
 import FaceEmbedding from '#models/face_embedding'
 import Employee from '#models/employee'
 import AttendanceService from '#services/AttendanceService'
+import MediaUploadService from '#services/MediaUploadService'
 import { DateTime } from 'luxon'
 import { inject } from '@adonisjs/core'
 
 @inject()
 export default class FaceRecognitionController {
-    constructor(protected attendanceService: AttendanceService) { }
+    constructor(
+        protected attendanceService: AttendanceService,
+        protected mediaUploadService?: MediaUploadService
+    ) { }
+
+    private getMediaService(): MediaUploadService {
+        if (!this.mediaUploadService) {
+            this.mediaUploadService = new MediaUploadService()
+        }
+        return this.mediaUploadService
+    }
 
     private static isTableEnsured = false
 
@@ -74,6 +85,8 @@ export default class FaceRecognitionController {
         vine.object({
             employeeId: vine.number().optional(),
             action: vine.enum(['check_in', 'check_out']).optional(),
+            imageUrl: vine.string().optional(),
+            selfieUrl: vine.string().optional(),
         })
     )
 
@@ -111,6 +124,12 @@ export default class FaceRecognitionController {
             return response.notFound({ message: 'Employee not found in your organization' })
         }
 
+        // Store face image if provided
+        let storedImageUrl = data.imageUrl
+        if (storedImageUrl) {
+            storedImageUrl = (await this.getMediaService().storeImage(storedImageUrl, 'faces')) || storedImageUrl
+        }
+
         // Keep up to 5 active samples per employee for stronger matching
         const activeEmbeddings = await FaceEmbedding.query()
             .where('employee_id', data.employeeId)
@@ -137,7 +156,7 @@ export default class FaceRecognitionController {
                     employeeId: data.employeeId,
                     orgId: employee.orgId,
                     embedding,
-                    imageUrl: data.imageUrl || null,
+                    imageUrl: storedImageUrl || null,
                     isActive: true,
                 }),
             )
@@ -256,14 +275,25 @@ export default class FaceRecognitionController {
         // Record attendance if action was specified
         let attendanceRecord = null
         if (action) {
+            const rawSelfie = data.selfieUrl || data.imageUrl || (typeof request.input('imageUrl') === 'string' ? request.input('imageUrl') : undefined)
+            let storedSelfie: string | undefined = rawSelfie
+            if (storedSelfie) {
+                storedSelfie = (await this.getMediaService().storeImage(storedSelfie, 'attendances')) || storedSelfie
+            }
+            const matchScore = `${Math.round(similarity * 100)}%`
+
             try {
                 if (action === 'check_in') {
                     attendanceRecord = await this.attendanceService.checkIn(matchedEmployeeId, employee.orgId, {
-                        source: 'face'
+                        source: 'face',
+                        selfieUrl: storedSelfie,
+                        biometricRef: matchScore,
                     })
                 } else if (action === 'check_out') {
                     attendanceRecord = await this.attendanceService.checkOut(matchedEmployeeId, {
-                        source: 'face'
+                        source: 'face',
+                        selfieUrl: storedSelfie,
+                        biometricRef: matchScore,
                     })
                 }
             } catch (error: any) {
@@ -294,6 +324,7 @@ export default class FaceRecognitionController {
                 date: DateTime.now().toISODate()!,
                 action: action,
                 matchScore: `${Math.round(similarity * 100)}%`,
+                selfieUrl: (attendanceRecord as any)?.selfieUrl,
             } : undefined,
             tts: {
                 name: employeeName,
