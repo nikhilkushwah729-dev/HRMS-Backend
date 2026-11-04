@@ -202,11 +202,11 @@ export default class AiAssistantController {
       try {
         if (user.departmentId) {
           const d = await Department.find(user.departmentId)
-          if (d) departmentName = d.name
+          if (d) departmentName = d.departmentName
         }
         if (user.designationId) {
           const des = await Designation.find(user.designationId)
-          if (des) designationName = des.name
+          if (des) designationName = des.designationName
         }
       } catch (_) {}
 
@@ -324,7 +324,7 @@ export default class AiAssistantController {
         let balanceText = ''
         if (leaveBalances.length > 0) {
           balanceText = leaveBalances
-            .map((b) => `• ${(b.leaveType?.name || 'Leave')}: Total ${b.totalDays} | Used ${b.usedDays} | **Remaining: ${b.remainingDays} days**`)
+            .map((b) => `• ${((b as any).leaveType?.typeName || (b as any).leaveType?.name || 'Leave')}: Total ${b.totalDays} | Used ${b.usedDays} | **Remaining: ${b.remainingDays} days**`)
             .join('\n')
         } else {
           balanceText = `• Standard Casual Leave (CL): 12 days/year\n• Sick Leave (SL): 8 days/year\n• Earned Leave (EL): 15 days/year`

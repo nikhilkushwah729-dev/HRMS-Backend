@@ -1,8 +1,7 @@
 import { test } from '@japa/runner'
 import { setupTestTenants } from '#tests/helpers/tenant_harness'
-import AuditLogService, { sanitizeAuditData, extractChangedFields } from '#services/AuditLogService'
+import AuditLogService, { sanitizeAuditData } from '#services/AuditLogService'
 import AuditLogsController from '#controllers/Http/AuditLogsController'
-import AuditLog from '#models/audit_log'
 import GeoService from '#services/GeoService'
 
 test.group('Complete Audit Log Module Spec', () => {
@@ -250,7 +249,7 @@ test.group('Complete Audit Log Module Spec', () => {
   })
 
   test('9. Super Admin can access authorized global logs', async ({ assert }) => {
-    const harness = await setupTestTenants()
+    await setupTestTenants()
     const geoService = new GeoService()
     const auditLogService = new AuditLogService(geoService)
     const controller = new AuditLogsController(auditLogService)

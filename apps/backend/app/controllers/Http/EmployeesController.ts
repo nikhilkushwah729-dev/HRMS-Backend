@@ -289,8 +289,8 @@ export default class EmployeesController {
             module: 'EMPLOYEE',
             entityType: 'Employee',
             entityId: employee!.id,
-            oldValues: existingEmployee.toJSON ? existingEmployee.toJSON() : existingEmployee,
-            newValues: employee!.toJSON ? employee!.toJSON() : employee,
+            oldValues: typeof (existingEmployee as any).toJSON === 'function' ? (existingEmployee as any).toJSON() : existingEmployee,
+            newValues: typeof (employee as any).toJSON === 'function' ? (employee as any).toJSON() : employee,
             description: `Updated employee profile for ${employee!.firstName} ${employee!.lastName || ''}`.trim(),
             ctx: { auth, request, response } as HttpContext
         })
