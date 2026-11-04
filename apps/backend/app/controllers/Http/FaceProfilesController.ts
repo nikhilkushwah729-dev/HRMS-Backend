@@ -1,4 +1,4 @@
-﻿import { inject } from '@adonisjs/core'
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import EmployeeFaceProfile from '#models/employee_face_profile'
 import Employee from '#models/employee'
@@ -10,6 +10,7 @@ export default class FaceProfilesController {
   constructor(protected kioskAttendanceService: KioskAttendanceService) {}
 
   async create(ctx: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const payload = await ctx.request.validateUsing(faceProfileValidator)
     const employee = await Employee.query()
       .where('org_id', ctx.auth.user!.orgId)
@@ -31,6 +32,7 @@ export default class FaceProfilesController {
   }
 
   async pending({ auth, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const profiles = await EmployeeFaceProfile.query()
       .where('org_id', auth.user!.orgId)
       .where('status', 'pending')
@@ -41,6 +43,7 @@ export default class FaceProfilesController {
   }
 
   async approve(ctx: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const profile = await EmployeeFaceProfile.query()
       .where('org_id', ctx.auth.user!.orgId)
       .where('id', Number(ctx.params.id))
@@ -51,6 +54,7 @@ export default class FaceProfilesController {
   }
 
   async reject(ctx: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const profile = await EmployeeFaceProfile.query()
       .where('org_id', ctx.auth.user!.orgId)
       .where('id', Number(ctx.params.id))

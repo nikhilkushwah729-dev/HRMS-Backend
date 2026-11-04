@@ -8,11 +8,14 @@ import MediaUploadService from '#services/MediaUploadService'
 import { DateTime } from 'luxon'
 import { inject } from '@adonisjs/core'
 
+import AuthorizationService from '#services/AuthorizationService'
+
 @inject()
 export default class FaceRecognitionController {
     constructor(
         protected attendanceService: AttendanceService,
-        protected mediaUploadService?: MediaUploadService
+        protected mediaUploadService?: MediaUploadService,
+        protected authorizationService?: AuthorizationService
     ) { }
 
     private getMediaService(): MediaUploadService {
@@ -20,6 +23,24 @@ export default class FaceRecognitionController {
             this.mediaUploadService = new MediaUploadService()
         }
         return this.mediaUploadService
+    }
+
+    private getAuthorizationService(): AuthorizationService {
+        if (!this.authorizationService) {
+            this.authorizationService = new AuthorizationService()
+        }
+        return this.authorizationService
+    }
+
+    private async canManageFacesForOthers(employee: Employee): Promise<boolean> {
+        if (this.isPrivilegedRole(employee.roleId)) {
+            return true
+        }
+        try {
+            return await this.getAuthorizationService().ensurePermission(employee, 'face_profile_manage')
+        } catch {
+            return false
+        }
     }
 
     private static isTableEnsured = false
@@ -107,9 +128,9 @@ export default class FaceRecognitionController {
             return response.badRequest({ message: 'At least one face embedding is required' })
         }
 
-        // Authorization: Employee can register own face; only HR/Admin (roleId 1, 2, 3) can register for others
-        const isSelf = employee.id === data.employeeId
-        const isPrivileged = this.isPrivilegedRole(employee.roleId)
+        // Authorization: Employee can register own face; only HR/Admin (roleId 1, 2, 3) or users with face_profile_manage can register for others
+        const isSelf = Number(employee.id) === Number(data.employeeId)
+        const isPrivileged = await this.canManageFacesForOthers(employee)
         if (!isSelf && !isPrivileged) {
             return response.forbidden({ message: 'You do not have permission to register face data for another employee' })
         }
@@ -345,8 +366,8 @@ export default class FaceRecognitionController {
             await FaceRecognitionController.ensureTable()
             const employee = auth.user!
             const targetEmployeeId = Number(params.id)
-            const isSelf = employee.id === targetEmployeeId
-            const isPrivileged = this.isPrivilegedRole(employee.roleId)
+            const isSelf = Number(employee.id) === Number(targetEmployeeId)
+            const isPrivileged = await this.canManageFacesForOthers(employee)
             if (!isSelf && !isPrivileged) {
                 return response.forbidden({ message: 'You do not have permission to view face status for this employee' })
             }
@@ -386,8 +407,8 @@ export default class FaceRecognitionController {
         await FaceRecognitionController.ensureTable()
         const employee = auth.user!
         const targetEmployeeId = Number(params.id)
-        const isSelf = employee.id === targetEmployeeId
-        const isPrivileged = this.isPrivilegedRole(employee.roleId)
+        const isSelf = Number(employee.id) === Number(targetEmployeeId)
+        const isPrivileged = await this.canManageFacesForOthers(employee)
         if (!isSelf && !isPrivileged) {
             return response.forbidden({ message: 'You do not have permission to delete face registration for this employee' })
         }
@@ -401,6 +422,56 @@ export default class FaceRecognitionController {
             status: 'success',
             message: 'Face registration deleted',
         })
+    }
+
+    /**
+     * Get list of employees with registered face in org
+     */
+    async employees({ auth, response }: HttpContext) {
+        try {
+            await FaceRecognitionController.ensureTable()
+            const employee = auth.user!
+            const isPrivileged = await this.canManageFacesForOthers(employee)
+
+            let query = FaceEmbedding.query()
+                .where('org_id', employee.orgId)
+                .where('is_active', true)
+                .orderBy('created_at', 'desc')
+
+            if (!isPrivileged) {
+                query = query.where('employee_id', employee.id)
+            }
+
+            const embeddings = await query
+            const employeeIds = [...new Set(embeddings.map((e) => e.employeeId))]
+            const employees = employeeIds.length
+                ? await Employee.query().whereIn('id', employeeIds).select('id', 'first_name', 'last_name', 'email', 'status')
+                : []
+
+            const empMap = new Map(employees.map((emp) => [emp.id, emp]))
+            const result = embeddings.map((e) => {
+                const emp = empMap.get(e.employeeId)
+                return {
+                    id: e.id,
+                    employeeId: e.employeeId,
+                    name: emp ? `${emp.firstName} ${emp.lastName || ''}`.trim() : 'Employee',
+                    email: emp?.email || '',
+                    status: emp?.status || 'active',
+                    registeredAt: e.createdAt ? e.createdAt.toISO() : undefined,
+                }
+            })
+
+            return response.ok({
+                status: 'success',
+                employees: result,
+            })
+        } catch (error: any) {
+            console.error('[FaceRecognitionController] employees list error:', error?.message || error)
+            return response.ok({
+                status: 'success',
+                employees: [],
+            })
+        }
     }
 
     /**

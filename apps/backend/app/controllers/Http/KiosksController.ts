@@ -1,4 +1,4 @@
-﻿import { inject } from '@adonisjs/core'
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import { registerKioskValidator, validateKioskValidator, kioskApprovalValidator } from '#validators/kiosk'
 import Kiosk from '#models/kiosk'
@@ -9,6 +9,7 @@ export default class KiosksController {
   constructor(protected kioskAttendanceService: KioskAttendanceService) {}
 
   async register({ request, response, auth }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const payload = await request.validateUsing(registerKioskValidator)
     const kiosk = await this.kioskAttendanceService.registerKiosk({
       ...payload,
@@ -34,6 +35,7 @@ export default class KiosksController {
   }
 
   async validate({ request, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const payload = await request.validateUsing(validateKioskValidator)
     const kiosk = await this.kioskAttendanceService.validateKiosk(payload.deviceId, payload.deviceToken)
 
@@ -51,6 +53,7 @@ export default class KiosksController {
   }
 
   async index({ auth, request, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const orgId = auth.user!.orgId
     const status = request.input('status')
 
@@ -64,6 +67,7 @@ export default class KiosksController {
   }
 
   async show({ auth, params, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const kiosk = await Kiosk.query()
       .where('org_id', auth.user!.orgId)
       .where('id', Number(params.id))
@@ -73,6 +77,7 @@ export default class KiosksController {
   }
 
   async approve({ auth, params, request, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const payload = await request.validateUsing(kioskApprovalValidator)
     const kiosk = await Kiosk.query()
       .where('org_id', auth.user!.orgId)
@@ -84,6 +89,7 @@ export default class KiosksController {
   }
 
   async block({ auth, params, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const kiosk = await Kiosk.query()
       .where('org_id', auth.user!.orgId)
       .where('id', Number(params.id))
@@ -94,6 +100,7 @@ export default class KiosksController {
   }
 
   async toggle({ auth, params, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const kiosk = await Kiosk.query()
       .where('org_id', auth.user!.orgId)
       .where('id', Number(params.id))
@@ -104,6 +111,7 @@ export default class KiosksController {
   }
 
   async resetToken({ auth, params, response }: HttpContext) {
+    await KioskAttendanceService.ensureTables()
     const kiosk = await Kiosk.query()
       .where('org_id', auth.user!.orgId)
       .where('id', Number(params.id))

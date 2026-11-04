@@ -481,11 +481,13 @@ router.group(() => {
 const FaceRecognitionController = () => import('#controllers/Http/FaceRecognitionController')
 
 router.group(() => {
-  router.post('/register', [FaceRecognitionController, 'register'])
-  router.post('/verify', [FaceRecognitionController, 'verify'])
-  router.get('/status/:id', [FaceRecognitionController, 'status'])
-  router.delete('/:id', [FaceRecognitionController, 'delete'])
-}).prefix('api/face').use(middleware.auth()).use(middleware.tenant()).use(middleware.subscription({ module: 'facerecognition' })).use(middleware.permission({ permission: 'face_profile_manage' }))
+  router.post('/register', [FaceRecognitionController, 'register']).as('face.register')
+  router.post('/verify', [FaceRecognitionController, 'verify']).as('face.verify')
+  router.get('/status/:id', [FaceRecognitionController, 'status']).as('face.status')
+  router.get('/employees', [FaceRecognitionController, 'employees']).as('face.employees')
+  router.delete('/employee/:id', [FaceRecognitionController, 'delete']).as('face.delete_employee')
+  router.delete('/:id', [FaceRecognitionController, 'delete']).as('face.delete')
+}).prefix('api/face').use(middleware.auth()).use(middleware.tenant()).use(middleware.subscription({ module: 'facerecognition' }))
 
 /**
  * Employee Invitations Routes

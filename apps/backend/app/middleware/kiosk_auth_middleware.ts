@@ -1,9 +1,11 @@
-﻿import { HttpContext } from '@adonisjs/core/http'
+import { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import Kiosk from '#models/kiosk'
+import KioskAttendanceService from '#services/KioskAttendanceService'
 
 export default class KioskAuthMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
+    await KioskAttendanceService.ensureTables()
     const deviceId = ctx.request.header('x-device-id') || ctx.request.input('deviceId') || ctx.request.input('device_id')
     const token = this.extractToken(ctx)
 

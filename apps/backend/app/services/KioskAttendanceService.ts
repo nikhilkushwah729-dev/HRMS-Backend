@@ -1,4 +1,4 @@
-﻿import crypto from 'node:crypto'
+import crypto from 'node:crypto'
 import { inject } from '@adonisjs/core'
 import { Exception } from '@adonisjs/core/exceptions'
 import hash from '@adonisjs/core/services/hash'
@@ -24,6 +24,203 @@ export default class KioskAttendanceService {
     protected auditLogService: AuditLogService,
   ) {}
 
+  private static isTablesEnsured = false
+
+  public static async ensureTables() {
+    if (KioskAttendanceService.isTablesEnsured) return
+
+    try {
+      const schema = db.connection().schema
+
+      // 1. kiosks table
+      const hasKiosks = await schema.hasTable('kiosks')
+      if (!hasKiosks) {
+        try {
+          await schema.createTable('kiosks', (table) => {
+            table.increments('id').unsigned().primary()
+            table.integer('org_id').unsigned().notNullable()
+            table.integer('org_location_id').unsigned().nullable()
+            table.string('name', 150).notNullable()
+            table.string('location', 255).notNullable()
+            table.string('device_id', 191).notNullable().unique()
+            table.string('device_token', 191).nullable().unique()
+            table.enum('status', ['pending', 'active', 'inactive', 'blocked']).notNullable().defaultTo('pending')
+            table.timestamp('last_seen_at').nullable()
+            table.integer('registered_by').unsigned().nullable()
+            table.integer('approved_by').unsigned().nullable()
+            table.timestamp('approved_at').nullable()
+            table.timestamps(true, true)
+
+            table.index(['org_id'], 'idx_kiosks_org_id')
+            table.index(['org_id', 'status'], 'idx_kiosks_org_status')
+            table.index(['org_location_id'], 'idx_kiosks_org_location_id')
+          })
+        } catch {
+          await db.rawQuery(`
+            CREATE TABLE IF NOT EXISTS kiosks (
+              id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+              org_id INT UNSIGNED NOT NULL,
+              org_location_id INT UNSIGNED NULL,
+              name VARCHAR(150) NOT NULL,
+              location VARCHAR(255) NOT NULL,
+              device_id VARCHAR(191) NOT NULL UNIQUE,
+              device_token VARCHAR(191) NULL UNIQUE,
+              status ENUM('pending', 'active', 'inactive', 'blocked') NOT NULL DEFAULT 'pending',
+              last_seen_at TIMESTAMP NULL,
+              registered_by INT UNSIGNED NULL,
+              approved_by INT UNSIGNED NULL,
+              approved_at TIMESTAMP NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              INDEX idx_kiosks_org_id (org_id),
+              INDEX idx_kiosks_org_status (org_id, status),
+              INDEX idx_kiosks_org_location_id (org_location_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `)
+        }
+      }
+
+      // 2. attendance_logs table
+      const hasAttendanceLogs = await schema.hasTable('attendance_logs')
+      if (!hasAttendanceLogs) {
+        try {
+          await schema.createTable('attendance_logs', (table) => {
+            table.increments('id').unsigned().primary()
+            table.integer('org_id').unsigned().notNullable()
+            table.integer('employee_id').unsigned().nullable()
+            table.integer('kiosk_id').unsigned().nullable()
+            table.date('attendance_date').notNullable()
+            table.enum('type', ['check_in', 'check_out']).notNullable()
+            table.enum('method', ['face', 'pin', 'qr']).notNullable()
+            table.timestamp('timestamp').notNullable().defaultTo(db.rawQuery('CURRENT_TIMESTAMP'))
+            table.integer('shift_id').unsigned().nullable()
+            table.enum('status', ['success', 'failed', 'suspicious']).notNullable().defaultTo('success')
+            table.integer('late_minutes').notNullable().defaultTo(0)
+            table.integer('early_exit_minutes').notNullable().defaultTo(0)
+            table.integer('overtime_minutes').notNullable().defaultTo(0)
+            table.string('ip_address', 191).nullable()
+            table.string('device_id', 191).nullable()
+            table.string('client_reference', 191).nullable()
+            table.string('image_url', 1024).nullable()
+            table.text('failure_reason').nullable()
+            table.timestamps(true, true)
+
+            table.index(['org_id', 'attendance_date'], 'idx_attendance_logs_org_date')
+            table.index(['employee_id', 'attendance_date'], 'idx_attendance_logs_emp_date')
+            table.index(['kiosk_id', 'status'], 'idx_attendance_logs_kiosk_status')
+          })
+        } catch {
+          await db.rawQuery(`
+            CREATE TABLE IF NOT EXISTS attendance_logs (
+              id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+              org_id INT UNSIGNED NOT NULL,
+              employee_id INT UNSIGNED NULL,
+              kiosk_id INT UNSIGNED NULL,
+              attendance_date DATE NOT NULL,
+              type ENUM('check_in', 'check_out') NOT NULL,
+              method ENUM('face', 'pin', 'qr') NOT NULL,
+              timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              shift_id INT UNSIGNED NULL,
+              status ENUM('success', 'failed', 'suspicious') NOT NULL DEFAULT 'success',
+              late_minutes INT NOT NULL DEFAULT 0,
+              early_exit_minutes INT NOT NULL DEFAULT 0,
+              overtime_minutes INT NOT NULL DEFAULT 0,
+              ip_address VARCHAR(191) NULL,
+              device_id VARCHAR(191) NULL,
+              client_reference VARCHAR(191) NULL,
+              image_url VARCHAR(1024) NULL,
+              failure_reason TEXT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              INDEX idx_attendance_logs_org_date (org_id, attendance_date),
+              INDEX idx_attendance_logs_emp_date (employee_id, attendance_date),
+              INDEX idx_attendance_logs_kiosk_status (kiosk_id, status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `)
+        }
+      }
+
+      // 3. employee_face_profiles table
+      const hasFaceProfiles = await schema.hasTable('employee_face_profiles')
+      if (!hasFaceProfiles) {
+        try {
+          await schema.createTable('employee_face_profiles', (table) => {
+            table.increments('id').unsigned().primary()
+            table.integer('org_id').unsigned().notNullable()
+            table.integer('employee_id').unsigned().notNullable()
+            table.text('face_embedding', 'longtext').notNullable()
+            table.string('reference_image_url', 1024).nullable()
+            table.enum('status', ['active', 'inactive', 'pending', 'rejected']).notNullable().defaultTo('pending')
+            table.integer('created_by').unsigned().nullable()
+            table.integer('approved_by').unsigned().nullable()
+            table.timestamp('approved_at').nullable()
+            table.timestamps(true, true)
+
+            table.index(['org_id', 'employee_id'], 'idx_face_profiles_org_employee')
+            table.index(['org_id', 'status'], 'idx_face_profiles_org_status')
+          })
+        } catch {
+          await db.rawQuery(`
+            CREATE TABLE IF NOT EXISTS employee_face_profiles (
+              id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+              org_id INT UNSIGNED NOT NULL,
+              employee_id INT UNSIGNED NOT NULL,
+              face_embedding LONGTEXT NOT NULL,
+              reference_image_url VARCHAR(1024) NULL,
+              status ENUM('active', 'inactive', 'pending', 'rejected') NOT NULL DEFAULT 'pending',
+              created_by INT UNSIGNED NULL,
+              approved_by INT UNSIGNED NULL,
+              approved_at TIMESTAMP NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              INDEX idx_face_profiles_org_employee (org_id, employee_id),
+              INDEX idx_face_profiles_org_status (org_id, status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `)
+        }
+      }
+
+      // 4. employees columns for kiosk PIN
+      const hasEmployees = await schema.hasTable('employees')
+      if (hasEmployees) {
+        const hasPinHash = await schema.hasColumn('employees', 'kiosk_pin_hash')
+        if (!hasPinHash) {
+          try {
+            await schema.alterTable('employees', (table) => {
+              table.string('kiosk_pin_hash', 255).nullable().after('password_hash')
+            })
+          } catch {
+            await db.rawQuery('ALTER TABLE employees ADD COLUMN kiosk_pin_hash VARCHAR(255) NULL;')
+          }
+        }
+        const hasAttempts = await schema.hasColumn('employees', 'kiosk_pin_attempts')
+        if (!hasAttempts) {
+          try {
+            await schema.alterTable('employees', (table) => {
+              table.integer('kiosk_pin_attempts').notNullable().defaultTo(0).after('kiosk_pin_hash')
+            })
+          } catch {
+            await db.rawQuery('ALTER TABLE employees ADD COLUMN kiosk_pin_attempts INT NOT NULL DEFAULT 0;')
+          }
+        }
+        const hasBlockedUntil = await schema.hasColumn('employees', 'kiosk_pin_blocked_until')
+        if (!hasBlockedUntil) {
+          try {
+            await schema.alterTable('employees', (table) => {
+              table.timestamp('kiosk_pin_blocked_until').nullable().after('kiosk_pin_attempts')
+            })
+          } catch {
+            await db.rawQuery('ALTER TABLE employees ADD COLUMN kiosk_pin_blocked_until TIMESTAMP NULL;')
+          }
+        }
+      }
+
+      KioskAttendanceService.isTablesEnsured = true
+    } catch (error) {
+      console.error('[KioskAttendanceService] ensureTables warning:', error)
+    }
+  }
+
   async registerKiosk(
     payload: {
       orgId: number
@@ -35,6 +232,7 @@ export default class KioskAttendanceService {
     },
     ctx?: HttpContext,
   ) {
+    await KioskAttendanceService.ensureTables()
     const existing = await Kiosk.query().where('device_id', payload.deviceId).first()
 
     if (existing) {
@@ -162,6 +360,7 @@ export default class KioskAttendanceService {
   }
 
   async validateKiosk(deviceId: string, deviceToken: string) {
+    await KioskAttendanceService.ensureTables()
     const kiosk = await Kiosk.query()
       .where('device_id', deviceId)
       .where('device_token', deviceToken)
