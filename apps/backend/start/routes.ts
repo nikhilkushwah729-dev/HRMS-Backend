@@ -434,12 +434,12 @@ router.group(() => {
 const AuditLogsController = () => import('#controllers/Http/AuditLogsController')
 router.group(() => {
   router.get('/', [AuditLogsController, 'index'])
-  router.post('/', [AuditLogsController, 'store'])
+  router.get('/statistics', [AuditLogsController, 'statistics'])
   router.get('/modules', [AuditLogsController, 'getModules'])
   router.get('/actions', [AuditLogsController, 'getActions'])
   router.get('/export', [AuditLogsController, 'export'])
   router.get('/:id', [AuditLogsController, 'show'])
-}).prefix('api/audit-logs').use(middleware.auth()).use(middleware.tenant()).use(middleware.subscription({ module: 'AuditLogs' }))
+}).prefix('api/audit-logs').use(middleware.auth()).use(middleware.tenant()).use(middleware.permission({ anyOf: ['audit_read', 'settings_read', 'rbac_manage'] }))
 
 // Documents
 router.group(() => {

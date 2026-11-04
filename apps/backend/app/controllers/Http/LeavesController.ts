@@ -209,26 +209,32 @@ export default class LeavesController {
         
         const leave = await this.leaveService.updateStatus(id, employee.orgId, status, employee.id, rejectionNote || undefined)
         
-        // Audit log for status change
-        await this.auditLogService.log({
-            orgId: employee.orgId,
-            employeeId: employee.id,
-            action: status === 'approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED',
-            module: 'leaves',
-            entityName: 'leaves',
-            entityId: id,
-            oldValues: oldLeave ? {
-                status: oldLeave.status,
-                leaveTypeId: oldLeave.leaveTypeId,
-                startDate: oldLeave.startDate,
-                endDate: oldLeave.endDate
-            } : null,
-            newValues: {
-                status: status,
-                rejectionNote: rejectionNote
-            },
-            ctx: { request } as any
-        })
+        // Audit log for approval / rejection
+        if (status === 'approved') {
+            await this.auditLogService.logApproval({
+                orgId: employee.orgId,
+                userId: employee.id,
+                module: 'LEAVE',
+                entityType: 'Leave',
+                entityId: id,
+                oldValues: oldLeave ? { status: oldLeave.status } : null,
+                newValues: { status: 'approved' },
+                description: `Approved leave application #${id}`,
+                ctx: { auth, request, response } as HttpContext
+            })
+        } else {
+            await this.auditLogService.logRejection({
+                orgId: employee.orgId,
+                userId: employee.id,
+                module: 'LEAVE',
+                entityType: 'Leave',
+                entityId: id,
+                oldValues: oldLeave ? { status: oldLeave.status } : null,
+                newValues: { status: 'rejected', rejectionNote },
+                description: `Rejected leave application #${id}. Note: ${rejectionNote || 'None'}`,
+                ctx: { auth, request, response } as HttpContext
+            })
+        }
         
         return response.ok({
             status: 'success',

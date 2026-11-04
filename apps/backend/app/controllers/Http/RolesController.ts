@@ -2,13 +2,17 @@ import { HttpContext } from '@adonisjs/core/http'
 import Role from '#models/role'
 import Permission from '#models/permission'
 import AuthorizationService from '#services/AuthorizationService'
+import AuditLogService from '#services/AuditLogService'
 import { inject } from '@adonisjs/core'
 import vine from '@vinejs/vine'
 import db from '@adonisjs/lucid/services/db'
 
 @inject()
 export default class RolesController {
-    constructor(protected authorizationService: AuthorizationService) { }
+    constructor(
+        protected authorizationService: AuthorizationService,
+        protected auditLogService: AuditLogService
+    ) { }
 
     private isPlatformSuperAdminRole(roleName: string | null | undefined, orgId: number | null | undefined): boolean {
         return String(roleName || '').trim().toLowerCase() === 'super admin' && orgId == null
@@ -165,6 +169,16 @@ export default class RolesController {
         }
 
         await role.load('permissions')
+
+        await this.auditLogService.logRoleOrPermissionChange({
+            orgId: employee.orgId,
+            userId: employee.id,
+            action: 'ROLE_CHANGE',
+            entityId: role.id,
+            newValues: { roleName, description, parentRoleId, permissionsCount: permissions ? permissions.length : 0 },
+            description: `Updated role ${role.roleName} and assigned permissions`,
+            ctx: { auth, request, response } as HttpContext
+        })
 
         return response.ok({
             status: 'success',

@@ -4,243 +4,291 @@ import { inject } from '@adonisjs/core'
 
 @inject()
 export default class AuditLogsController {
-    constructor(protected auditLogService: AuditLogService) { }
+  constructor(protected auditLogService: AuditLogService) {}
 
-    /**
-     * Create a new audit log entry
-     * Body params: action, module, entityName, entityId, oldValues, newValues
-     */
-    async store({ auth, request, response }: HttpContext) {
-        const user = auth.user!
-        
-        const {
-            action,
-            module,
-            entityName,
-            entityId,
-            oldValues,
-            newValues
-        } = request.body()
+  /**
+   * Helper to check if user has access to audit logs and determine orgId scope
+   */
+  private getAuthorizedOrgId(user: any): number | null {
+    const roleId = Number(user.roleId ?? 0)
+    // Role 1 is Super Admin with global access (if orgId is null or global scope requested)
+    if (roleId === 1 && user.orgId === null) {
+      return null
+    }
+    return user.orgId
+  }
 
-        // Validate required fields
-        if (!action || !module) {
-            return response.badRequest({
-                status: 'error',
-                message: 'Action and module are required fields'
-            })
-        }
+  /**
+   * Helper to verify if user has permission to view audit logs
+   */
+  private canAccessAuditLogs(user: any): boolean {
+    const roleId = Number(user.roleId ?? 0)
+    // Super Admin (1), Org Admin (2), HR Manager (3) have access
+    return [1, 2, 3].includes(roleId)
+  }
 
-        try {
-            const auditLog = await this.auditLogService.log({
-                orgId: user.orgId,
-                employeeId: user.id,
-                action,
-                module,
-                entityName: entityName || undefined,
-                entityId: entityId !== undefined ? String(entityId) : undefined,
-                oldValues: oldValues || undefined,
-                newValues: newValues || undefined,
-                ctx: { auth, request, response } as HttpContext
-            })
+  /**
+   * List audit logs with multi-tenant isolation, filtering, search, and pagination
+   */
+  async index({ auth, request, response }: HttpContext) {
+    const user = auth.user!
 
-            return response.created({
-                status: 'success',
-                data: auditLog
-            })
-        } catch (error) {
-            return response.internalServerError({
-                status: 'error',
-                message: 'Failed to create audit log',
-                error: error.message
-            })
-        }
+    if (!this.canAccessAuditLogs(user)) {
+      return response.forbidden({
+        status: 'error',
+        message: 'You do not have permission to access audit logs.',
+      })
     }
 
-    /**
-     * List audit logs for the current organization with advanced filtering
-     * Query params: module, action, employeeId, startDate, endDate, search, page, limit
-     */
-    async index({ auth, request, response }: HttpContext) {
-        const user = auth.user!
-        const { 
-            module, 
-            action, 
-            employeeId, 
-            startDate, 
-            endDate, 
-            search, 
-            page, 
-            limit 
-        } = request.qs()
+    const {
+      module,
+      action,
+      user_id,
+      employeeId,
+      startDate,
+      start_date,
+      endDate,
+      end_date,
+      status,
+      search,
+      sortBy,
+      sort_by,
+      sortOrder,
+      sort_order,
+      page,
+      limit,
+    } = request.qs()
 
-        // Parse query parameters
-        const parsedPage = page ? parseInt(page, 10) : 1
-        const parsedLimit = limit ? parseInt(limit, 10) : 50
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1)
+    const parsedLimit = Math.min(Math.max(1, parseInt(limit, 10) || 50), 100)
+    const effectiveOrgId = this.getAuthorizedOrgId(user)
 
-        // Validate pagination limits
-        const validLimit = Math.min(Math.max(parsedLimit, 1), 100) // Max 100 per page
+    try {
+      const result = await this.auditLogService.getLogs({
+        orgId: effectiveOrgId,
+        module: module ? String(module).trim() : undefined,
+        action: action ? String(action).trim() : undefined,
+        userId: user_id ? parseInt(user_id, 10) : employeeId ? parseInt(employeeId, 10) : undefined,
+        startDate: startDate || start_date || undefined,
+        endDate: endDate || end_date || undefined,
+        status: status ? String(status).trim() : undefined,
+        search: search ? String(search).trim() : undefined,
+        sortBy: sortBy || sort_by || 'created_at',
+        sortOrder: (sortOrder || sort_order || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc',
+        page: parsedPage,
+        limit: parsedLimit,
+      })
 
-        try {
-            const result = await this.auditLogService.getLogs({
-                orgId: user.orgId,
-                module: module || undefined,
-                action: action || undefined,
-                employeeId: employeeId ? parseInt(employeeId, 10) : undefined,
-                startDate: startDate || undefined,
-                endDate: endDate || undefined,
-                search: search || undefined,
-                page: parsedPage,
-                limit: validLimit
-            })
+      return response.ok({
+        status: 'success',
+        data: result.data,
+        meta: result.meta,
+      })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Failed to fetch audit logs',
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
 
-            return response.ok({
-                status: 'success',
-                data: result.data,
-                meta: result.meta
-            })
-        } catch (error) {
-            return response.internalServerError({
-                status: 'error',
-                message: 'Failed to fetch audit logs',
-                error: error.message
-            })
-        }
+  /**
+   * Get single audit log by ID with strict tenant isolation
+   */
+  async show({ auth, params, response }: HttpContext) {
+    const user = auth.user!
+
+    if (!this.canAccessAuditLogs(user)) {
+      return response.forbidden({
+        status: 'error',
+        message: 'You do not have permission to access audit logs.',
+      })
     }
 
-    /**
-     * Get a single audit log by ID
-     */
-    async show({ auth, params, response }: HttpContext) {
-        const user = auth.user!
-        const id = parseInt(params.id, 10)
-
-        if (isNaN(id)) {
-            return response.badRequest({
-                status: 'error',
-                message: 'Invalid audit log ID'
-            })
-        }
-
-        try {
-            const log = await this.auditLogService.getLogById(id, user.orgId)
-
-            if (!log) {
-                return response.notFound({
-                    status: 'error',
-                    message: 'Audit log not found'
-                })
-            }
-
-            return response.ok({
-                status: 'success',
-                data: log
-            })
-        } catch (error) {
-            return response.internalServerError({
-                status: 'error',
-                message: 'Failed to fetch audit log',
-                error: error.message
-            })
-        }
+    const id = parseInt(params.id, 10)
+    if (isNaN(id) || id <= 0) {
+      return response.badRequest({
+        status: 'error',
+        message: 'Invalid audit log ID',
+      })
     }
 
-    /**
-     * Get all available modules for filtering
-     */
-    async getModules({ auth, response }: HttpContext) {
-        const user = auth.user!
+    try {
+      const effectiveOrgId = this.getAuthorizedOrgId(user)
+      const log = await this.auditLogService.getLogById(id, effectiveOrgId)
 
-        try {
-            const modules = await this.auditLogService.getModules(user.orgId)
+      if (!log) {
+        return response.notFound({
+          status: 'error',
+          message: 'Audit log not found',
+        })
+      }
 
-            return response.ok({
-                status: 'success',
-                data: modules
-            })
-        } catch (error) {
-            return response.internalServerError({
-                status: 'error',
-                message: 'Failed to fetch modules',
-                error: error.message
-            })
-        }
+      return response.ok({
+        status: 'success',
+        data: log,
+      })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Failed to fetch audit log',
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  /**
+   * Get aggregated dashboard statistics
+   */
+  async statistics({ auth, response }: HttpContext) {
+    const user = auth.user!
+
+    if (!this.canAccessAuditLogs(user)) {
+      return response.forbidden({
+        status: 'error',
+        message: 'You do not have permission to view audit statistics.',
+      })
     }
 
-    /**
-     * Get all available actions for filtering
-     */
-    async getActions({ auth, response }: HttpContext) {
-        const user = auth.user!
+    try {
+      const effectiveOrgId = this.getAuthorizedOrgId(user)
+      const stats = await this.auditLogService.getStatistics(effectiveOrgId)
 
-        try {
-            const actions = await this.auditLogService.getActions(user.orgId)
+      return response.ok({
+        status: 'success',
+        data: stats,
+      })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Failed to fetch audit statistics',
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
 
-            return response.ok({
-                status: 'success',
-                data: actions
-            })
-        } catch (error) {
-            return response.internalServerError({
-                status: 'error',
-                message: 'Failed to fetch actions',
-                error: error.message
-            })
-        }
+  /**
+   * Get all distinct modules for filtering
+   */
+  async getModules({ auth, response }: HttpContext) {
+    const user = auth.user!
+    if (!this.canAccessAuditLogs(user)) {
+      return response.forbidden({ status: 'error', message: 'Forbidden' })
     }
 
-    /**
-     * Export audit logs to CSV
-     * Query params: module, action, employeeId, startDate, endDate
-     */
-    async export({ auth, request, response }: HttpContext) {
-        const user = auth.user!
-        const { 
-            module, 
-            action, 
-            employeeId, 
-            startDate, 
-            endDate 
-        } = request.qs()
+    try {
+      const effectiveOrgId = this.getAuthorizedOrgId(user)
+      const modules = await this.auditLogService.getModules(effectiveOrgId)
 
-        try {
-            const result = await this.auditLogService.exportLogs({
-                orgId: user.orgId,
-                module: module || undefined,
-                action: action || undefined,
-                employeeId: employeeId ? parseInt(employeeId, 10) : undefined,
-                startDate: startDate || undefined,
-                endDate: endDate || undefined
-            })
-
-            // Convert to CSV string
-            const csvRows = [
-                result.headers.join(','),
-                ...result.rows.map(row => row.map(cell => {
-                    // Escape CSV values
-                    const value = String(cell || '')
-                    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                        return `"${value.replace(/"/g, '""')}"`
-                    }
-                    return value
-                }).join(','))
-            ]
-            const csvContent = csvRows.join('\n')
-
-            // Set headers for CSV download
-            response.header('Content-Type', 'text/csv')
-            response.header('Content-Disposition', `attachment; filename="audit_logs_${Date.now()}.csv"`)
-
-            return response.send({
-                status: 'success',
-                data: csvContent,
-                meta: { total: result.total }
-            })
-        } catch (error) {
-            return response.internalServerError({
-                status: 'error',
-                message: 'Failed to export audit logs',
-                error: error.message
-            })
-        }
+      return response.ok({
+        status: 'success',
+        data: modules,
+      })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Failed to fetch modules',
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
+  }
+
+  /**
+   * Get all distinct actions for filtering
+   */
+  async getActions({ auth, response }: HttpContext) {
+    const user = auth.user!
+    if (!this.canAccessAuditLogs(user)) {
+      return response.forbidden({ status: 'error', message: 'Forbidden' })
+    }
+
+    try {
+      const effectiveOrgId = this.getAuthorizedOrgId(user)
+      const actions = await this.auditLogService.getActions(effectiveOrgId)
+
+      return response.ok({
+        status: 'success',
+        data: actions,
+      })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Failed to fetch actions',
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+
+  /**
+   * Export audit logs to CSV
+   */
+  async export({ auth, request, response }: HttpContext) {
+    const user = auth.user!
+
+    if (!this.canAccessAuditLogs(user)) {
+      return response.forbidden({
+        status: 'error',
+        message: 'You do not have permission to export audit logs.',
+      })
+    }
+
+    const {
+      module,
+      action,
+      user_id,
+      employeeId,
+      startDate,
+      start_date,
+      endDate,
+      end_date,
+      status,
+      search,
+    } = request.qs()
+
+    try {
+      const effectiveOrgId = this.getAuthorizedOrgId(user)
+      const result = await this.auditLogService.exportLogs({
+        orgId: effectiveOrgId,
+        module: module ? String(module).trim() : undefined,
+        action: action ? String(action).trim() : undefined,
+        userId: user_id ? parseInt(user_id, 10) : employeeId ? parseInt(employeeId, 10) : undefined,
+        startDate: startDate || start_date || undefined,
+        endDate: endDate || end_date || undefined,
+        status: status ? String(status).trim() : undefined,
+        search: search ? String(search).trim() : undefined,
+      })
+
+      const csvRows = [
+        result.headers.join(','),
+        ...result.rows.map((row) =>
+          row
+            .map((cell) => {
+              const value = String(cell ?? '')
+              if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                return `"${value.replace(/"/g, '""')}"`
+              }
+              return value
+            })
+            .join(',')
+        ),
+      ]
+      const csvContent = csvRows.join('\n')
+
+      response.header('Content-Type', 'text/csv')
+      response.header('Content-Disposition', `attachment; filename="audit_logs_${Date.now()}.csv"`)
+
+      return response.send({
+        status: 'success',
+        data: csvContent,
+        meta: { total: result.total },
+      })
+    } catch (error) {
+      return response.internalServerError({
+        status: 'error',
+        message: 'Failed to export audit logs',
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
 }

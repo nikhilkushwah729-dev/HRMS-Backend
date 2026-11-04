@@ -214,15 +214,15 @@ export default class EmployeesController {
 
             const employee = await this.employeeService.create(currentUser.orgId, payload)
 
-            await this.auditLogService.log({
+            await this.auditLogService.logCreate({
                 orgId: currentUser.orgId,
-                employeeId: currentUser.id,
-                action: 'CREATE',
-                module: 'employees',
-                entityName: 'employees',
+                userId: currentUser.id,
+                module: 'EMPLOYEE',
+                entityType: 'Employee',
                 entityId: employee.id,
-                newValues: employee.toJSON(),
-                ctx: { request } as any // Simplified for ctx.request.ip() compatibility
+                newValues: employee.toJSON ? employee.toJSON() : employee,
+                description: `Created employee record for ${employee.firstName} ${employee.lastName || ''}`.trim(),
+                ctx: { auth, request, response } as HttpContext
             })
 
             return response.created({
@@ -283,15 +283,16 @@ export default class EmployeesController {
 
         const employee = await this.employeeService.update(id, currentUser.orgId, payload)
 
-        await this.auditLogService.log({
+        await this.auditLogService.logUpdate({
             orgId: currentUser.orgId,
-            employeeId: currentUser.id,
-            action: 'UPDATE',
-            module: 'employees',
-            entityName: 'employees',
+            userId: currentUser.id,
+            module: 'EMPLOYEE',
+            entityType: 'Employee',
             entityId: employee!.id,
-            newValues: payload,
-            ctx: { request } as any
+            oldValues: existingEmployee.toJSON ? existingEmployee.toJSON() : existingEmployee,
+            newValues: employee!.toJSON ? employee!.toJSON() : employee,
+            description: `Updated employee profile for ${employee!.firstName} ${employee!.lastName || ''}`.trim(),
+            ctx: { auth, request, response } as HttpContext
         })
 
         return response.ok({
@@ -393,14 +394,15 @@ export default class EmployeesController {
         }
         await this.employeeService.delete(id, currentUser.orgId, currentUser.id)
 
-        await this.auditLogService.log({
+        await this.auditLogService.logDelete({
             orgId: currentUser.orgId,
-            employeeId: currentUser.id,
-            action: 'DELETE',
-            module: 'employees',
-            entityName: 'employees',
+            userId: currentUser.id,
+            module: 'EMPLOYEE',
+            entityType: 'Employee',
             entityId: id,
-            ctx: { request } as any
+            oldValues: targetEmployee.toJSON ? targetEmployee.toJSON() : targetEmployee,
+            description: `Deleted employee record for ${targetEmployee.firstName} ${targetEmployee.lastName || ''}`.trim(),
+            ctx: { auth, request, response } as HttpContext
         })
 
         return response.ok({

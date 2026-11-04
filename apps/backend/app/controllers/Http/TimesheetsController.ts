@@ -1,11 +1,15 @@
 import { HttpContext } from '@adonisjs/core/http'
 import TimesheetService from '#services/TimesheetService'
+import AuditLogService from '#services/AuditLogService'
 import { inject } from '@adonisjs/core'
 import vine from '@vinejs/vine'
 
 @inject()
 export default class TimesheetsController {
-  constructor(protected timesheetService: TimesheetService) {}
+  constructor(
+    protected timesheetService: TimesheetService,
+    protected auditLogService: AuditLogService
+  ) {}
 
   static upsertValidator = vine.compile(
     vine.object({
@@ -88,6 +92,31 @@ export default class TimesheetsController {
     const employee = auth.user!
     const { action, note } = await request.validateUsing(TimesheetsController.approvalActionValidator)
     const item = await this.timesheetService.review(Number(params.id), employee, action, note)
+
+    if (action === 'approve') {
+      await this.auditLogService.logApproval({
+        orgId: employee.orgId,
+        userId: employee.id,
+        module: 'TIMESHEET',
+        entityType: 'Timesheet',
+        entityId: Number(params.id),
+        newValues: { status: 'approved', note },
+        description: `Approved timesheet #${params.id}`,
+        ctx: { auth, request, response } as HttpContext,
+      })
+    } else if (action === 'reject') {
+      await this.auditLogService.logRejection({
+        orgId: employee.orgId,
+        userId: employee.id,
+        module: 'TIMESHEET',
+        entityType: 'Timesheet',
+        entityId: Number(params.id),
+        newValues: { status: 'rejected', note },
+        description: `Rejected timesheet #${params.id}. Reason: ${note || 'None'}`,
+        ctx: { auth, request, response } as HttpContext,
+      })
+    }
+
     return response.ok({ status: 'success', data: item })
   }
 

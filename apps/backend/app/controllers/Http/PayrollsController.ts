@@ -1,11 +1,15 @@
 import { HttpContext } from '@adonisjs/core/http'
 import PayrollService from '#services/PayrollService'
+import AuditLogService from '#services/AuditLogService'
 import { inject } from '@adonisjs/core'
 import vine from '@vinejs/vine'
 
 @inject()
 export default class PayrollsController {
-    constructor(protected payrollService: PayrollService) { }
+    constructor(
+        protected payrollService: PayrollService,
+        protected auditLogService: AuditLogService
+    ) { }
 
     static payrollValidator = vine.compile(
         vine.object({
@@ -35,6 +39,18 @@ export default class PayrollsController {
         const currentUser = auth.user!
         const { employeeId, month, year } = await request.validateUsing(PayrollsController.payrollValidator)
         const payroll = await this.payrollService.generate(employeeId, currentUser.orgId, month, year)
+
+        await this.auditLogService.logCreate({
+            orgId: currentUser.orgId,
+            userId: currentUser.id,
+            module: 'PAYROLL',
+            entityType: 'Payroll',
+            entityId: payroll.id,
+            newValues: payroll.toJSON ? payroll.toJSON() : payroll,
+            description: `Processed payroll for employee #${employeeId} for period ${month}/${year}`,
+            ctx: { auth, request, response } as HttpContext,
+        })
+
         return response.created({
             status: 'success',
             message: 'Payroll generated successfully',

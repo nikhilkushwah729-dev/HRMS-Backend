@@ -1,10 +1,14 @@
 import { HttpContext } from '@adonisjs/core/http'
 import ReportService from '#services/ReportService'
+import AuditLogService from '#services/AuditLogService'
 import { inject } from '@adonisjs/core'
 
 @inject()
 export default class ReportsController {
-  constructor(protected reportService: ReportService) { }
+  constructor(
+    protected reportService: ReportService,
+    protected auditLogService: AuditLogService
+  ) { }
 
   /**
    * Get daily attendance report
@@ -264,6 +268,15 @@ export default class ReportsController {
 
       response.header('Content-Type', 'text/csv')
       response.header('Content-Disposition', 'attachment; filename="attendance_report.csv"')
+
+      await this.auditLogService.logExport({
+        orgId: user.orgId,
+        userId: user.id,
+        module: 'REPORTS',
+        description: `Exported attendance report from ${startDate} to ${endDate}`,
+        ctx: { auth, request, response } as HttpContext,
+      })
+
       return response.send(csvContent)
     } catch (error) {
       return response.internalServerError({ message: error.message })
