@@ -10,6 +10,66 @@ import db from '@adonisjs/lucid/services/db'
 
 export default class AttendanceService {
     private static isPayrollTableEnsured = false
+    private static isEmployeeShiftsTableEnsured = false
+
+    public static async ensureEmployeeShiftsTable() {
+        if (AttendanceService.isEmployeeShiftsTableEnsured) return
+        try {
+            const schema = db.connection().schema
+            const hasTable = await schema.hasTable('employee_shifts')
+            if (!hasTable) {
+                try {
+                    await schema.createTable('employee_shifts', (table) => {
+                        table.increments('id').unsigned().primary()
+                        table.integer('employee_id').unsigned().notNullable()
+                        table.integer('shift_id').unsigned().notNullable()
+                        table.date('effective_from').nullable()
+                        table.date('effective_to').nullable()
+                        table.timestamp('assigned_at').defaultTo(db.rawQuery('CURRENT_TIMESTAMP'))
+                        table.index(['employee_id'], 'idx_emp_shifts_emp_id')
+                        table.index(['shift_id'], 'idx_emp_shifts_shift_id')
+                    })
+                } catch {
+                    await db.rawQuery(`
+                        CREATE TABLE IF NOT EXISTS employee_shifts (
+                            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                            employee_id INT UNSIGNED NOT NULL,
+                            shift_id INT UNSIGNED NOT NULL,
+                            effective_from DATE NULL,
+                            effective_to DATE NULL,
+                            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            INDEX idx_emp_shifts_emp_id (employee_id),
+                            INDEX idx_emp_shifts_shift_id (shift_id)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                    `)
+                }
+            } else {
+                const hasEffectiveFrom = await schema.hasColumn('employee_shifts', 'effective_from')
+                if (!hasEffectiveFrom) {
+                    try {
+                        await schema.alterTable('employee_shifts', (table) => {
+                            table.date('effective_from').nullable()
+                        })
+                    } catch {
+                        await db.rawQuery('ALTER TABLE employee_shifts ADD COLUMN effective_from DATE NULL;')
+                    }
+                }
+                const hasEffectiveTo = await schema.hasColumn('employee_shifts', 'effective_to')
+                if (!hasEffectiveTo) {
+                    try {
+                        await schema.alterTable('employee_shifts', (table) => {
+                            table.date('effective_to').nullable()
+                        })
+                    } catch {
+                        await db.rawQuery('ALTER TABLE employee_shifts ADD COLUMN effective_to DATE NULL;')
+                    }
+                }
+            }
+            AttendanceService.isEmployeeShiftsTableEnsured = true
+        } catch (error) {
+            console.error('[AttendanceService] ensureEmployeeShiftsTable warning:', error)
+        }
+    }
 
     private static async ensurePayrollsTable() {
         if (AttendanceService.isPayrollTableEnsured) return
@@ -203,19 +263,37 @@ export default class AttendanceService {
 
         if (!resolvedShift) {
             // Check if employee has an assigned shift
-            const empShift = await EmployeeShift.query()
-                .where('employee_id', employeeId)
-                .where('effective_from', '<=', todayStr)
-                .where((q) => {
-                    q.whereNull('effective_to').orWhere('effective_to', '>=', todayStr)
-                })
-                .preload('shift')
-                .orderBy('effective_from', 'desc')
-                .first()
+            try {
+                await AttendanceService.ensureEmployeeShiftsTable()
 
-            if (empShift?.shift) {
-                resolvedShift = empShift.shift
-            } else {
+                const schema = db.connection().schema
+                const hasEffectiveFrom = await schema.hasColumn('employee_shifts', 'effective_from').catch(() => false)
+
+                let empShiftQuery = EmployeeShift.query()
+                    .where('employee_id', employeeId)
+                    .preload('shift')
+
+                if (hasEffectiveFrom) {
+                    empShiftQuery = empShiftQuery
+                        .where((q) => {
+                            q.whereNull('effective_from').orWhere('effective_from', '<=', todayStr)
+                        })
+                        .where((q) => {
+                            q.whereNull('effective_to').orWhere('effective_to', '>=', todayStr)
+                        })
+                        .orderBy('effective_from', 'desc')
+                }
+
+                const empShift = await empShiftQuery.first()
+
+                if (empShift?.shift) {
+                    resolvedShift = empShift.shift
+                }
+            } catch (shiftErr) {
+                console.warn('[AttendanceService] Could not resolve assigned shift, falling back to org default:', shiftErr)
+            }
+
+            if (!resolvedShift) {
                 // Fallback to active organization default shift
                 resolvedShift = await Shift.query()
                     .where('org_id', orgId)

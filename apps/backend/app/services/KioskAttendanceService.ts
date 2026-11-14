@@ -215,6 +215,31 @@ export default class KioskAttendanceService {
         }
       }
 
+      // 5. employee_shifts columns for effective dates
+      const hasEmployeeShifts = await schema.hasTable('employee_shifts')
+      if (hasEmployeeShifts) {
+        const hasEffectiveFrom = await schema.hasColumn('employee_shifts', 'effective_from')
+        if (!hasEffectiveFrom) {
+          try {
+            await schema.alterTable('employee_shifts', (table) => {
+              table.date('effective_from').nullable()
+            })
+          } catch {
+            await db.rawQuery('ALTER TABLE employee_shifts ADD COLUMN effective_from DATE NULL;')
+          }
+        }
+        const hasEffectiveTo = await schema.hasColumn('employee_shifts', 'effective_to')
+        if (!hasEffectiveTo) {
+          try {
+            await schema.alterTable('employee_shifts', (table) => {
+              table.date('effective_to').nullable()
+            })
+          } catch {
+            await db.rawQuery('ALTER TABLE employee_shifts ADD COLUMN effective_to DATE NULL;')
+          }
+        }
+      }
+
       KioskAttendanceService.isTablesEnsured = true
     } catch (error) {
       console.error('[KioskAttendanceService] ensureTables warning:', error)
@@ -820,26 +845,42 @@ export default class KioskAttendanceService {
   private async resolveShift(employeeId: number, orgId: number) {
     const today = DateTime.now().toISODate()!
 
-    const assignedShift = await db
-      .from('employee_shifts as es')
-      .join('shifts as s', 's.id', 'es.shift_id')
-      .where('es.employee_id', employeeId)
-      .where('es.effective_from', '<=', today)
-      .where((builder) => {
-        builder.whereNull('es.effective_to').orWhere('es.effective_to', '>=', today)
-      })
-      .where('s.is_active', true)
-      .select(
-        's.id',
-        db.raw('s.shift_name as name'),
-        's.start_time',
-        's.end_time',
-        db.raw('s.grace_minutes as grace_time'),
-      )
-      .first()
+    try {
+      await KioskAttendanceService.ensureTables()
+      const schema = db.connection().schema
+      const hasEffectiveFrom = await schema.hasColumn('employee_shifts', 'effective_from').catch(() => false)
 
-    if (assignedShift) {
-      return assignedShift
+      let query = db
+        .from('employee_shifts as es')
+        .join('shifts as s', 's.id', 'es.shift_id')
+        .where('es.employee_id', employeeId)
+        .where('s.is_active', true)
+
+      if (hasEffectiveFrom) {
+        query = query
+          .where((builder) => {
+            builder.whereNull('es.effective_from').orWhere('es.effective_from', '<=', today)
+          })
+          .where((builder) => {
+            builder.whereNull('es.effective_to').orWhere('es.effective_to', '>=', today)
+          })
+      }
+
+      const assignedShift = await query
+        .select(
+          's.id',
+          db.raw('s.shift_name as name'),
+          's.start_time',
+          's.end_time',
+          db.raw('s.grace_minutes as grace_time'),
+        )
+        .first()
+
+      if (assignedShift) {
+        return assignedShift
+      }
+    } catch (err) {
+      console.warn('[KioskAttendanceService] resolveShift warning:', err)
     }
 
     return db
