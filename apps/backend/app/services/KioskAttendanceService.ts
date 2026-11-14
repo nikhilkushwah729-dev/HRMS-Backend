@@ -240,6 +240,21 @@ export default class KioskAttendanceService {
         }
       }
 
+      // 6. shifts table columns
+      const hasShiftsTable = await schema.hasTable('shifts')
+      if (hasShiftsTable) {
+        const hasIsActive = await schema.hasColumn('shifts', 'is_active')
+        if (!hasIsActive) {
+          try {
+            await schema.alterTable('shifts', (table) => {
+              table.boolean('is_active').notNullable().defaultTo(true)
+            })
+          } catch {
+            await db.rawQuery('ALTER TABLE shifts ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1;')
+          }
+        }
+      }
+
       KioskAttendanceService.isTablesEnsured = true
     } catch (error) {
       console.error('[KioskAttendanceService] ensureTables warning:', error)
@@ -883,19 +898,32 @@ export default class KioskAttendanceService {
       console.warn('[KioskAttendanceService] resolveShift warning:', err)
     }
 
-    return db
-      .from('shifts')
-      .where('org_id', orgId)
-      .where('is_active', true)
-      .select(
-        'id',
-        db.raw('shift_name as name'),
-        'start_time',
-        'end_time',
-        db.raw('grace_minutes as grace_time'),
-      )
-      .orderBy('id', 'asc')
-      .first()
+    try {
+      const schema = db.connection().schema
+      const hasIsActive = await schema.hasColumn('shifts', 'is_active').catch(() => false)
+
+      let fallbackQuery = db.from('shifts').where('org_id', orgId)
+      if (hasIsActive) {
+        fallbackQuery = fallbackQuery.where('is_active', true)
+      }
+
+      const shift = await fallbackQuery
+        .select(
+          'id',
+          db.raw('COALESCE(shift_name, name, "General Shift") as name'),
+          'start_time',
+          'end_time',
+          db.raw('COALESCE(grace_minutes, grace_time, 15) as grace_time'),
+        )
+        .orderBy('id', 'asc')
+        .first()
+
+      if (shift) return shift
+    } catch (kioskShiftErr) {
+      console.warn('[KioskAttendanceService] Fallback shift query warning:', kioskShiftErr)
+    }
+
+    return null
   }
 
   private calculateExpectedShiftMinutes(shift: any) {

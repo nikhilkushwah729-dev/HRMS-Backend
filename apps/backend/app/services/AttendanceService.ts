@@ -11,6 +11,64 @@ import db from '@adonisjs/lucid/services/db'
 export default class AttendanceService {
     private static isPayrollTableEnsured = false
     private static isEmployeeShiftsTableEnsured = false
+    private static isShiftsTableEnsured = false
+
+    public static async ensureShiftsTable() {
+        if (AttendanceService.isShiftsTableEnsured) return
+        try {
+            const schema = db.connection().schema
+            const hasTable = await schema.hasTable('shifts')
+            if (hasTable) {
+                const hasIsActive = await schema.hasColumn('shifts', 'is_active')
+                if (!hasIsActive) {
+                    try {
+                        await schema.alterTable('shifts', (table) => {
+                            table.boolean('is_active').notNullable().defaultTo(true)
+                        })
+                    } catch {
+                        await db.rawQuery('ALTER TABLE shifts ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1;')
+                    }
+                }
+
+                const hasShiftName = await schema.hasColumn('shifts', 'shift_name')
+                const hasName = await schema.hasColumn('shifts', 'name')
+                if (!hasShiftName) {
+                    try {
+                        await schema.alterTable('shifts', (table) => {
+                            table.string('shift_name', 100).nullable()
+                        })
+                    } catch {
+                        await db.rawQuery('ALTER TABLE shifts ADD COLUMN shift_name VARCHAR(100) NULL;')
+                    }
+                    if (hasName) {
+                        try {
+                            await db.rawQuery('UPDATE shifts SET shift_name = name WHERE shift_name IS NULL;')
+                        } catch {}
+                    }
+                }
+
+                const hasGraceMinutes = await schema.hasColumn('shifts', 'grace_minutes')
+                const hasGraceTime = await schema.hasColumn('shifts', 'grace_time')
+                if (!hasGraceMinutes) {
+                    try {
+                        await schema.alterTable('shifts', (table) => {
+                            table.integer('grace_minutes').notNullable().defaultTo(15)
+                        })
+                    } catch {
+                        await db.rawQuery('ALTER TABLE shifts ADD COLUMN grace_minutes INT NOT NULL DEFAULT 15;')
+                    }
+                    if (hasGraceTime) {
+                        try {
+                            await db.rawQuery('UPDATE shifts SET grace_minutes = grace_time WHERE grace_minutes IS NULL;')
+                        } catch {}
+                    }
+                }
+            }
+            AttendanceService.isShiftsTableEnsured = true
+        } catch (error) {
+            console.error('[AttendanceService] ensureShiftsTable warning:', error)
+        }
+    }
 
     public static async ensureEmployeeShiftsTable() {
         if (AttendanceService.isEmployeeShiftsTableEnsured) return
@@ -295,15 +353,43 @@ export default class AttendanceService {
 
             if (!resolvedShift) {
                 // Fallback to active organization default shift
-                resolvedShift = await Shift.query()
-                    .where('org_id', orgId)
-                    .where('is_active', true)
-                    .orderBy('id', 'asc')
-                    .first()
+                try {
+                    await AttendanceService.ensureShiftsTable()
+
+                    const schema = db.connection().schema
+                    const hasIsActive = await schema.hasColumn('shifts', 'is_active').catch(() => false)
+
+                    let shiftQuery = Shift.query().where('org_id', orgId)
+                    if (hasIsActive) {
+                        shiftQuery = shiftQuery.where('is_active', true)
+                    }
+
+                    resolvedShift = await shiftQuery.orderBy('id', 'asc').first()
+                } catch (shiftErr) {
+                    console.warn('[AttendanceService] Fallback shift query with model failed, attempting raw fallback:', shiftErr)
+                    try {
+                        const rawShift = await db.from('shifts')
+                            .where('org_id', orgId)
+                            .orderBy('id', 'asc')
+                            .first()
+                        if (rawShift) {
+                            resolvedShift = new Shift()
+                            resolvedShift.id = rawShift.id
+                            resolvedShift.orgId = rawShift.org_id
+                            resolvedShift.name = rawShift.shift_name || rawShift.name || 'General Shift'
+                            resolvedShift.startTime = rawShift.start_time || '09:00:00'
+                            resolvedShift.endTime = rawShift.end_time || '18:00:00'
+                            resolvedShift.graceTime = Number(rawShift.grace_minutes || rawShift.grace_time || 15)
+                            resolvedShift.isActive = Boolean(rawShift.is_active ?? true)
+                        }
+                    } catch (rawErr) {
+                        console.error('[AttendanceService] Raw fallback shift query also failed:', rawErr)
+                    }
+                }
             }
         }
 
-        if (resolvedShift) {
+        if (resolvedShift && resolvedShift.id) {
             shiftIdToSave = resolvedShift.id
             const startTimeStr = resolvedShift.startTime || '09:00:00'
             const [startH, startM] = startTimeStr.split(':').map(Number)
